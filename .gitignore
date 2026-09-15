@@ -1,0 +1,36 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# IDE files
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+*.sln.docstates
+
+# Qt generated files
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.moc
+
+# Compiled files
+*.obj
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+*.lib
+*.a
+
+# Project files
+Toolbox_AI_Development_Plan.md
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
