@@ -12,6 +12,7 @@ target_link_libraries(Toolbox PRIVATE
     Qt6::Widgets
     ToolboxCore
     ToolboxUI
+    ToolBase64
 )
 
 target_include_directories(Toolbox PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
