@@ -29,6 +29,7 @@ qrc_*.cpp
 
 # Project files
 Toolbox_AI_Development_Plan.md
+DEV_NOTES.md
 
 # OS files
 .DS_Store
