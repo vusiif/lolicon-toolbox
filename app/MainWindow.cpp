@@ -1,5 +1,6 @@
 #include "MainWindow.h"
 #include "Sidebar.h"
+#include "Theme.h"
 #include "navigation/NavigationManager.h"
 #include "tool/ToolRegistry.h"
 #include "tool/ToolPageManager.h"
@@ -20,24 +21,32 @@ MainWindow::MainWindow(NavigationManager* navManager,
 {
     setupUi();
     setWindowTitle("Toolbox");
-    resize(900, 600);
+    resize(960, 640);
 }
 
 void MainWindow::setupUi()
 {
+    setStyleSheet(theme::globalStyleSheet());
+
     auto* centralWidget = new QWidget(this);
+    centralWidget->setObjectName("centralWidget");
     auto* layout = new QHBoxLayout(centralWidget);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
 
     m_sidebar = new Sidebar(this);
     m_sidebar->build(m_navManager, m_registry);
-    m_sidebar->setFixedWidth(200);
+    m_sidebar->setFixedWidth(220);
 
     auto* placeholder = new QLabel("Select a tool from the sidebar", this);
     placeholder->setAlignment(Qt::AlignCenter);
+    QFont placeholderFont = placeholder->font();
+    placeholderFont.setPointSize(13);
+    placeholder->setFont(placeholderFont);
+    placeholder->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextDisabled));
 
     m_pageStack = new QStackedWidget(this);
+    m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg));
     m_pageStack->addWidget(placeholder);
 
     layout->addWidget(m_sidebar);

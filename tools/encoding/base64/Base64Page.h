@@ -4,6 +4,7 @@
 
 class QTextEdit;
 class QLabel;
+class QPushButton;
 
 class Base64Page : public ToolPage
 {
@@ -15,6 +16,7 @@ public:
 
 private:
     void setupUi();
+    QPushButton* createButton(const QString& text, bool primary = false);
 
     QTextEdit* m_inputEdit = nullptr;
     QTextEdit* m_outputEdit = nullptr;
