@@ -10,6 +10,8 @@
 #include <QStackedWidget>
 #include <QWidget>
 
+#include <dwmapi.h>
+
 MainWindow::MainWindow(NavigationManager* navManager,
                        ToolRegistry* registry,
                        ToolPageManager* pageManager,
@@ -59,4 +61,13 @@ void MainWindow::setupUi()
             m_pageManager->openTool(toolId);
         }
     });
+}
+
+void MainWindow::showEvent(QShowEvent* event)
+{
+    QMainWindow::showEvent(event);
+
+    HWND hwnd = reinterpret_cast<HWND>(winId());
+    BOOL useDarkMode = TRUE;
+    DwmSetWindowAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &useDarkMode, sizeof(useDarkMode));
 }

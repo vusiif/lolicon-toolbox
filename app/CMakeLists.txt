@@ -13,6 +13,7 @@ target_link_libraries(Toolbox PRIVATE
     ToolboxCore
     ToolboxUI
     ToolBase64
+    dwmapi
 )
 
 target_include_directories(Toolbox PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

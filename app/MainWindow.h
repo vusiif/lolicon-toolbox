@@ -21,6 +21,7 @@ public:
 
 private:
     void setupUi();
+    void showEvent(QShowEvent* event) override;
 
     QStackedWidget* m_pageStack = nullptr;
     Sidebar* m_sidebar = nullptr;
