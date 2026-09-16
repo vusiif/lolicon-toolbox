@@ -1,6 +1,6 @@
 #include "Base64Page.h"
 #include "Base64Codec.h"
-#include "Theme.h"
+#include "theme/Theme.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>

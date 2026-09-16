@@ -1,6 +1,6 @@
 #include "MainWindow.h"
 #include "Sidebar.h"
-#include "Theme.h"
+#include "theme/Theme.h"
 #include "navigation/NavigationManager.h"
 #include "tool/ToolRegistry.h"
 #include "tool/ToolPageManager.h"

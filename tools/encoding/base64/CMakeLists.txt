@@ -11,5 +11,4 @@ target_link_libraries(ToolBase64 PUBLIC
     Qt6::Core
     Qt6::Widgets
     ToolboxCore
-    ToolboxUI
 )
