@@ -4,15 +4,57 @@
 #include "tool/ToolRegistry.h"
 
 #include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QTreeWidget>
+#include <QPushButton>
 #include <QLabel>
+#include <QVariantAnimation>
 
 Sidebar::Sidebar(QWidget* parent)
     : QWidget(parent)
 {
+    m_widthAnim = new QVariantAnimation(this);
+    m_widthAnim->setDuration(250);
+    m_widthAnim->setEasingCurve(QEasingCurve::InOutCubic);
+    connect(m_widthAnim, &QVariantAnimation::valueChanged, this, [this](const QVariant& val) {
+        setFixedWidth(val.toInt());
+    });
+
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(0, 0, 0, 0);
     m_layout->setSpacing(0);
+
+    auto* topBar = new QWidget(this);
+    topBar->setFixedHeight(44);
+    topBar->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+    auto* topLayout = new QHBoxLayout(topBar);
+    topLayout->setContentsMargins(8, 4, 8, 4);
+
+    m_toggleBtn = new QPushButton(QStringLiteral("\u2630"), topBar);
+    m_toggleBtn->setFixedSize(36, 36);
+    m_toggleBtn->setCursor(Qt::PointingHandCursor);
+    m_toggleBtn->setStyleSheet(QStringLiteral(R"(
+        QPushButton {
+            background-color: transparent;
+            color: %1;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+        }
+        QPushButton:hover {
+            background-color: %2;
+        }
+        QPushButton:pressed {
+            background-color: %3;
+        }
+    )")
+    .arg(theme::TextPrimary)
+    .arg(theme::SidebarHover)
+    .arg(theme::SidebarActive));
+    connect(m_toggleBtn, &QPushButton::clicked, this, &Sidebar::toggle);
+
+    topLayout->addWidget(m_toggleBtn);
+    topLayout->addStretch();
 
     m_tree = new QTreeWidget(this);
     m_tree->setHeaderHidden(true);
@@ -74,10 +116,13 @@ Sidebar::Sidebar(QWidget* parent)
     m_bottomArea->setFixedHeight(48);
     m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
 
+    m_layout->addWidget(topBar, 0);
     m_layout->addWidget(m_tree, 1);
     m_layout->addWidget(m_bottomArea, 0);
 
     connect(m_tree, &QTreeWidget::itemClicked, this, &Sidebar::onItemClicked);
+
+    setFixedWidth(m_expandedWidth);
 }
 
 void Sidebar::build(NavigationManager* navManager, ToolRegistry* registry)
@@ -127,6 +172,40 @@ void Sidebar::build(NavigationManager* navManager, ToolRegistry* registry)
 QWidget* Sidebar::bottomArea() const
 {
     return m_bottomArea;
+}
+
+void Sidebar::expand()
+{
+    if (m_expanded) return;
+    m_expanded = true;
+    m_widthAnim->setStartValue(m_collapsedWidth);
+    m_widthAnim->setEndValue(m_expandedWidth);
+    m_widthAnim->start();
+    m_tree->show();
+    m_bottomArea->show();
+    emit expandStateChanged(true);
+}
+
+void Sidebar::retract()
+{
+    if (!m_expanded) return;
+    m_expanded = false;
+    m_widthAnim->setStartValue(m_expandedWidth);
+    m_widthAnim->setEndValue(m_collapsedWidth);
+    m_widthAnim->start();
+    m_tree->hide();
+    m_bottomArea->hide();
+    emit expandStateChanged(false);
+}
+
+void Sidebar::toggle()
+{
+    m_expanded ? retract() : expand();
+}
+
+bool Sidebar::isExpanded() const
+{
+    return m_expanded;
 }
 
 void Sidebar::onItemClicked(QTreeWidgetItem* item, int column)
