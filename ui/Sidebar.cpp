@@ -54,8 +54,33 @@ Sidebar::Sidebar(QWidget* parent)
     .arg(theme::SidebarActive()));
     connect(m_toggleBtn, &QPushButton::clicked, this, &Sidebar::toggle);
 
+    m_settingsBtn = new QPushButton(QStringLiteral("\u2699"), m_headerWidget);
+    m_settingsBtn->setFixedSize(36, 36);
+    m_settingsBtn->setCursor(Qt::PointingHandCursor);
+    m_settingsBtn->setToolTip(QStringLiteral("Settings"));
+    m_settingsBtn->setStyleSheet(QStringLiteral(R"(
+        QPushButton {
+            background-color: transparent;
+            color: %1;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        QPushButton:hover {
+            background-color: %2;
+        }
+        QPushButton:pressed {
+            background-color: %3;
+        }
+    )")
+    .arg(theme::TextSecondary())
+    .arg(theme::SidebarHover())
+    .arg(theme::SidebarActive()));
+    connect(m_settingsBtn, &QPushButton::clicked, this, &Sidebar::settingsClicked);
+
     headerLayout->addWidget(m_toggleBtn);
     headerLayout->addStretch();
+    headerLayout->addWidget(m_settingsBtn);
 
     auto* scrollArea = new QScrollArea(this);
     scrollArea->setFrameShape(QFrame::NoFrame);

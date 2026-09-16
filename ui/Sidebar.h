@@ -46,6 +46,7 @@ private:
     QVBoxLayout* m_mainLayout = nullptr;
     QWidget* m_headerWidget = nullptr;
     QPushButton* m_toggleBtn = nullptr;
+    QPushButton* m_settingsBtn = nullptr;
     QWidget* m_listWidget = nullptr;
     QVBoxLayout* m_listLayout = nullptr;
     QWidget* m_bottomArea = nullptr;

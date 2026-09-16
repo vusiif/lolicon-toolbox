@@ -1,8 +1,6 @@
 #include "LanguageManager.h"
 #include <QTranslator>
 #include <QApplication>
-#include <QDir>
-#include <QFileInfo>
 
 LanguageManager& LanguageManager::instance()
 {
@@ -51,11 +49,16 @@ void LanguageManager::loadTranslation(const QString& locale)
         return;
     }
 
-    QString qmPath = QCoreApplication::applicationDirPath()
-                     + "/translations/" + locale + ".qm";
+    // Try resource path first (compiled into binary), then file system
+    QString resourcePath = ":/translations/" + locale + ".qm";
+    if (m_translator->load(resourcePath)) {
+        qApp->installTranslator(m_translator);
+        return;
+    }
 
-    if (QFileInfo::exists(qmPath)) {
-        m_translator->load(qmPath);
+    QString filePath = QCoreApplication::applicationDirPath()
+                       + "/translations/" + locale + ".qm";
+    if (m_translator->load(filePath)) {
         qApp->installTranslator(m_translator);
     }
 }

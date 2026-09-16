@@ -14,7 +14,6 @@
 #include <QStackedWidget>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
-#include <QPushButton>
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -48,38 +47,11 @@ void MainWindow::setupUi()
     m_sidebar->setFixedWidth(220);
 
     auto* bottomLayout = new QHBoxLayout(m_sidebar->bottomArea());
-    bottomLayout->setContentsMargins(8, 0, 8, 0);
-    bottomLayout->setSpacing(4);
-
-    auto* settingsBtn = new QPushButton(QStringLiteral("\u2699"), m_sidebar->bottomArea());
-    settingsBtn->setFixedSize(36, 36);
-    settingsBtn->setCursor(Qt::PointingHandCursor);
-    settingsBtn->setToolTip(tr("Settings"));
-    settingsBtn->setStyleSheet(QStringLiteral(R"(
-        QPushButton {
-            background-color: transparent;
-            color: %1;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        QPushButton:hover {
-            background-color: %2;
-        }
-        QPushButton:pressed {
-            background-color: %3;
-        }
-    )")
-    .arg(theme::TextSecondary())
-    .arg(theme::SidebarHover())
-    .arg(theme::SidebarActive()));
-    connect(settingsBtn, &QPushButton::clicked, m_sidebar, &Sidebar::settingsClicked);
+    bottomLayout->setContentsMargins(16, 0, 16, 0);
 
     auto* versionLabel = new QLabel("v0.1.0", m_sidebar->bottomArea());
     versionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(theme::TextDisabled()));
 
-    bottomLayout->addWidget(settingsBtn);
-    bottomLayout->addStretch();
     bottomLayout->addWidget(versionLabel);
 
     auto* placeholder = new QLabel(tr("Select a tool from the sidebar"), this);
