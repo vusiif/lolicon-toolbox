@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QPushButton>
 
 SettingsPage::SettingsPage(QWidget* parent)
     : QWidget(parent)
@@ -30,6 +31,7 @@ void SettingsPage::setupUi()
 
     mainLayout->addWidget(titleLabel);
 
+    // Theme group
     auto* themeGroup = new QGroupBox(tr("Theme"), this);
     themeGroup->setStyleSheet(QStringLiteral(R"(
         QGroupBox {
@@ -105,6 +107,7 @@ void SettingsPage::setupUi()
 
     mainLayout->addWidget(themeGroup);
 
+    // Language group
     auto* langGroup = new QGroupBox(tr("Language"), this);
     langGroup->setStyleSheet(QStringLiteral(R"(
         QGroupBox {
@@ -172,14 +175,48 @@ void SettingsPage::setupUi()
     }
     m_langCombo->setCurrentText(langMgr.localeName(langMgr.currentLocale()));
 
-    connect(m_langCombo, &QComboBox::currentIndexChanged, this, [this](int index) {
-        QString locale = m_langCombo->itemData(index).toString();
-        emit languageChanged(locale);
-    });
-
     langLayout->addWidget(langLabel);
     langLayout->addWidget(m_langCombo);
 
     mainLayout->addWidget(langGroup);
+
+    // Apply button
+    auto* btnLayout = new QHBoxLayout();
+    btnLayout->addStretch();
+
+    m_applyBtn = new QPushButton(tr("Apply Language"), this);
+    m_applyBtn->setCursor(Qt::PointingHandCursor);
+    m_applyBtn->setFixedHeight(36);
+    m_applyBtn->setMinimumWidth(120);
+    m_applyBtn->setStyleSheet(QStringLiteral(R"(
+        QPushButton {
+            background-color: %1;
+            color: %2;
+            border: none;
+            border-radius: 6px;
+            padding: 0 24px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        QPushButton:hover {
+            background-color: %3;
+        }
+        QPushButton:pressed {
+            background-color: %4;
+        }
+    )")
+    .arg(theme::Accent())
+    .arg(theme::WindowBg())
+    .arg(theme::AccentHover())
+    .arg(theme::AccentPressed()));
+
+    connect(m_applyBtn, &QPushButton::clicked, this, [this]() {
+        QString locale = m_langCombo->currentData().toString();
+        emit languageApplyRequested(locale);
+    });
+
+    btnLayout->addWidget(m_applyBtn);
+
+    mainLayout->addLayout(btnLayout);
     mainLayout->addStretch();
 }

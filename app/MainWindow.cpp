@@ -99,7 +99,7 @@ void MainWindow::setupUi()
         fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
     });
 
-    connect(m_settingsPage, &SettingsPage::languageChanged, this, [this](const QString& locale) {
+    connect(m_settingsPage, &SettingsPage::languageApplyRequested, this, [this](const QString& locale) {
         LanguageManager::instance().setLanguage(locale);
     });
 

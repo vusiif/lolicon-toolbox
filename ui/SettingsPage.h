@@ -3,7 +3,7 @@
 #include <QWidget>
 
 class QComboBox;
-class QLabel;
+class QPushButton;
 
 class SettingsPage : public QWidget
 {
@@ -14,12 +14,12 @@ public:
     ~SettingsPage() override = default;
 
 signals:
-    void languageChanged(const QString& locale);
+    void languageApplyRequested(const QString& locale);
 
 private:
     void setupUi();
-    void refreshThemePreview();
 
     QComboBox* m_themeCombo = nullptr;
     QComboBox* m_langCombo = nullptr;
+    QPushButton* m_applyBtn = nullptr;
 };
