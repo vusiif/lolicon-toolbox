@@ -39,7 +39,7 @@ void TestBase64Codec::encodeHelloWorld()
 
 void TestBase64Codec::encodeUtf8()
 {
-    QString result = Base64Codec::encode("你好");
+    std::string result = Base64Codec::encode("你好");
     QCOMPARE(result, "5L2g5aW9");
 }
 
@@ -87,7 +87,7 @@ void TestBase64Codec::decodeInvalid()
     QFETCH(QString, description);
     Q_UNUSED(description);
 
-    auto result = Base64Codec::decode(input);
+    auto result = Base64Codec::decode(input.toStdString());
     QVERIFY(!result.has_value());
 }
 
@@ -103,10 +103,10 @@ void TestBase64Codec::encodeDecodeRoundtrip()
     };
 
     for (const auto& original : testCases) {
-        QString encoded = Base64Codec::encode(original);
+        std::string encoded = Base64Codec::encode(original.toStdString());
         auto decoded = Base64Codec::decode(encoded);
-        QVERIFY2(decoded.has_value(), qPrintable("Failed to decode: " + encoded));
-        QCOMPARE(decoded.value(), original);
+        QVERIFY2(decoded.has_value(), qPrintable("Failed to decode: " + QString::fromStdString(encoded)));
+        QCOMPARE(decoded.value(), original.toStdString());
     }
 }
 

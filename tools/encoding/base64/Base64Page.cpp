@@ -170,8 +170,8 @@ void Base64Page::setupUi()
             m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger));
             return;
         }
-        QString result = Base64Codec::encode(input);
-        m_outputEdit->setPlainText(result);
+        std::string result = Base64Codec::encode(input.toStdString());
+        m_outputEdit->setPlainText(QString::fromStdString(result));
         m_statusLabel->setText("Encoded successfully");
         m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success));
     });
@@ -183,9 +183,9 @@ void Base64Page::setupUi()
             m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger));
             return;
         }
-        auto result = Base64Codec::decode(input);
+        auto result = Base64Codec::decode(input.toStdString());
         if (result.has_value()) {
-            m_outputEdit->setPlainText(result.value());
+            m_outputEdit->setPlainText(QString::fromStdString(result.value()));
             m_statusLabel->setText("Decoded successfully");
             m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success));
         } else {

@@ -1,21 +1,23 @@
 #include "Base64Codec.h"
+#include "base64.hpp"
 
-#include <QByteArray>
-
-QString Base64Codec::encode(const QString& input)
+std::string Base64Codec::encode(const std::string& input)
 {
-    return input.toUtf8().toBase64();
+    if (input.empty()) {
+        return "";
+    }
+    return base64::to_base64(input);
 }
 
-std::optional<QString> Base64Codec::decode(const QString& input)
+std::optional<std::string> Base64Codec::decode(const std::string& input)
 {
-    if (input.isEmpty()) {
-        return QString();
+    if (input.empty()) {
+        return std::string();
     }
 
-    QByteArray result = QByteArray::fromBase64(input.toUtf8(), QByteArray::AbortOnBase64DecodingErrors);
-    if (result.isEmpty()) {
+    try {
+        return base64::from_base64(input);
+    } catch (const std::runtime_error&) {
         return std::nullopt;
     }
-    return QString::fromUtf8(result);
 }

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <QString>
 #include <optional>
+#include <string>
 
-class Base64Codec
-{
+class Base64Codec {
 public:
-    static QString encode(const QString& input);
-    static std::optional<QString> decode(const QString& input);
+    static std::string encode(const std::string& input);
+    static std::optional<std::string> decode(const std::string& input);
 };
