@@ -35,3 +35,5 @@ DEV_NOTES.md
 .DS_Store
 Thumbs.db
 desktop.ini
+
+test_output.txt
