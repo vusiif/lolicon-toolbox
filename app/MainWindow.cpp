@@ -56,7 +56,7 @@ void MainWindow::setupUi()
     placeholder->setFont(placeholderFont);
     placeholder->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextDisabled));
 
-    m_pageStack = new QStackedWidget(this);
+    m_pageStack = m_pageManager->stackWidget();
     m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg));
     m_pageStack->addWidget(placeholder);
 

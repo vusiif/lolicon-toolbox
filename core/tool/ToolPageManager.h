@@ -17,6 +17,7 @@ public:
 
     void openTool(const QString& toolId);
     QString currentToolId() const;
+    QStackedWidget* stackWidget() const { return m_stack; }
 
 private:
     ToolPage* ensurePage(const QString& toolId);
