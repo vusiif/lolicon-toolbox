@@ -54,33 +54,8 @@ Sidebar::Sidebar(QWidget* parent)
     .arg(theme::SidebarActive()));
     connect(m_toggleBtn, &QPushButton::clicked, this, &Sidebar::toggle);
 
-    m_settingsBtn = new QPushButton(QStringLiteral("\u2699"), m_headerWidget);
-    m_settingsBtn->setFixedSize(36, 36);
-    m_settingsBtn->setCursor(Qt::PointingHandCursor);
-    m_settingsBtn->setToolTip(QStringLiteral("Settings"));
-    m_settingsBtn->setStyleSheet(QStringLiteral(R"(
-        QPushButton {
-            background-color: transparent;
-            color: %1;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        QPushButton:hover {
-            background-color: %2;
-        }
-        QPushButton:pressed {
-            background-color: %3;
-        }
-    )")
-    .arg(theme::TextSecondary())
-    .arg(theme::SidebarHover())
-    .arg(theme::SidebarActive()));
-    connect(m_settingsBtn, &QPushButton::clicked, this, &Sidebar::settingsClicked);
-
     headerLayout->addWidget(m_toggleBtn);
     headerLayout->addStretch();
-    headerLayout->addWidget(m_settingsBtn);
 
     auto* scrollArea = new QScrollArea(this);
     scrollArea->setFrameShape(QFrame::NoFrame);
@@ -100,6 +75,40 @@ Sidebar::Sidebar(QWidget* parent)
     m_bottomArea = new QWidget(this);
     m_bottomArea->setFixedHeight(48);
     m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg()));
+
+    auto* bottomLayout = new QHBoxLayout(m_bottomArea);
+    bottomLayout->setContentsMargins(16, 0, 16, 0);
+
+    auto* settingsBtn = new QPushButton(QStringLiteral("\u2699"), m_bottomArea);
+    settingsBtn->setFixedSize(36, 36);
+    settingsBtn->setCursor(Qt::PointingHandCursor);
+    settingsBtn->setToolTip(QStringLiteral("Settings"));
+    settingsBtn->setStyleSheet(QStringLiteral(R"(
+        QPushButton {
+            background-color: transparent;
+            color: %1;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        QPushButton:hover {
+            background-color: %2;
+        }
+        QPushButton:pressed {
+            background-color: %3;
+        }
+    )")
+    .arg(theme::TextSecondary())
+    .arg(theme::SidebarHover())
+    .arg(theme::SidebarActive()));
+    connect(settingsBtn, &QPushButton::clicked, this, &Sidebar::settingsClicked);
+
+    m_versionLabel = new QLabel("v0.1.0", m_bottomArea);
+    m_versionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(theme::TextDisabled()));
+
+    bottomLayout->addWidget(settingsBtn);
+    bottomLayout->addStretch();
+    bottomLayout->addWidget(m_versionLabel);
 
     m_mainLayout->addWidget(m_headerWidget, 0);
     m_mainLayout->addWidget(scrollArea, 1);
@@ -227,7 +236,7 @@ void Sidebar::expand()
             }
         }
     }
-    m_bottomArea->show();
+    m_versionLabel->show();
     emit expandStateChanged(true);
 }
 
@@ -249,7 +258,7 @@ void Sidebar::retract()
             }
         }
     }
-    m_bottomArea->hide();
+    m_versionLabel->hide();
     emit expandStateChanged(false);
 }
 

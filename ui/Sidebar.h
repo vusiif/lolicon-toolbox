@@ -6,6 +6,7 @@
 class QTreeWidgetItem;
 class QVBoxLayout;
 class QPushButton;
+class QLabel;
 class QVariantAnimation;
 class NavigationManager;
 class ToolRegistry;
@@ -46,10 +47,10 @@ private:
     QVBoxLayout* m_mainLayout = nullptr;
     QWidget* m_headerWidget = nullptr;
     QPushButton* m_toggleBtn = nullptr;
-    QPushButton* m_settingsBtn = nullptr;
     QWidget* m_listWidget = nullptr;
     QVBoxLayout* m_listLayout = nullptr;
     QWidget* m_bottomArea = nullptr;
+    QLabel* m_versionLabel = nullptr;
     QVariantAnimation* m_widthAnim = nullptr;
 
     QList<SidebarToolItem> m_items;

@@ -46,14 +46,6 @@ void MainWindow::setupUi()
     m_sidebar->build(m_navManager, m_registry);
     m_sidebar->setFixedWidth(220);
 
-    auto* bottomLayout = new QHBoxLayout(m_sidebar->bottomArea());
-    bottomLayout->setContentsMargins(16, 0, 16, 0);
-
-    auto* versionLabel = new QLabel("v0.1.0", m_sidebar->bottomArea());
-    versionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(theme::TextDisabled()));
-
-    bottomLayout->addWidget(versionLabel);
-
     auto* placeholder = new QLabel(tr("Select a tool from the sidebar"), this);
     placeholder->setObjectName("placeholderLabel");
     placeholder->setAlignment(Qt::AlignCenter);
