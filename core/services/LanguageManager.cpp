@@ -49,16 +49,10 @@ void LanguageManager::loadTranslation(const QString& locale)
         return;
     }
 
-    // Try resource path first (compiled into binary), then file system
-    QString resourcePath = ":/translations/" + locale + ".qm";
-    if (m_translator->load(resourcePath)) {
-        qApp->installTranslator(m_translator);
-        return;
-    }
+    // Qt resource path: :/i18n/zh_CN.qm
+    QString resourcePath = QStringLiteral(":/i18n/%1.qm").arg(locale);
 
-    QString filePath = QCoreApplication::applicationDirPath()
-                       + "/translations/" + locale + ".qm";
-    if (m_translator->load(filePath)) {
+    if (m_translator->load(resourcePath)) {
         qApp->installTranslator(m_translator);
     }
 }
