@@ -61,6 +61,7 @@ void Application::registerTools()
     ToolDescriptor base64;
     base64.id = "encoding.base64";
     base64.name = "Base64";
+    base64.icon = QStringLiteral("B6");
     base64.description = "Encode and decode Base64 text";
     base64.factory = [](QWidget* parent) -> ToolPage* {
         return new Base64Page(parent);

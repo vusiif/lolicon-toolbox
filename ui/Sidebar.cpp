@@ -5,10 +5,11 @@
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QTreeWidget>
-#include <QPushButton>
 #include <QLabel>
+#include <QPushButton>
 #include <QVariantAnimation>
+#include <QScrollArea>
+#include <QFrame>
 
 Sidebar::Sidebar(QWidget* parent)
     : QWidget(parent)
@@ -20,17 +21,17 @@ Sidebar::Sidebar(QWidget* parent)
         setFixedWidth(val.toInt());
     });
 
-    m_layout = new QVBoxLayout(this);
-    m_layout->setContentsMargins(0, 0, 0, 0);
-    m_layout->setSpacing(0);
+    m_mainLayout = new QVBoxLayout(this);
+    m_mainLayout->setContentsMargins(0, 0, 0, 0);
+    m_mainLayout->setSpacing(0);
 
-    auto* topBar = new QWidget(this);
-    topBar->setFixedHeight(44);
-    topBar->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
-    auto* topLayout = new QHBoxLayout(topBar);
-    topLayout->setContentsMargins(8, 4, 8, 4);
+    m_headerWidget = new QWidget(this);
+    m_headerWidget->setFixedHeight(44);
+    m_headerWidget->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+    auto* headerLayout = new QHBoxLayout(m_headerWidget);
+    headerLayout->setContentsMargins(10, 4, 10, 4);
 
-    m_toggleBtn = new QPushButton(QStringLiteral("\u2630"), topBar);
+    m_toggleBtn = new QPushButton(QStringLiteral("\u2630"), m_headerWidget);
     m_toggleBtn->setFixedSize(36, 36);
     m_toggleBtn->setCursor(Qt::PointingHandCursor);
     m_toggleBtn->setStyleSheet(QStringLiteral(R"(
@@ -53,74 +54,31 @@ Sidebar::Sidebar(QWidget* parent)
     .arg(theme::SidebarActive));
     connect(m_toggleBtn, &QPushButton::clicked, this, &Sidebar::toggle);
 
-    topLayout->addWidget(m_toggleBtn);
-    topLayout->addStretch();
+    headerLayout->addWidget(m_toggleBtn);
+    headerLayout->addStretch();
 
-    m_tree = new QTreeWidget(this);
-    m_tree->setHeaderHidden(true);
-    m_tree->setIndentation(0);
-    m_tree->setAnimated(true);
-    m_tree->setFrameShape(QFrame::NoFrame);
-    m_tree->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_tree->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    auto* scrollArea = new QScrollArea(this);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
 
-    m_tree->setStyleSheet(QStringLiteral(R"(
-        QTreeWidget {
-            background-color: %1;
-            color: %2;
-            border: none;
-            outline: none;
-            font-size: 13px;
-            padding: 4px 0;
-        }
-        QTreeWidget::item {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 6px;
-            margin: 1px 6px;
-        }
-        QTreeWidget::item:hover {
-            background-color: %3;
-        }
-        QTreeWidget::item:selected {
-            background-color: %4;
-            color: %5;
-        }
-        QTreeWidget::branch {
-            background-color: %1;
-            border: none;
-        }
-        QScrollBar:vertical {
-            background: transparent;
-            width: 4px;
-            margin: 0;
-        }
-        QScrollBar::handle:vertical {
-            background: %6;
-            border-radius: 2px;
-            min-height: 20px;
-        }
-        QScrollBar::add-line:vertical,
-        QScrollBar::sub-line:vertical {
-            height: 0;
-        }
-    )")
-    .arg(theme::SidebarBg)
-    .arg(theme::TextPrimary)
-    .arg(theme::SidebarHover)
-    .arg(theme::SidebarActive)
-    .arg(theme::Accent)
-    .arg(theme::ScrollbarThumb));
+    m_listWidget = new QWidget();
+    m_listLayout = new QVBoxLayout(m_listWidget);
+    m_listLayout->setContentsMargins(6, 4, 6, 4);
+    m_listLayout->setSpacing(2);
+    m_listLayout->addStretch();
+
+    scrollArea->setWidget(m_listWidget);
 
     m_bottomArea = new QWidget(this);
     m_bottomArea->setFixedHeight(48);
     m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
 
-    m_layout->addWidget(topBar, 0);
-    m_layout->addWidget(m_tree, 1);
-    m_layout->addWidget(m_bottomArea, 0);
-
-    connect(m_tree, &QTreeWidget::itemClicked, this, &Sidebar::onItemClicked);
+    m_mainLayout->addWidget(m_headerWidget, 0);
+    m_mainLayout->addWidget(scrollArea, 1);
+    m_mainLayout->addWidget(m_bottomArea, 0);
 
     setFixedWidth(m_expandedWidth);
 }
@@ -131,42 +89,94 @@ void Sidebar::build(NavigationManager* navManager, ToolRegistry* registry)
         return;
     }
 
-    m_tree->clear();
+    m_items.clear();
 
     auto tree = navManager->buildTree();
     for (const auto& node : tree) {
-        auto* groupItem = new QTreeWidgetItem(m_tree);
-        groupItem->setText(0, node.group.name.toUpper());
-        groupItem->setFlags(groupItem->flags() & ~Qt::ItemIsSelectable);
-        groupItem->setData(0, Qt::UserRole, QString());
-
-        QFont groupFont = groupItem->font(0);
-        groupFont.setPointSize(9);
-        groupFont.setWeight(QFont::DemiBold);
-        groupItem->setFont(0, groupFont);
-        groupItem->setForeground(0, QColor(theme::TextSecondary));
-
         for (const auto& item : node.items) {
-            if (!item.visible) {
-                continue;
-            }
-
+            if (!item.visible) continue;
             auto descriptor = registry->findTool(item.toolId);
-            if (!descriptor.has_value()) {
-                continue;
-            }
+            if (!descriptor.has_value()) continue;
 
-            auto* toolItem = new QTreeWidgetItem(groupItem);
-            toolItem->setText(0, descriptor->name);
-            toolItem->setData(0, Qt::UserRole, item.toolId);
-
-            QFont toolFont = toolItem->font(0);
-            toolFont.setPointSize(12);
-            toolItem->setFont(0, toolFont);
+            SidebarToolItem si;
+            si.toolId = item.toolId;
+            si.icon = descriptor->icon;
+            si.name = descriptor->name;
+            m_items.append(si);
         }
-
-        groupItem->setExpanded(true);
     }
+
+    rebuildItems();
+}
+
+void Sidebar::rebuildItems()
+{
+    QLayoutItem* child;
+    while ((child = m_listLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) {
+            delete child->widget();
+        }
+        delete child;
+    }
+
+    for (int i = 0; i < m_items.size(); ++i) {
+        const auto& item = m_items[i];
+
+        bool selected = (i == m_selectedIndex);
+        QString bgColor = selected ? theme::SidebarActive : "transparent";
+        QString borderColor = selected ? theme::Accent : "transparent";
+
+        auto* btn = new QPushButton(m_listWidget);
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setFixedHeight(40);
+        btn->setStyleSheet(QStringLiteral(R"(
+            QPushButton {
+                background-color: %1;
+                color: %2;
+                border: none;
+                border-left: 3px solid %3;
+                border-radius: 0 6px 6px 0;
+                text-align: left;
+                padding: 0 10px;
+            }
+            QPushButton:hover {
+                background-color: %4;
+            }
+        )")
+        .arg(bgColor, theme::TextPrimary, borderColor, theme::SidebarHover));
+
+        auto* btnLayout = new QHBoxLayout(btn);
+        btnLayout->setContentsMargins(7, 0, 10, 0);
+        btnLayout->setSpacing(0);
+
+        auto* iconLabel = new QLabel(item.icon, btn);
+        iconLabel->setFixedSize(36, 36);
+        iconLabel->setAlignment(Qt::AlignCenter);
+        QFont iconFont = iconLabel->font();
+        iconFont.setPointSize(13);
+        iconFont.setWeight(QFont::Bold);
+        iconLabel->setFont(iconFont);
+        iconLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent; border: none;").arg(
+            selected ? theme::Accent : theme::TextSecondary));
+
+        auto* nameLabel = new QLabel(item.name, btn);
+        QFont nameFont = nameLabel->font();
+        nameFont.setPointSize(12);
+        nameLabel->setFont(nameFont);
+        nameLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent; border: none; margin-left: 8px;").arg(theme::TextPrimary));
+        nameLabel->setVisible(m_expanded);
+
+        btnLayout->addWidget(iconLabel, 0);
+        btnLayout->addWidget(nameLabel, 1);
+
+        connect(btn, &QPushButton::clicked, this, [this, i]() {
+            onItemClicked(i);
+        });
+
+        m_listLayout->addWidget(btn);
+    }
+
+    m_listLayout->addStretch();
 }
 
 QWidget* Sidebar::bottomArea() const
@@ -181,7 +191,17 @@ void Sidebar::expand()
     m_widthAnim->setStartValue(m_collapsedWidth);
     m_widthAnim->setEndValue(m_expandedWidth);
     m_widthAnim->start();
-    m_tree->show();
+
+    for (int i = 0; i < m_listLayout->count(); ++i) {
+        QLayoutItem* item = m_listLayout->itemAt(i);
+        if (item && item->widget()) {
+            QWidget* row = item->widget();
+            QList<QLabel*> labels = row->findChildren<QLabel*>();
+            if (labels.size() >= 2) {
+                labels[1]->setVisible(true);
+            }
+        }
+    }
     m_bottomArea->show();
     emit expandStateChanged(true);
 }
@@ -193,7 +213,17 @@ void Sidebar::retract()
     m_widthAnim->setStartValue(m_expandedWidth);
     m_widthAnim->setEndValue(m_collapsedWidth);
     m_widthAnim->start();
-    m_tree->hide();
+
+    for (int i = 0; i < m_listLayout->count(); ++i) {
+        QLayoutItem* item = m_listLayout->itemAt(i);
+        if (item && item->widget()) {
+            QWidget* row = item->widget();
+            QList<QLabel*> labels = row->findChildren<QLabel*>();
+            if (labels.size() >= 2) {
+                labels[1]->setVisible(false);
+            }
+        }
+    }
     m_bottomArea->hide();
     emit expandStateChanged(false);
 }
@@ -208,16 +238,10 @@ bool Sidebar::isExpanded() const
     return m_expanded;
 }
 
-void Sidebar::onItemClicked(QTreeWidgetItem* item, int column)
+void Sidebar::onItemClicked(int index)
 {
-    Q_UNUSED(column);
-
-    if (!item) {
-        return;
-    }
-
-    QString toolId = item->data(0, Qt::UserRole).toString();
-    if (!toolId.isEmpty()) {
-        emit toolSelected(toolId);
-    }
+    if (index < 0 || index >= m_items.size()) return;
+    m_selectedIndex = index;
+    rebuildItems();
+    emit toolSelected(m_items[index].toolId);
 }

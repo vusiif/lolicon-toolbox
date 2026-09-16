@@ -1,14 +1,21 @@
 #pragma once
 
 #include <QWidget>
+#include <QList>
 
-class QTreeWidget;
 class QTreeWidgetItem;
 class QVBoxLayout;
 class QPushButton;
 class QVariantAnimation;
 class NavigationManager;
 class ToolRegistry;
+
+struct SidebarToolItem
+{
+    QString toolId;
+    QString icon;
+    QString name;
+};
 
 class Sidebar : public QWidget
 {
@@ -32,14 +39,20 @@ signals:
     void expandStateChanged(bool expanded);
 
 private:
-    void onItemClicked(QTreeWidgetItem* item, int column);
+    void rebuildItems();
+    void onItemClicked(int index);
 
-    QVBoxLayout* m_layout = nullptr;
+    QVBoxLayout* m_mainLayout = nullptr;
+    QWidget* m_headerWidget = nullptr;
     QPushButton* m_toggleBtn = nullptr;
-    QTreeWidget* m_tree = nullptr;
+    QWidget* m_listWidget = nullptr;
+    QVBoxLayout* m_listLayout = nullptr;
     QWidget* m_bottomArea = nullptr;
     QVariantAnimation* m_widthAnim = nullptr;
+
+    QList<SidebarToolItem> m_items;
     bool m_expanded = true;
     int m_expandedWidth = 220;
     int m_collapsedWidth = 56;
+    int m_selectedIndex = -1;
 };
