@@ -1,35 +1,35 @@
 #pragma once
 
-#include <QColor>
 #include <QString>
+#include "ThemeManager.h"
 
 namespace theme
 {
-    constexpr const char* WindowBg       = "#1A2034";
-    constexpr const char* Surface0       = "#1E2538";
-    constexpr const char* Surface1       = "#242B3D";
-    constexpr const char* Surface2       = "#2A3246";
-    constexpr const char* Surface3       = "#333B50";
-    constexpr const char* Border         = "#3A4258";
-    constexpr const char* TextPrimary    = "#E0E4F0";
-    constexpr const char* TextSecondary  = "#8B93A8";
-    constexpr const char* TextDisabled   = "#5A6278";
-    constexpr const char* Accent         = "#7B8CDE";
-    constexpr const char* AccentHover    = "#9BA8E8";
-    constexpr const char* AccentPressed  = "#6A7BD0";
-    constexpr const char* Danger         = "#E06080";
-    constexpr const char* Success        = "#70C0A0";
-    constexpr const char* SidebarBg      = "#151B2C";
-    constexpr const char* SidebarHover   = "#1E2538";
-    constexpr const char* SidebarActive  = "#242B3D";
-    constexpr const char* InputBg        = "#1E2538";
-    constexpr const char* InputBorder    = "#2A3246";
-    constexpr const char* InputFocus     = "#7B8CDE";
-    constexpr const char* ButtonBg       = "#2A3246";
-    constexpr const char* ButtonHover    = "#333B50";
-    constexpr const char* ButtonPressed  = "#1E2538";
-    constexpr const char* ScrollbarBg    = "#1A2034";
-    constexpr const char* ScrollbarThumb = "#3A4258";
+    inline QString WindowBg()       { return ThemeManager::instance().color("WindowBg"); }
+    inline QString Surface0()       { return ThemeManager::instance().color("Surface0"); }
+    inline QString Surface1()       { return ThemeManager::instance().color("Surface1"); }
+    inline QString Surface2()       { return ThemeManager::instance().color("Surface2"); }
+    inline QString Surface3()       { return ThemeManager::instance().color("Surface3"); }
+    inline QString Border()         { return ThemeManager::instance().color("Border"); }
+    inline QString TextPrimary()    { return ThemeManager::instance().color("TextPrimary"); }
+    inline QString TextSecondary()  { return ThemeManager::instance().color("TextSecondary"); }
+    inline QString TextDisabled()   { return ThemeManager::instance().color("TextDisabled"); }
+    inline QString Accent()         { return ThemeManager::instance().color("Accent"); }
+    inline QString AccentHover()    { return ThemeManager::instance().color("AccentHover"); }
+    inline QString AccentPressed()  { return ThemeManager::instance().color("AccentPressed"); }
+    inline QString Danger()         { return ThemeManager::instance().color("Danger"); }
+    inline QString Success()        { return ThemeManager::instance().color("Success"); }
+    inline QString SidebarBg()      { return ThemeManager::instance().color("SidebarBg"); }
+    inline QString SidebarHover()   { return ThemeManager::instance().color("SidebarHover"); }
+    inline QString SidebarActive()  { return ThemeManager::instance().color("SidebarActive"); }
+    inline QString InputBg()        { return ThemeManager::instance().color("InputBg"); }
+    inline QString InputBorder()    { return ThemeManager::instance().color("InputBorder"); }
+    inline QString InputFocus()     { return ThemeManager::instance().color("InputFocus"); }
+    inline QString ButtonBg()       { return ThemeManager::instance().color("ButtonBg"); }
+    inline QString ButtonHover()    { return ThemeManager::instance().color("ButtonHover"); }
+    inline QString ButtonPressed()  { return ThemeManager::instance().color("ButtonPressed"); }
+    inline QString ScrollbarBg()    { return ThemeManager::instance().color("ScrollbarBg"); }
+    inline QString ScrollbarThumb() { return ThemeManager::instance().color("ScrollbarThumb"); }
 
     QString globalStyleSheet();
 }

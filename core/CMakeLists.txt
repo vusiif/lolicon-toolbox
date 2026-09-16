@@ -14,8 +14,12 @@ add_library(ToolboxCore STATIC
     services/SettingsService.cpp
     services/AppServices.h
     services/AppServices.cpp
+    services/LanguageManager.h
+    services/LanguageManager.cpp
     theme/Theme.h
     theme/Theme.cpp
+    theme/ThemeManager.h
+    theme/ThemeManager.cpp
 )
 
 target_include_directories(ToolboxCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

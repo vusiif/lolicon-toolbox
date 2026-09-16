@@ -10,7 +10,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets LinguistTools)
+
+set(TS_FILES
+    translations/zh_CN.ts
+    translations/zh_TW.ts
+)
+
+qt_add_translations(Toolbox TS_FILES ${TS_FILES})
 
 add_subdirectory(app)
 add_subdirectory(core)

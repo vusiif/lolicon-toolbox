@@ -1,6 +1,9 @@
 #include "MainWindow.h"
 #include "Sidebar.h"
+#include "SettingsPage.h"
 #include "theme/Theme.h"
+#include "theme/ThemeManager.h"
+#include "services/LanguageManager.h"
 #include "navigation/NavigationManager.h"
 #include "tool/ToolRegistry.h"
 #include "tool/ToolPageManager.h"
@@ -11,6 +14,7 @@
 #include <QStackedWidget>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>
+#include <QPushButton>
 
 #include <windows.h>
 #include <dwmapi.h>
@@ -43,22 +47,55 @@ void MainWindow::setupUi()
     m_sidebar->build(m_navManager, m_registry);
     m_sidebar->setFixedWidth(220);
 
-    auto* versionLabel = new QLabel("v0.1.0", m_sidebar->bottomArea());
-    versionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(theme::TextDisabled));
     auto* bottomLayout = new QHBoxLayout(m_sidebar->bottomArea());
-    bottomLayout->setContentsMargins(16, 0, 16, 0);
+    bottomLayout->setContentsMargins(8, 0, 8, 0);
+    bottomLayout->setSpacing(4);
+
+    auto* settingsBtn = new QPushButton(m_sidebar->bottomArea());
+    settingsBtn->setFixedSize(36, 36);
+    settingsBtn->setCursor(Qt::PointingHandCursor);
+    settingsBtn->setToolTip(tr("Settings"));
+    settingsBtn->setStyleSheet(QStringLiteral(R"(
+        QPushButton {
+            background-color: transparent;
+            color: %1;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        QPushButton:hover {
+            background-color: %2;
+        }
+        QPushButton:pressed {
+            background-color: %3;
+        }
+    )")
+    .arg(theme::TextSecondary())
+    .arg(theme::SidebarHover())
+    .arg(theme::SidebarActive()));
+    connect(settingsBtn, &QPushButton::clicked, m_sidebar, &Sidebar::settingsClicked);
+
+    auto* versionLabel = new QLabel("v0.1.0", m_sidebar->bottomArea());
+    versionLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 11px;").arg(theme::TextDisabled()));
+
+    bottomLayout->addWidget(settingsBtn);
+    bottomLayout->addStretch();
     bottomLayout->addWidget(versionLabel);
 
-    auto* placeholder = new QLabel("Select a tool from the sidebar", this);
+    auto* placeholder = new QLabel(tr("Select a tool from the sidebar"), this);
+    placeholder->setObjectName("placeholderLabel");
     placeholder->setAlignment(Qt::AlignCenter);
     QFont placeholderFont = placeholder->font();
     placeholderFont.setPointSize(13);
     placeholder->setFont(placeholderFont);
-    placeholder->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextDisabled));
+    placeholder->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextDisabled()));
 
     m_pageStack = m_pageManager->stackWidget();
-    m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg));
+    m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg()));
     m_pageStack->addWidget(placeholder);
+
+    m_settingsPage = new SettingsPage(this);
+    m_pageStack->addWidget(m_settingsPage);
 
     layout->addWidget(m_sidebar);
     layout->addWidget(m_pageStack, 1);
@@ -67,11 +104,10 @@ void MainWindow::setupUi()
 
     connect(m_sidebar, &Sidebar::toolSelected, this, [this](const QString& toolId) {
         if (m_pageManager) {
-            auto* page = m_pageManager->currentToolId().isEmpty() ? nullptr : m_pageStack->currentWidget();
             m_pageManager->openTool(toolId);
 
             auto* newPage = m_pageStack->currentWidget();
-            if (newPage && newPage != page) {
+            if (newPage) {
                 auto* effect = new QGraphicsOpacityEffect(newPage);
                 newPage->setGraphicsEffect(effect);
 
@@ -82,6 +118,37 @@ void MainWindow::setupUi()
                 fadeAnim->setEasingCurve(QEasingCurve::OutCubic);
                 fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
             }
+        }
+    });
+
+    connect(m_sidebar, &Sidebar::settingsClicked, this, [this]() {
+        m_pageStack->setCurrentWidget(m_settingsPage);
+
+        auto* effect = new QGraphicsOpacityEffect(m_settingsPage);
+        m_settingsPage->setGraphicsEffect(effect);
+
+        auto* fadeAnim = new QPropertyAnimation(effect, "opacity");
+        fadeAnim->setDuration(200);
+        fadeAnim->setStartValue(0.0);
+        fadeAnim->setEndValue(1.0);
+        fadeAnim->setEasingCurve(QEasingCurve::OutCubic);
+        fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
+    });
+
+    connect(m_settingsPage, &SettingsPage::languageChanged, this, [this](const QString& locale) {
+        LanguageManager::instance().setLanguage(locale);
+    });
+
+    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, [this]() {
+        setStyleSheet(theme::globalStyleSheet());
+        m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg()));
+    });
+
+    connect(&LanguageManager::instance(), &LanguageManager::languageChanged, this, [this]() {
+        // Retranslate UI
+        auto* placeholder = m_pageStack->findChild<QLabel*>("placeholderLabel");
+        if (placeholder) {
+            placeholder->setText(tr("Select a tool from the sidebar"));
         }
     });
 }

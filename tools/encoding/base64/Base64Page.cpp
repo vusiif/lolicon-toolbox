@@ -43,10 +43,10 @@ QPushButton* Base64Page::createButton(const QString& text, bool primary)
                 background-color: %4;
             }
         )")
-        .arg(theme::Accent)
-        .arg(theme::WindowBg)
-        .arg(theme::AccentHover)
-        .arg(theme::AccentPressed));
+        .arg(theme::Accent())
+        .arg(theme::WindowBg())
+        .arg(theme::AccentHover())
+        .arg(theme::AccentPressed()));
     } else {
         btn->setStyleSheet(QStringLiteral(R"(
             QPushButton {
@@ -64,12 +64,12 @@ QPushButton* Base64Page::createButton(const QString& text, bool primary)
                 background-color: %6;
             }
         )")
-        .arg(theme::ButtonBg)
-        .arg(theme::TextPrimary)
-        .arg(theme::Border)
-        .arg(theme::ButtonHover)
-        .arg(theme::Surface3)
-        .arg(theme::ButtonPressed));
+        .arg(theme::ButtonBg())
+        .arg(theme::TextPrimary())
+        .arg(theme::Border())
+        .arg(theme::ButtonHover())
+        .arg(theme::Surface3())
+        .arg(theme::ButtonPressed()));
     }
     return btn;
 }
@@ -91,57 +91,57 @@ void Base64Page::setupUi()
             border-color: %5;
         }
     )")
-    .arg(theme::InputBg)
-    .arg(theme::TextPrimary)
-    .arg(theme::InputBorder)
-    .arg(theme::Accent)
-    .arg(theme::InputFocus);
+    .arg(theme::InputBg())
+    .arg(theme::TextPrimary())
+    .arg(theme::InputBorder())
+    .arg(theme::Accent())
+    .arg(theme::InputFocus());
 
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(32, 28, 32, 28);
     mainLayout->setSpacing(20);
 
-    auto* titleLabel = new QLabel("Base64 Encoder / Decoder", this);
+    auto* titleLabel = new QLabel(tr("Base64 Encoder / Decoder"), this);
     QFont titleFont = titleLabel->font();
     titleFont.setPointSize(18);
     titleFont.setWeight(QFont::DemiBold);
     titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextPrimary));
+    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextPrimary()));
 
-    auto* descLabel = new QLabel("Encode text to Base64 or decode Base64 to text.", this);
+    auto* descLabel = new QLabel(tr("Encode text to Base64 or decode Base64 to text."), this);
     QFont descFont = descLabel->font();
     descFont.setPointSize(11);
     descLabel->setFont(descFont);
-    descLabel->setStyleSheet(QStringLiteral("color: %1; margin-bottom: 8px;").arg(theme::TextSecondary));
+    descLabel->setStyleSheet(QStringLiteral("color: %1; margin-bottom: 8px;").arg(theme::TextSecondary()));
 
-    auto* inputHeader = new QLabel("Input", this);
+    auto* inputHeader = new QLabel(tr("Input"), this);
     QFont sectionFont = inputHeader->font();
     sectionFont.setPointSize(11);
     sectionFont.setWeight(QFont::DemiBold);
     inputHeader->setFont(sectionFont);
-    inputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary));
+    inputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary()));
 
     m_inputEdit = new QTextEdit(this);
-    m_inputEdit->setPlaceholderText("Enter text to encode, or Base64 to decode...");
+    m_inputEdit->setPlaceholderText(tr("Enter text to encode, or Base64 to decode..."));
     m_inputEdit->setMinimumHeight(120);
     m_inputEdit->setStyleSheet(textEditStyle);
 
     auto* buttonLayout = new QHBoxLayout();
     buttonLayout->setSpacing(10);
-    auto* encodeBtn = createButton("Encode", true);
-    auto* decodeBtn = createButton("Decode", true);
-    auto* clearBtn = createButton("Clear");
+    auto* encodeBtn = createButton(tr("Encode"), true);
+    auto* decodeBtn = createButton(tr("Decode"), true);
+    auto* clearBtn = createButton(tr("Clear"));
     buttonLayout->addWidget(encodeBtn);
     buttonLayout->addWidget(decodeBtn);
     buttonLayout->addWidget(clearBtn);
     buttonLayout->addStretch();
 
-    auto* outputHeader = new QLabel("Output", this);
+    auto* outputHeader = new QLabel(tr("Output"), this);
     outputHeader->setFont(sectionFont);
-    outputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary));
+    outputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary()));
 
     m_outputEdit = new QTextEdit(this);
-    m_outputEdit->setPlaceholderText("Result will appear here...");
+    m_outputEdit->setPlaceholderText(tr("Result will appear here..."));
     m_outputEdit->setReadOnly(true);
     m_outputEdit->setMinimumHeight(120);
     m_outputEdit->setStyleSheet(textEditStyle);
@@ -149,8 +149,8 @@ void Base64Page::setupUi()
     auto* bottomLayout = new QHBoxLayout();
     bottomLayout->setContentsMargins(0, 0, 0, 0);
     m_statusLabel = new QLabel(this);
-    m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::TextSecondary));
-    auto* copyBtn = createButton("Copy Result");
+    m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::TextSecondary()));
+    auto* copyBtn = createButton(tr("Copy Result"));
     bottomLayout->addWidget(m_statusLabel, 1);
     bottomLayout->addWidget(copyBtn);
 
@@ -166,32 +166,32 @@ void Base64Page::setupUi()
     connect(encodeBtn, &QPushButton::clicked, this, [this]() {
         QString input = m_inputEdit->toPlainText();
         if (input.isEmpty()) {
-            m_statusLabel->setText("Input is empty");
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger));
+            m_statusLabel->setText(tr("Input is empty"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
             return;
         }
         std::string result = Base64Codec::encode(input.toStdString());
         m_outputEdit->setPlainText(QString::fromStdString(result));
-        m_statusLabel->setText("Encoded successfully");
-        m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success));
+        m_statusLabel->setText(tr("Encoded successfully"));
+        m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
     });
 
     connect(decodeBtn, &QPushButton::clicked, this, [this]() {
         QString input = m_inputEdit->toPlainText();
         if (input.isEmpty()) {
-            m_statusLabel->setText("Input is empty");
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger));
+            m_statusLabel->setText(tr("Input is empty"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
             return;
         }
         auto result = Base64Codec::decode(input.toStdString());
         if (result.has_value()) {
             m_outputEdit->setPlainText(QString::fromStdString(result.value()));
-            m_statusLabel->setText("Decoded successfully");
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success));
+            m_statusLabel->setText(tr("Decoded successfully"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
         } else {
             m_outputEdit->clear();
-            m_statusLabel->setText("Invalid Base64 input");
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger));
+            m_statusLabel->setText(tr("Invalid Base64 input"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
         }
     });
 
@@ -206,8 +206,8 @@ void Base64Page::setupUi()
         if (!text.isEmpty()) {
             m_outputEdit->selectAll();
             m_outputEdit->copy();
-            m_statusLabel->setText("Copied to clipboard");
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success));
+            m_statusLabel->setText(tr("Copied to clipboard"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
         }
     });
 }

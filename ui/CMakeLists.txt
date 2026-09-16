@@ -1,6 +1,8 @@
 add_library(ToolboxUI STATIC
     Sidebar.h
     Sidebar.cpp
+    SettingsPage.h
+    SettingsPage.cpp
 )
 
 target_include_directories(ToolboxUI PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

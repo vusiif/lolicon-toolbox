@@ -27,7 +27,7 @@ Sidebar::Sidebar(QWidget* parent)
 
     m_headerWidget = new QWidget(this);
     m_headerWidget->setFixedHeight(44);
-    m_headerWidget->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+    m_headerWidget->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg()));
     auto* headerLayout = new QHBoxLayout(m_headerWidget);
     headerLayout->setContentsMargins(10, 4, 10, 4);
 
@@ -49,9 +49,9 @@ Sidebar::Sidebar(QWidget* parent)
             background-color: %3;
         }
     )")
-    .arg(theme::TextPrimary)
-    .arg(theme::SidebarHover)
-    .arg(theme::SidebarActive));
+    .arg(theme::TextPrimary())
+    .arg(theme::SidebarHover())
+    .arg(theme::SidebarActive()));
     connect(m_toggleBtn, &QPushButton::clicked, this, &Sidebar::toggle);
 
     headerLayout->addWidget(m_toggleBtn);
@@ -62,7 +62,7 @@ Sidebar::Sidebar(QWidget* parent)
     scrollArea->setWidgetResizable(true);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    scrollArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+    scrollArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg()));
 
     m_listWidget = new QWidget();
     m_listLayout = new QVBoxLayout(m_listWidget);
@@ -74,7 +74,7 @@ Sidebar::Sidebar(QWidget* parent)
 
     m_bottomArea = new QWidget(this);
     m_bottomArea->setFixedHeight(48);
-    m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+    m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg()));
 
     m_mainLayout->addWidget(m_headerWidget, 0);
     m_mainLayout->addWidget(scrollArea, 1);
@@ -123,8 +123,8 @@ void Sidebar::rebuildItems()
         const auto& item = m_items[i];
 
         bool selected = (i == m_selectedIndex);
-        QString bgColor = selected ? theme::SidebarActive : "transparent";
-        QString borderColor = selected ? theme::Accent : "transparent";
+        QString bgColor = selected ? theme::SidebarActive() : "transparent";
+        QString borderColor = selected ? theme::Accent() : "transparent";
 
         auto* btn = new QPushButton(m_listWidget);
         btn->setCursor(Qt::PointingHandCursor);
@@ -143,7 +143,7 @@ void Sidebar::rebuildItems()
                 background-color: %4;
             }
         )")
-        .arg(bgColor, theme::TextPrimary, borderColor, theme::SidebarHover));
+        .arg(bgColor, theme::TextPrimary(), borderColor, theme::SidebarHover()));
 
         auto* btnLayout = new QHBoxLayout(btn);
         btnLayout->setContentsMargins(7, 0, 10, 0);
@@ -157,13 +157,13 @@ void Sidebar::rebuildItems()
         iconFont.setWeight(QFont::Bold);
         iconLabel->setFont(iconFont);
         iconLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent; border: none;").arg(
-            selected ? theme::Accent : theme::TextSecondary));
+            selected ? theme::Accent() : theme::TextSecondary()));
 
         auto* nameLabel = new QLabel(item.name, btn);
         QFont nameFont = nameLabel->font();
         nameFont.setPointSize(12);
         nameLabel->setFont(nameFont);
-        nameLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent; border: none; margin-left: 8px;").arg(theme::TextPrimary));
+        nameLabel->setStyleSheet(QStringLiteral("color: %1; background: transparent; border: none; margin-left: 8px;").arg(theme::TextPrimary()));
         nameLabel->setVisible(m_expanded);
 
         btnLayout->addWidget(iconLabel, 0);

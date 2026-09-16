@@ -36,6 +36,7 @@ public:
 
 signals:
     void toolSelected(const QString& toolId);
+    void settingsClicked();
     void expandStateChanged(bool expanded);
 
 private:

@@ -4,6 +4,7 @@
 
 class QStackedWidget;
 class Sidebar;
+class SettingsPage;
 class NavigationManager;
 class ToolRegistry;
 class ToolPageManager;
@@ -25,6 +26,7 @@ private:
 
     QStackedWidget* m_pageStack = nullptr;
     Sidebar* m_sidebar = nullptr;
+    SettingsPage* m_settingsPage = nullptr;
     NavigationManager* m_navManager = nullptr;
     ToolRegistry* m_registry = nullptr;
     ToolPageManager* m_pageManager = nullptr;
