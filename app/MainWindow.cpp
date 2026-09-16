@@ -51,7 +51,7 @@ void MainWindow::setupUi()
     bottomLayout->setContentsMargins(8, 0, 8, 0);
     bottomLayout->setSpacing(4);
 
-    auto* settingsBtn = new QPushButton(m_sidebar->bottomArea());
+    auto* settingsBtn = new QPushButton(QStringLiteral("\u2699"), m_sidebar->bottomArea());
     settingsBtn->setFixedSize(36, 36);
     settingsBtn->setCursor(Qt::PointingHandCursor);
     settingsBtn->setToolTip(tr("Settings"));
