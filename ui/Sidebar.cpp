@@ -5,14 +5,14 @@
 
 #include <QVBoxLayout>
 #include <QTreeWidget>
-#include <QHeaderView>
+#include <QLabel>
 
 Sidebar::Sidebar(QWidget* parent)
     : QWidget(parent)
 {
-    auto* layout = new QVBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
+    m_layout = new QVBoxLayout(this);
+    m_layout->setContentsMargins(0, 0, 0, 0);
+    m_layout->setSpacing(0);
 
     m_tree = new QTreeWidget(this);
     m_tree->setHeaderHidden(true);
@@ -70,7 +70,12 @@ Sidebar::Sidebar(QWidget* parent)
     .arg(theme::Accent)
     .arg(theme::ScrollbarThumb));
 
-    layout->addWidget(m_tree);
+    m_bottomArea = new QWidget(this);
+    m_bottomArea->setFixedHeight(48);
+    m_bottomArea->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::SidebarBg));
+
+    m_layout->addWidget(m_tree, 1);
+    m_layout->addWidget(m_bottomArea, 0);
 
     connect(m_tree, &QTreeWidget::itemClicked, this, &Sidebar::onItemClicked);
 }
@@ -117,6 +122,11 @@ void Sidebar::build(NavigationManager* navManager, ToolRegistry* registry)
 
         groupItem->setExpanded(true);
     }
+}
+
+QWidget* Sidebar::bottomArea() const
+{
+    return m_bottomArea;
 }
 
 void Sidebar::onItemClicked(QTreeWidgetItem* item, int column)
