@@ -5,6 +5,10 @@
 #include <QLocale>
 #include <QEvent>
 #include <QTimer>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <dpapi.h>
+#endif
 
 namespace {
 ElaThemeType::ThemeMode systemTheme()
@@ -111,3 +115,43 @@ void AppSettings::setLastPage(const QString& value) { m_store->setValue("Window/
 bool AppSettings::navigationExpanded() const { return m_store->value("Window/navigationExpanded", true).toBool(); }
 void AppSettings::setNavigationExpanded(bool value) { m_store->setValue("Window/navigationExpanded", value); }
 void AppSettings::sync() { m_store->sync(); }
+ai::Configuration AppSettings::aiConfiguration() const {
+    ai::Configuration config;
+    config.baseUrl = m_store->value("AI/baseUrl", "https://api.openai.com/v1").toString();
+    config.model = m_store->value("AI/model").toString();
+#ifdef Q_OS_WIN
+    auto encrypted = m_store->value("AI/protectedKey").toByteArray();
+    if (!encrypted.isEmpty()) {
+        DATA_BLOB input{DWORD(encrypted.size()), reinterpret_cast<BYTE*>(encrypted.data())}, output{};
+        if (CryptUnprotectData(&input, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output)) {
+            config.apiKey = QString::fromUtf8(reinterpret_cast<char*>(output.pbData), output.cbData);
+            SecureZeroMemory(output.pbData, output.cbData); LocalFree(output.pbData);
+        }
+    }
+#endif
+    return config;
+}
+bool AppSettings::setAiConfiguration(const ai::Configuration& config) {
+    QByteArray encrypted;
+    if (!config.apiKey.isEmpty()) {
+#ifdef Q_OS_WIN
+        auto bytes = config.apiKey.toUtf8();
+        DATA_BLOB input{DWORD(bytes.size()), reinterpret_cast<BYTE*>(bytes.data())}, output{};
+        const auto success = CryptProtectData(&input, L"Toolbox API key", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output);
+        SecureZeroMemory(bytes.data(), bytes.size());
+        if (!success) return false;
+        encrypted = QByteArray(reinterpret_cast<char*>(output.pbData), output.cbData);
+        LocalFree(output.pbData);
+#else
+        return false; // Never fall back to storing plaintext credentials.
+#endif
+    }
+    m_store->setValue("AI/baseUrl", config.baseUrl.trimmed());
+    m_store->setValue("AI/model", config.model.trimmed());
+    if (encrypted.isEmpty()) m_store->remove("AI/protectedKey");
+    else m_store->setValue("AI/protectedKey", encrypted);
+    m_store->sync();
+    if (m_store->status() != QSettings::NoError) return false;
+    emit aiConfigurationChanged();
+    return true;
+}

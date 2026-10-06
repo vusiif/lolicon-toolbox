@@ -4,6 +4,7 @@
 #include <QStringList>
 #include <memory>
 #include <ElaWidgetToolsDef.h>
+#include "ai/AiProvider.h"
 class QSettings;
 
 class AppSettings : public QObject
@@ -26,9 +27,12 @@ public:
     bool navigationExpanded() const;
     void setNavigationExpanded(bool expanded);
     void sync();
+    ai::Configuration aiConfiguration() const;
+    bool setAiConfiguration(const ai::Configuration& config);
 signals:
     void themeChanged(ElaThemeType::ThemeMode mode);
     void localeChanged();
+    void aiConfigurationChanged();
 private:
     bool eventFilter(QObject* watched, QEvent* event) override;
     bool applyLocale(const QString& locale);

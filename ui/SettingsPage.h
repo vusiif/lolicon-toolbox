@@ -3,6 +3,8 @@
 class AppSettings;
 class ElaComboBox;
 class QLabel;
+class ElaLineEdit;
+class ElaPushButton;
 class SettingsPage : public QWidget
 {
     Q_OBJECT
@@ -18,4 +20,7 @@ private:
     QLabel* m_languageLabel;
     QLabel* m_error;
     ElaComboBox* m_language;
+    ElaLineEdit *m_apiUrl, *m_apiModel, *m_apiKey;
+    ElaPushButton* m_saveAi;
+    QLabel *m_aiTitle, *m_aiInfo, *m_apiUrlLabel, *m_apiModelLabel, *m_apiKeyLabel, *m_aiStatus;
 };

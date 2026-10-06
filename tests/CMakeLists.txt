@@ -9,7 +9,10 @@ add_executable(TestMojibake TestMojibake.cpp)
 target_link_libraries(TestMojibake PRIVATE Qt6::Test MojibakeLogic)
 target_compile_definitions(TestMojibake PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 add_test(NAME TestMojibake COMMAND TestMojibake -o mojibake-results.txt,txt)
-set_tests_properties(TestBase64Codec TestUi TestMojibake PROPERTIES
+add_executable(TestAi TestAi.cpp TestHttpServer.h)
+target_link_libraries(TestAi PRIVATE Qt6::Test ToolboxCore)
+add_test(NAME TestAi COMMAND TestAi -o ai-results.txt,txt)
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"

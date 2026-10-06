@@ -7,6 +7,8 @@
 #include <ElaComboBox.h>
 #include <ElaPlainTextEdit.h>
 #include <ElaPushButton.h>
+#include <ElaLineEdit.h>
+#include "TestHttpServer.h"
 #include <QTemporaryDir>
 #include <QLabel>
 #include <QClipboard>
@@ -36,6 +38,7 @@ private slots:
     void settingsPersistence();
     void groupedNavigation();
     void mojibakeWorkflow();
+    void aiWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -257,6 +260,47 @@ void TestUi::mojibakeWorkflow()
     page->findChild<ElaPushButton*>("mojibakeAnalyze")->click();
     delete page;
     QTest::qWait(100);
+}
+void TestUi::aiWorkflow()
+{
+    QTemporaryDir dir;
+    AppSettings settings(dir.filePath("ai-ui.ini"));
+    QVERIFY(settings.setLocale("en"));
+    TestHttpServer server; server.response = TestHttpServer::success(QString::fromUtf8("你好！"));
+    SettingsPage config(settings);
+    config.findChild<ElaLineEdit*>("aiApiUrl")->setText(server.url());
+    config.findChild<ElaLineEdit*>("aiApiModel")->setText("test-model");
+    auto* key = config.findChild<ElaLineEdit*>("aiApiKey");
+    QCOMPARE(key->echoMode(), QLineEdit::Password); key->setText("test-only-key");
+    config.findChild<ElaPushButton*>("aiSaveSettings")->click();
+    QCOMPARE(settings.aiConfiguration().model, QString("test-model"));
+    QCOMPARE(server.requests, 0);
+    config.resize(850, 750); config.setAttribute(Qt::WA_DontShowOnScreen); config.show();
+    QVERIFY(config.grab().save("ai-settings.png"));
+    MojibakePage page(nullptr, &settings);
+    page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(900, 1100); page.show();
+    auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput");
+    auto* local = page.findChild<ElaPlainTextEdit*>("mojibakeOutput");
+    auto* output = page.findChild<ElaPlainTextEdit*>("mojibakeAiOutput");
+    auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze");
+    auto* aiAnalyze = page.findChild<ElaPushButton*>("mojibakeAiAnalyze");
+    input->setPlainText(QString::fromUtf8("浣犲ソ"));
+    QVERIFY(!aiAnalyze->isEnabled());
+    analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QVERIFY(aiAnalyze->isEnabled()); QCOMPARE(server.requests, 0);
+    aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(output->toPlainText(), QString::fromUtf8("你好！"), 3000);
+    QCOMPARE(local->toPlainText(), QString::fromUtf8("你好"));
+    page.findChild<ElaPushButton*>("mojibakeAiCopy")->click();
+    QCOMPARE(QApplication::clipboard()->text(), QString::fromUtf8("你好！"));
+    QVERIFY(page.grab().save("mojibake-ai.png"));
+    QVERIFY(settings.setLocale("zh_CN"));
+    QCoreApplication::processEvents(); QCOMPARE(aiAnalyze->text(), QString::fromUtf8("AI 深度分析"));
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("你好！"));
+    server.hold = true;
+    aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests, 2, 3000);
+    input->setPlainText("changed input");
+    QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), 3000);
+    QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiAnalyze->isEnabled());
 }
 void TestUi::windowWorkflow()
 {

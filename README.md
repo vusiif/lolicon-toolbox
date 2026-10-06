@@ -103,7 +103,8 @@ The Base64 codec uses the vendored `third_party/base64.hpp` implementation.
 Open **Text and Encoding → Mojibake Repair**, paste the original garbled text,
 and choose **Analyze**. Click one of five candidate buttons (unused slots are disabled), inspect **Recovery process**
 and copy the selected result. Editing the input invalidates old results; typing
-does not automatically run analysis. All work stays local, with no AI/API calls.
+does not automatically run analysis. Local analysis stays offline. Optional AI
+assistance runs only when you explicitly click **AI deep analysis**.
 
 The tested Qt 6.11.2 kit provides UTF-8, Latin-1, Windows-1252, GBK, GB18030,
 Big5, Shift-JIS and EUC-KR via named QStringEncoder/QStringDecoder instances.
@@ -121,7 +122,37 @@ Damaged UTF-8-as-GBK/GB18030 paragraphs can also yield partial recovery:
 readable sections are decoded, unknown byte regions remain marked `�`, and
 the result is explicitly uncertain and not reversible. Search avoids paths
 that introduce more anomalies or create fresh mojibake from CJK text.
-Files, directory scans and AI fallback are outside this first tool version.
+Files and directory scans remain outside this tool version.
+
+### Optional AI assistance
+
+In **Settings → AI API**, enter your provider's HTTPS base URL (normally ending
+in `/v1`), model identifier and API key, then save. The app uses the
+[OpenAI-compatible Chat Completions protocol](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create),
+appending `/chat/completions` unless already present. Saving settings sends no
+request. HTTP is accepted only for loopback services; leave the key empty only
+for services that do not require authentication. Redirects are not followed.
+
+Run local analysis first, then click **AI deep analysis**. The original text and
+local candidates (including scores, paths and inverse verification) are sent to
+the configured service. AI suggestions and explanations are displayed separately;
+they never replace the five local candidates. Contextual completions are guesses,
+not proven recovery of lost bytes. Invalid/empty JSON replies, authorization,
+quota, connection and timeout failures are reported without displaying server
+error bodies or API keys. Cancel is supported; editing text/settings discards
+old suggestions and cancels in-flight requests.
+
+Windows API keys are encrypted with current-user
+[DPAPI](https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata)
+before storing them in settings. They are not saved in plaintext or written to
+logs. This protects the stored configuration, not a compromised Windows account
+or a provider to which you deliberately send the key. Non-Windows builds refuse
+to persist nonempty keys rather than falling back to plaintext.
+
+AI input is limited to 16 KiB, the complete request to 128 KiB, the response to
+1 MiB, and the request duration to 90 seconds. A model must follow the requested
+JSON structure; this version does not stream replies. Real-provider behavior
+must be verified with your configured service; automated tests use loopback only.
 
 Regression coverage includes verified byte fixtures, Chinese/Japanese/Big5/Korean
 cases, double mojibake, original preservation, invalid/lossy input, inverse paths,

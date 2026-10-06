@@ -3,6 +3,9 @@
 #include "MojibakeCandidate.h"
 #include <QFutureWatcher>
 #include <array>
+#include "ai/AiProvider.h"
+class AppSettings;
+namespace ai { class AiService; }
 class ElaPlainTextEdit;
 class ElaPushButton;
 class QButtonGroup;
@@ -10,7 +13,7 @@ class QLabel;
 class MojibakePage : public ToolPage {
     Q_OBJECT
 public:
-    explicit MojibakePage(QWidget* parent = nullptr);
+    explicit MojibakePage(QWidget* parent = nullptr, AppSettings* settings = nullptr);
     ~MojibakePage() override;
 protected:
     void changeEvent(QEvent* event) override;
@@ -20,6 +23,9 @@ private:
     void showResult();
     void showCandidate();
     void invalidate();
+    void analyzeAi();
+    void updateAiControls();
+    void invalidateAi();
     QString inputText() const;
     ElaPlainTextEdit *m_input, *m_output, *m_process;
     ElaPushButton *m_analyze, *m_copy, *m_clear, *m_cancel, *m_details;
@@ -33,4 +39,12 @@ private:
     QString m_submitted;
     bool m_stale = false;
     bool m_copied = false;
+    AppSettings* m_settings;
+    ai::AiService* m_aiService;
+    ElaPushButton *m_aiAnalyze, *m_aiCancel, *m_aiCopy;
+    ElaPlainTextEdit *m_aiOutput, *m_aiExplanation;
+    QLabel *m_aiTitle, *m_aiHint, *m_aiStatus;
+    ai::Reply m_aiResult;
+    QString m_aiSubmitted;
+    bool m_aiStale = false;
 };

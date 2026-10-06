@@ -1,6 +1,9 @@
 #include "MojibakePage.h"
 #include "MojibakeAnalyzer.h"
 #include "UiTheme.h"
+#include "services/AppSettings.h"
+#include "ai/AiService.h"
+#include <QJsonArray>
 #include <ElaPlainTextEdit.h>
 #include <ElaPushButton.h>
 #include <ElaTheme.h>
@@ -15,7 +18,7 @@
 #include <QApplication>
 #include <QTextDocument>
 using namespace mojibake;
-MojibakePage::MojibakePage(QWidget* parent) : ToolPage(parent) {
+MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(parent), m_settings(settings), m_aiService(new ai::AiService(this)) {
     setObjectName("mojibakePage");
     auto* outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
@@ -81,6 +84,44 @@ MojibakePage::MojibakePage(QWidget* parent) : ToolPage(parent) {
     layout->addWidget(m_input, 1); layout->addLayout(actions); layout->addWidget(m_status);
     layout->addWidget(m_outputLabel); layout->addLayout(candidateRow); layout->addWidget(m_output, 1);
     layout->addLayout(resultActions); layout->addWidget(m_process);
+    m_aiTitle = ui::label({}, 13, ui::Tone::Primary, content);
+    m_aiHint = ui::label({}, 10, ui::Tone::Secondary, content);
+    m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, content); m_aiStatus->setObjectName("mojibakeAiStatus");
+    m_aiAnalyze = button("mojibakeAiAnalyze");
+    m_aiCancel = button("mojibakeAiCancel"); m_aiCancel->hide();
+    m_aiCopy = button("mojibakeAiCopy"); m_aiCopy->setEnabled(false);
+    m_aiOutput = editor("mojibakeAiOutput", true);
+    m_aiExplanation = editor("mojibakeAiExplanation", true);
+    m_aiOutput->hide(); m_aiExplanation->hide();
+    auto* aiActions = new QHBoxLayout;
+    aiActions->addWidget(m_aiAnalyze); aiActions->addWidget(m_aiCancel); aiActions->addWidget(m_aiCopy); aiActions->addStretch();
+    layout->addWidget(m_aiTitle); layout->addWidget(m_aiHint); layout->addLayout(aiActions);
+    layout->addWidget(m_aiStatus); layout->addWidget(m_aiOutput); layout->addWidget(m_aiExplanation);
+    connect(m_aiAnalyze, &ElaPushButton::clicked, this, &MojibakePage::analyzeAi);
+    connect(m_aiCancel, &ElaPushButton::clicked, m_aiService, &ai::AiService::cancel);
+    connect(m_aiCopy, &ElaPushButton::clicked, this, [this] { QApplication::clipboard()->setText(m_aiResult.text); });
+    connect(m_aiService, &ai::AiService::completed, this, [this](const ai::Reply& reply) {
+        if (m_aiStale || m_aiSubmitted != inputText()) { updateAiControls(); return; }
+        m_aiResult = reply;
+        m_aiOutput->setPlainText(reply.text); m_aiOutput->setVisible(!reply.text.isEmpty());
+        QStringList explanation{reply.reason};
+        if (reply.selectedCandidate >= 0) explanation << tr("AI preferred local candidate %1.").arg(reply.selectedCandidate + 1);
+        if (!reply.guesses.isEmpty()) explanation << tr("Contextual guesses reported by the model:") << reply.guesses;
+        explanation << tr("All AI output is a suggestion. Inferred characters are not verified byte recovery.");
+        m_aiExplanation->setPlainText(explanation.join('\n')); m_aiExplanation->show();
+        m_aiStatus->setText(reply.text.isEmpty() ? tr("AI could not propose a reliable recovery. See its explanation.")
+                                              : tr("AI suggestion received. Verify the text and any inferred characters."));
+        updateAiControls();
+    });
+    connect(m_aiService, &ai::AiService::failed, this, [this](const QString& error) {
+        if (!m_aiStale) m_aiStatus->setText(error);
+        updateAiControls();
+    });
+    connect(m_aiService, &ai::AiService::cancelled, this, [this] {
+        if (!m_aiStale) m_aiStatus->setText(tr("AI request cancelled. Local results are unchanged."));
+        updateAiControls();
+    });
+    if (m_settings) connect(m_settings, &AppSettings::aiConfigurationChanged, this, [this] { invalidateAi(); updateAiControls(); });
     connect(m_analyze, &ElaPushButton::clicked, this, &MojibakePage::analyze);
     connect(m_clear, &ElaPushButton::clicked, this, [this]() { m_input->clear(); invalidate(); });
     connect(m_cancel, &ElaPushButton::clicked, this, [this]() { if (m_cancellation) m_cancellation->store(true); });
@@ -105,7 +146,7 @@ MojibakePage::MojibakePage(QWidget* parent) : ToolPage(parent) {
     });
     retranslate();
 }
-MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); }
+MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); m_aiService->disconnect(this); m_aiService->cancel(); }
 QString MojibakePage::inputText() const {
     // QTextDocument::toPlainText normalizes NBSP to ASCII spaces, destroying
     // byte evidence in common UTF-8-as-Latin-1 mojibake such as "ä½ å¥½".
@@ -113,6 +154,7 @@ QString MojibakePage::inputText() const {
         .replace(QChar::LineSeparator, '\n');
 }
 void MojibakePage::invalidate() {
+    invalidateAi();
     m_stale = true; m_copied = false;
     if (m_cancellation) m_cancellation->store(true);
     m_result = {}; m_output->clear(); m_process->clear();
@@ -122,6 +164,7 @@ void MojibakePage::invalidate() {
     m_candidates->setExclusive(true);
     m_copy->setEnabled(false); m_details->setEnabled(false);
     showCandidate();
+    updateAiControls();
     if (!m_watcher.isRunning()) showResult();
 }
 void MojibakePage::analyze() {
@@ -163,6 +206,7 @@ void MojibakePage::showResult() {
     else m_status->setText(tr("Possible recovery. Several encodings may explain the same bytes; compare the candidates."));
     if (m_copied) m_status->setText(m_status->text() + " " + tr("Copied to clipboard."));
     showCandidate();
+    updateAiControls();
 }
 void MojibakePage::showCandidate() {
     for (auto* b : m_candidateButtons) {
@@ -202,12 +246,47 @@ void MojibakePage::showCandidate() {
 }
 void MojibakePage::retranslate() {
     m_title->setText(tr("Mojibake Repair"));
-    m_description->setText(tr("Analyze encoding mistakes locally and compare recovery candidates. Your text stays on this computer."));
+    m_description->setText(tr("Local analysis stays offline. AI assistance sends text only when you explicitly request it."));
     m_inputLabel->setText(tr("Original text")); m_outputLabel->setText(tr("Recovery candidates"));
     m_analyze->setText(tr("Analyze")); m_cancel->setText(tr("Cancel")); m_clear->setText(tr("Clear"));
     m_copy->setText(tr("Copy result")); m_details->setText(tr("Recovery process"));
     m_input->setPlaceholderText(tr("Paste garbled text here…"));
+    m_aiTitle->setText(tr("AI suggestion (semantic inference)"));
+    m_aiAnalyze->setText(tr("AI deep analysis")); m_aiCancel->setText(tr("Cancel AI")); m_aiCopy->setText(tr("Copy AI suggestion"));
     showResult();
+}
+void MojibakePage::invalidateAi() {
+    m_aiStale = true; m_aiService->cancel(); m_aiResult = {};
+    m_aiOutput->clear(); m_aiExplanation->clear(); m_aiStatus->clear();
+    m_aiOutput->hide(); m_aiExplanation->hide(); m_aiCopy->setEnabled(false);
+}
+void MojibakePage::updateAiControls() {
+    const auto config = m_settings ? m_settings->aiConfiguration() : ai::Configuration{};
+    const bool configured = m_settings && ai::AiService::validate(config).isEmpty();
+    const bool busy = m_aiService->isBusy();
+    m_aiAnalyze->setEnabled(configured && !busy && !m_watcher.isRunning() && !m_result.candidates.isEmpty());
+    m_aiCancel->setVisible(busy);
+    m_aiCopy->setEnabled(!m_aiResult.text.isEmpty() && !busy);
+    m_aiHint->setText(configured ? tr("Clicking AI analysis sends the original text and local candidates to %1 using model %2. Suggestions may contain inferred characters. Run local analysis first.").arg(config.baseUrl, config.model)
+                               : tr("Configure the AI API address and model in Settings first. Local analysis does not upload text."));
+}
+void MojibakePage::analyzeAi() {
+    if (!m_settings || m_aiService->isBusy() || m_watcher.isRunning() || m_result.candidates.isEmpty()) return;
+    invalidateAi(); m_aiStale = false; m_aiSubmitted = inputText();
+    QJsonArray candidates;
+    for (int i = 0; i < m_result.candidates.size(); ++i) {
+        const auto& candidate = m_result.candidates[i];
+        QJsonArray path;
+        for (const auto& step : candidate.path) path.append(QJsonObject{
+            {"encode_as", EncodingConverter::name(step.encodeAs)}, {"decode_as", EncodingConverter::name(step.decodeAs)},
+            {"segmented", step.segmented}, {"partial", step.partial}});
+        candidates.append(QJsonObject{{"index", i + 1}, {"text", candidate.text}, {"quality_score", candidate.score},
+                                      {"inverse_verified", candidate.reversible}, {"path", path}});
+    }
+    const QJsonObject context{{"original_text", m_aiSubmitted}, {"candidates", candidates}, {"possible_loss", m_result.possibleLoss}};
+    m_aiStatus->setText(tr("Waiting for AI response…"));
+    m_aiService->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
+    updateAiControls();
 }
 void MojibakePage::changeEvent(QEvent* event) {
     ToolPage::changeEvent(event);

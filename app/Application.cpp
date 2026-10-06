@@ -27,7 +27,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     mojibake.id = "encoding.mojibake";
     mojibake.name = "Mojibake Repair";
     mojibake.icon = ElaIconType::Language;
-    mojibake.factory = [](QWidget* parent) { return new MojibakePage(parent); };
+    mojibake.factory = [this](QWidget* parent) { return new MojibakePage(parent, m_settings.get()); };
     m_tools->registerTool(mojibake);
     NavigationManager navigation;
     navigation.addGroup({"encoding", QT_TRANSLATE_NOOP("Navigation", "Text and Encoding"), 10});

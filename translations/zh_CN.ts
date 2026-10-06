@@ -18,6 +18,15 @@
     </context>
     <context>
         <name>SettingsPage</name>
+        <message><source>AI API (OpenAI compatible)</source><translation>AI 接口（OpenAI 兼容）</translation></message>
+        <message><source>AI runs only when you click AI analysis. The API key is encrypted for your Windows account. Leave the key empty only if your service requires no authentication.</source><translation>仅点击 AI 分析时联网。密钥使用当前 Windows 账户加密保存；仅在服务无需认证时留空。</translation></message>
+        <message><source>API base URL</source><translation>API 基础地址</translation></message>
+        <message><source>Model</source><translation>模型</translation></message>
+        <message><source>API key</source><translation>API 密钥</translation></message>
+        <message><source>Model name supplied by your provider</source><translation>填写服务商提供的模型名称</translation></message>
+        <message><source>Save API settings</source><translation>保存 API 设置</translation></message>
+        <message><source>Could not securely save the API settings.</source><translation>无法安全保存 API 设置。</translation></message>
+        <message><source>API settings saved. No network request was sent.</source><translation>API 设置已保存，未发送网络请求。</translation></message>
         <message>
             <source>Settings</source>
             <translation>设置</translation>
@@ -124,6 +133,20 @@
     </context>
     <context>
         <name>MojibakePage</name>
+        <message><source>Local analysis stays offline. AI assistance sends text only when you explicitly request it.</source><translation>本地分析不联网，仅主动调用 AI 时发送文本。</translation></message>
+        <message><source>AI suggestion (semantic inference)</source><translation>AI 建议（语义推测）</translation></message>
+        <message><source>AI deep analysis</source><translation>AI 深度分析</translation></message>
+        <message><source>Cancel AI</source><translation>取消 AI</translation></message>
+        <message><source>Copy AI suggestion</source><translation>复制 AI 建议</translation></message>
+        <message><source>AI preferred local candidate %1.</source><translation>AI 倾向本地候选 %1。</translation></message>
+        <message><source>Contextual guesses reported by the model:</source><translation>模型报告的语境推测：</translation></message>
+        <message><source>All AI output is a suggestion. Inferred characters are not verified byte recovery.</source><translation>AI 输出仅供参考，推测的字符未经字节恢复验证。</translation></message>
+        <message><source>AI could not propose a reliable recovery. See its explanation.</source><translation>AI 无法提出可靠恢复结果，请查看说明。</translation></message>
+        <message><source>AI suggestion received. Verify the text and any inferred characters.</source><translation>已收到 AI 建议，请核对正文和推测的字符。</translation></message>
+        <message><source>AI request cancelled. Local results are unchanged.</source><translation>AI 请求已取消，本地结果保留。</translation></message>
+        <message><source>Clicking AI analysis sends the original text and local candidates to %1 using model %2. Suggestions may contain inferred characters. Run local analysis first.</source><translation>点击 AI 分析会将原文和本地候选发送至 %1，使用模型 %2。建议可能包含推测字符，请先完成本地分析。</translation></message>
+        <message><source>Configure the AI API address and model in Settings first. Local analysis does not upload text.</source><translation>请先在设置中配置 AI 接口地址和模型。本地分析不会上传文本。</translation></message>
+        <message><source>Waiting for AI response…</source><translation>正在等待 AI 回复…</translation></message>
         <message><source>Mojibake Repair</source><translation>乱码恢复</translation></message>
         <message><source>Analyze encoding mistakes locally and compare recovery candidates. Your text stays on this computer.</source><translation>在本地分析编码错误并比较恢复候选，文本不会离开这台电脑。</translation></message>
         <message><source>Original text</source><translation>原始文本</translation></message>
@@ -165,5 +188,24 @@ Unavailable</source><translation>候选 %1
         <message><source>Search depth: at most 2; examined %1 unique candidates.</source><translation>搜索最多 2 层，共检查 %1 个不重复候选。</translation></message>
         <message><source>The bounded search was pruned; other possibilities may exist.</source><translation>搜索已按上限剪枝，可能仍有其他结果。</translation></message>
         <message><source>A reversible encoding path does not prove that the meaning is correct.</source><translation>编码路径可逆并不代表语义一定正确。</translation></message>
+    </context>
+    <context>
+        <name>ai::OpenAICompatibleProvider</name>
+        <message><source>AI request timed out.</source><translation>AI 请求超时。</translation></message>
+        <message><source>Use an HTTPS API address. HTTP is allowed only for localhost. Credentials, query strings and fragments are not allowed in the address.</source><translation>请使用 HTTPS 地址（本机接口可用 HTTP），地址不能包含认证信息、查询参数或片段。</translation></message>
+        <message><source>Enter a model name in Settings.</source><translation>请在设置中填写模型名称。</translation></message>
+        <message><source>The API key contains an invalid newline.</source><translation>API 密钥含非法换行符。</translation></message>
+        <message><source>AI response exceeded the 1 MiB limit.</source><translation>AI 回复超过 1 MiB 上限。</translation></message>
+        <message><source>AI request is too large. Analyze a smaller section.</source><translation>AI 请求过大，请分析较小的片段。</translation></message>
+        <message><source>API authorization failed. Check the API key and model permissions.</source><translation>API 认证失败，请检查密钥和模型权限。</translation></message>
+        <message><source>API rate limit or quota exceeded.</source><translation>API 请求达到限速或额度上限。</translation></message>
+        <message><source>AI service returned HTTP %1.</source><translation>AI 服务返回 HTTP %1。</translation></message>
+        <message><source>Could not connect to the AI service. Check the address and network.</source><translation>无法连接 AI 服务，请检查地址和网络。</translation></message>
+        <message><source>AI connection failed or the response was incomplete.</source><translation>AI 连接失败或回复不完整。</translation></message>
+        <message><source>The AI response was empty or did not match the required JSON format. Try another model.</source><translation>AI 回复为空或不符合要求的 JSON 格式，请重试或更换模型。</translation></message>
+    </context>
+    <context>
+        <name>ai::AiService</name>
+        <message><source>AI analysis requires nonempty input of at most 16 KiB. Analyze a smaller section.</source><translation>AI 分析需要非空文本，最多 16 KiB，请分析较小的片段。</translation></message>
     </context>
 </TS>
