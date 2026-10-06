@@ -42,8 +42,9 @@ private:
     QPropertyAnimation* _lastSelectMarkBottomAnimation{nullptr};
     QPropertyAnimation* _selectMarkTopAnimation{nullptr};
     QPropertyAnimation* _selectMarkBottomAnimation{nullptr};
+    QPropertyAnimation* _nodeOpacityAnimation{nullptr};
+    QPropertyAnimation* _rotateAnimation{nullptr};
     bool _compareItemY(ElaNavigationNode* node1, ElaNavigationNode* node2);
 };
 
 #endif // ELAWORKSPACE_ELAWIDGETTOOLS_DEVELOPERCOMPONENTS_ELANAVIGATIONSTYLE_H_
-

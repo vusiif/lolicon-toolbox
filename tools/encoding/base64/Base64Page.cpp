@@ -21,6 +21,10 @@ Base64Page::Base64Page(QWidget* parent) : ToolPage(parent)
     scroll->setFrameShape(QFrame::NoFrame);
     auto* content = new QWidget(scroll);
     scroll->setWidget(content);
+    // QScrollArea enables autofill on its content; inherit Ela's live backdrop
+    // instead of retaining the palette captured when the page was created.
+    content->setAutoFillBackground(false);
+    scroll->viewport()->setAutoFillBackground(false);
     outer->addWidget(scroll);
     auto* layout = new QVBoxLayout(content);
     layout->setSizeConstraint(QLayout::SetMinimumSize);

@@ -87,6 +87,9 @@ MIT license, copyright (c) 2024 Liniyous; the original license is retained in
 Local Ela adaptation: the navigation view owns its style, and navigation animations
 are parented to that style, preventing callbacks into a destroyed viewport when a
 window closes during a group animation.
+Group visibility and selected markers update immediately. Arrow/fade effects use
+one cancellable 140ms animation each; mouse clicks bypass kinetic scrolling.
+Child rows use a 32px indent and guide lines, while group titles are bold.
 
 Ela uses Qt Widgets private APIs: deploy the same Qt version used for the build,
 and rebuild Ela and Toolbox together after upgrading Qt.

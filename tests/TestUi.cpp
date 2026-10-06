@@ -13,6 +13,7 @@
 #include <QSettings>
 #include <QLocale>
 #include <QScrollArea>
+#include <QTreeView>
 #include "MainWindow.h"
 #include "LazyToolPage.h"
 #include "SettingsPage.h"
@@ -241,6 +242,25 @@ void TestUi::windowWorkflow()
     encode->click();
     QCOMPARE(output->toPlainText(), QString("SGVsbG8g5LiW55WM"));
     const auto result = output->toPlainText();
+    auto* tree = window.findChild<QTreeView*>("ElaNavigationView");
+    QVERIFY(tree);
+    const auto groupIndex = tree->model()->index(0, 0);
+    const auto childIndex = tree->model()->index(0, 0, groupIndex);
+    QVERIFY(groupIndex.isValid() && childIndex.isValid());
+    // Mouse clicks must commit visibility immediately, even during an earlier
+    // arrow/fade animation, without reloading or navigating away from the page.
+    for (int i = 0; i < 12; ++i) {
+        const bool expanded = tree->isExpanded(groupIndex);
+        QTest::mouseClick(tree->viewport(), Qt::LeftButton, Qt::NoModifier, tree->visualRect(groupIndex).center());
+        QCOMPARE(tree->isExpanded(groupIndex), !expanded);
+        QCOMPARE(tree->visualRect(childIndex).isEmpty(), expanded);
+        QCOMPARE(window.getCurrentNavigationPageKey(), window.pageKey("encoding.base64"));
+        QCOMPARE(settings.lastPage(), QString("encoding.base64"));
+        QCOMPARE(firstLoads, 1);
+        QCOMPARE(input->toPlainText(), QString::fromUtf8("Hello 世界"));
+        QCOMPARE(output->toPlainText(), result);
+        QTest::qWait(10);
+    }
     auto* bar = window.findChild<ElaAppBar*>();
     QVERIFY(bar);
     auto* hamburger = bar->findChild<ElaToolButton*>("sidebarToggle");

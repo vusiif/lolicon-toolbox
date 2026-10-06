@@ -19,7 +19,10 @@ ElaNavigationView::ElaNavigationView(QWidget* parent)
 {
     setObjectName("ElaNavigationView");
     setStyleSheet("#ElaNavigationView{background-color:transparent;}");
-    setAnimated(true);
+    // Commit row visibility immediately; the style animates only the arrow/fade.
+    // QTreeView's separate height animation otherwise delays repeated clicks.
+    setAnimated(false);
+    setIndentation(32);
     setHeaderHidden(true);
     setRootIsDecorated(false);
     setExpandsOnDoubleClick(false);
@@ -48,7 +51,8 @@ ElaNavigationView::ElaNavigationView(QWidget* parent)
     _navigationStyle->setNavigationView(this);
     setStyle(_navigationStyle);
 
-    QScroller::grabGesture(this->viewport(), QScroller::LeftMouseButtonGesture);
+    // Desktop clicks must go straight to the tree, not through kinetic scrolling.
+    QScroller::grabGesture(this->viewport(), QScroller::TouchGesture);
     QScroller* scroller = QScroller::scroller(this->viewport());
     QScrollerProperties properties = scroller->scrollerProperties();
     properties.setScrollMetric(QScrollerProperties::MousePressEventDelay, 0);

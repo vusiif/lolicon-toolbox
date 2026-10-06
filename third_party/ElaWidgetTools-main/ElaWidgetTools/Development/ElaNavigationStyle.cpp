@@ -13,6 +13,7 @@
 ElaNavigationStyle::ElaNavigationStyle(QStyle* style)
 {
     _pOpacity = 1;
+    _pRotate = 0;
     _pItemHeight = 38;
     _pLastSelectMarkTop = 10.5;
     _pLastSelectMarkBottom = 10.5;
@@ -24,14 +25,14 @@ ElaNavigationStyle::ElaNavigationStyle(QStyle* style)
     connect(_lastSelectMarkTopAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
         _pNavigationView->viewport()->update();
     });
-    _lastSelectMarkTopAnimation->setDuration(300);
+    _lastSelectMarkTopAnimation->setDuration(80);
     _lastSelectMarkTopAnimation->setEasingCurve(QEasingCurve::InOutSine);
 
     _selectMarkBottomAnimation = new QPropertyAnimation(this, "pSelectMarkBottom", this);
     connect(_selectMarkBottomAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
         _pNavigationView->viewport()->update();
     });
-    _selectMarkBottomAnimation->setDuration(300);
+    _selectMarkBottomAnimation->setDuration(80);
     _selectMarkBottomAnimation->setEasingCurve(QEasingCurve::InOutSine);
     connect(_lastSelectMarkTopAnimation, &QPropertyAnimation::finished, this, [=]() {
         _isSelectMarkDisplay = true;
@@ -46,14 +47,14 @@ ElaNavigationStyle::ElaNavigationStyle(QStyle* style)
     connect(_lastSelectMarkBottomAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
         _pNavigationView->viewport()->update();
     });
-    _lastSelectMarkBottomAnimation->setDuration(300);
+    _lastSelectMarkBottomAnimation->setDuration(80);
     _lastSelectMarkBottomAnimation->setEasingCurve(QEasingCurve::InOutSine);
 
     _selectMarkTopAnimation = new QPropertyAnimation(this, "pSelectMarkTop", this);
     connect(_selectMarkTopAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
         _pNavigationView->viewport()->update();
     });
-    _selectMarkTopAnimation->setDuration(300);
+    _selectMarkTopAnimation->setDuration(80);
     _selectMarkTopAnimation->setEasingCurve(QEasingCurve::InOutSine);
     connect(_lastSelectMarkBottomAnimation, &QPropertyAnimation::finished, this, [=]() {
         _isSelectMarkDisplay = true;
@@ -61,6 +62,24 @@ ElaNavigationStyle::ElaNavigationStyle(QStyle* style)
         _selectMarkTopAnimation->setStartValue(0.0);
         _selectMarkTopAnimation->setEndValue(10.5);
         _selectMarkTopAnimation->start();
+    });
+    _nodeOpacityAnimation = new QPropertyAnimation(this, "pOpacity", this);
+    _nodeOpacityAnimation->setDuration(140);
+    _nodeOpacityAnimation->setEasingCurve(QEasingCurve::OutCubic);
+    connect(_nodeOpacityAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
+        _pNavigationView->viewport()->update();
+    });
+    connect(_nodeOpacityAnimation, &QPropertyAnimation::finished, this, [this]() {
+        _opacityAnimationTargetNode = nullptr;
+    });
+    _rotateAnimation = new QPropertyAnimation(this, "pRotate", this);
+    _rotateAnimation->setDuration(140);
+    _rotateAnimation->setEasingCurve(QEasingCurve::OutCubic);
+    connect(_rotateAnimation, &QPropertyAnimation::valueChanged, this, [this]() {
+        _pNavigationView->viewport()->update();
+    });
+    connect(_rotateAnimation, &QPropertyAnimation::finished, this, [this]() {
+        _expandAnimationTargetNode = nullptr;
     });
     _themeMode = eTheme->getThemeMode();
     connect(eTheme, &ElaTheme::themeModeChanged, this, [=](ElaThemeType::ThemeMode themeMode) {
@@ -146,7 +165,21 @@ void ElaNavigationStyle::drawPrimitive(PrimitiveElement element, const QStyleOpt
     }
     case QStyle::PE_IndicatorBranch:
     {
-        // Branch指示器
+        // Quiet hierarchy guides in the indentation area of child rows.
+        if (option->state & (QStyle::State_Item | QStyle::State_Sibling))
+        {
+            painter->save();
+            auto color = ElaThemeColor(_themeMode, BasicTextCategory);
+            color.setAlpha(90);
+            painter->setPen(QPen(color, 1));
+            const auto rect = option->rect;
+            const int x = rect.center().x();
+            const int y = rect.center().y();
+            painter->drawLine(x, rect.top(), x, option->state & QStyle::State_Sibling ? rect.bottom() : y);
+            if (option->state & QStyle::State_Item)
+                painter->drawLine(x, y, rect.right() - 4, y);
+            painter->restore();
+        }
         return;
     }
     default:
@@ -224,6 +257,12 @@ void ElaNavigationStyle::drawControl(ControlElement element, const QStyleOption*
             else
             {
                 painter->setPen((vopt->index == _pPressIndex) ? ElaThemeColor(_themeMode, BasicTextPress) : ElaThemeColor(_themeMode, BasicText));
+                if (node->getIsExpanderNode())
+                {
+                    QFont groupFont = painter->font();
+                    groupFont.setBold(true);
+                    painter->setFont(groupFont);
+                }
             }
             QRect textRect;
             if (node->getAwesome() != ElaIconType::None)
@@ -345,77 +384,46 @@ QSize ElaNavigationStyle::sizeFromContents(ContentsType type, const QStyleOption
 
 void ElaNavigationStyle::navigationNodeStateChange(const QVariantMap& data)
 {
-    if (data.contains("Expand"))
+    if (data.contains("Expand") || data.contains("Collapse"))
     {
+        const bool expanding = data.contains("Expand");
         ElaNavigationNode* lastExpandNode = _expandAnimationTargetNode;
-        _opacityAnimationTargetNode = data.value("Expand").value<ElaNavigationNode*>();
-        _expandAnimationTargetNode = _opacityAnimationTargetNode;
-        QPropertyAnimation* nodeOpacityAnimation = new QPropertyAnimation(this, "pOpacity", this);
-        connect(nodeOpacityAnimation, &QPropertyAnimation::finished, this, [=]() {
-            _opacityAnimationTargetNode = nullptr;
-        });
-        connect(nodeOpacityAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
-            _pNavigationView->viewport()->update();
-        });
-        nodeOpacityAnimation->setDuration(480);
-        nodeOpacityAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        nodeOpacityAnimation->setKeyValueAt(0.5, 0);
-        nodeOpacityAnimation->setStartValue(0);
-        nodeOpacityAnimation->setEndValue(1);
-        nodeOpacityAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-
-        QPropertyAnimation* rotateAnimation = new QPropertyAnimation(this, "pRotate", this);
-        connect(rotateAnimation, &QPropertyAnimation::finished, this, [=]() {
-            _expandAnimationTargetNode = nullptr;
-        });
-        connect(rotateAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
-            _pNavigationView->viewport()->update();
-        });
-        rotateAnimation->setDuration(300);
-        rotateAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        if (lastExpandNode == _expandAnimationTargetNode)
+        _nodeOpacityAnimation->stop();
+        _rotateAnimation->stop();
+        _expandAnimationTargetNode = data.value(expanding ? "Expand" : "Collapse").value<ElaNavigationNode*>();
+        _opacityAnimationTargetNode = expanding ? _expandAnimationTargetNode : nullptr;
+        _pOpacity = expanding ? 0.65 : 1.0;
+        if (expanding)
         {
-            rotateAnimation->setStartValue(_pRotate);
+            // Visible on the first frame; no transparent first half or queued fades.
+            _nodeOpacityAnimation->setStartValue(_pOpacity);
+            _nodeOpacityAnimation->setEndValue(1.0);
+            _nodeOpacityAnimation->start();
         }
-        else
-        {
-            rotateAnimation->setStartValue(0);
-        }
-        rotateAnimation->setEndValue(-180);
-        rotateAnimation->start(QAbstractAnimation::DeleteWhenStopped);
-    }
-    else if (data.contains("Collapse"))
-    {
-        ElaNavigationNode* lastExpandNode = _expandAnimationTargetNode;
-        _opacityAnimationTargetNode = data.value("Collapse").value<ElaNavigationNode*>();
-        _expandAnimationTargetNode = _opacityAnimationTargetNode;
-        _pOpacity = 0;
-
-        QPropertyAnimation* rotateAnimation = new QPropertyAnimation(this, "pRotate", this);
-        connect(rotateAnimation, &QPropertyAnimation::finished, this, [=]() {
-            _pOpacity = 1;
-            _expandAnimationTargetNode = nullptr;
-        });
-        connect(rotateAnimation, &QPropertyAnimation::valueChanged, this, [=](const QVariant& value) {
-            _pNavigationView->viewport()->update();
-        });
-        rotateAnimation->setDuration(300);
-        rotateAnimation->setEasingCurve(QEasingCurve::InOutSine);
-        if (lastExpandNode == _expandAnimationTargetNode)
-        {
-            rotateAnimation->setStartValue(_pRotate);
-        }
-        else
-        {
-            rotateAnimation->setStartValue(-180);
-        }
-        rotateAnimation->setEndValue(0);
-        rotateAnimation->start(QAbstractAnimation::DeleteWhenStopped);
+        _rotateAnimation->setStartValue(lastExpandNode == _expandAnimationTargetNode ? _pRotate : (expanding ? 0.0 : -180.0));
+        _rotateAnimation->setEndValue(expanding ? -180.0 : 0.0);
+        _rotateAnimation->start();
+        _pNavigationView->viewport()->update();
     }
     else if (data.contains("SelectMarkChanged"))
     {
         _lastSelectedNode = data.value("LastSelectedNode").value<ElaNavigationNode*>();
         ElaNavigationNode* selectedNode = data.value("SelectedNode").value<ElaNavigationNode*>();
+        _lastSelectMarkTopAnimation->stop();
+        _lastSelectMarkBottomAnimation->stop();
+        _selectMarkTopAnimation->stop();
+        _selectMarkBottomAnimation->stop();
+        // Folding the selected page's parent changes only its visible marker.
+        // Apply that immediately rather than hiding it through two animations.
+        if ((selectedNode && selectedNode->getIsExpanderNode()) ||
+            (_lastSelectedNode && _lastSelectedNode->getIsExpanderNode()))
+        {
+            _lastSelectedNode = nullptr;
+            _pSelectMarkTop = _pSelectMarkBottom = 10.5;
+            _isSelectMarkDisplay = true;
+            _pNavigationView->viewport()->update();
+            return;
+        }
         bool direction = _compareItemY(selectedNode, _lastSelectedNode);
         _pLastSelectMarkTop = 10.5;
         _pLastSelectMarkBottom = 10.5;

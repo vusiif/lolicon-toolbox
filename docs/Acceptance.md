@@ -13,6 +13,11 @@ Validated on Windows 10 x64, Qt 6.11.2, MSVC 19.50 and PowerShell 7.
 - Added layout checks at 640x480, 800x600 and 1400x900. The minimum-size test found
   overlapping editors/actions; the Base64 page now scrolls when content cannot fit.
 - Closing windows during group animations is covered by the regression workflow.
+- Navigation responsiveness regression: 12 rapid mouse clicks toggle the selected
+  Base64 group's visible rows immediately, without changing page, saved selection,
+  factory count or editor contents. Arrows/fades are cancellable 140ms effects;
+  parent/child markers update immediately. Group headings and indent guides now
+  make the hierarchy explicit. Perceived smoothness remains a manual check.
 
 Tests use temporary settings and native windows hidden from the desktop. They do
 not replace a complete interactive acceptance session.
