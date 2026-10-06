@@ -3,7 +3,8 @@
 #include "UiTheme.h"
 #include <ElaPlainTextEdit.h>
 #include <ElaPushButton.h>
-#include <ElaComboBox.h>
+#include <ElaTheme.h>
+#include <QButtonGroup>
 #include <ElaScrollArea.h>
 #include <QtConcurrentRun>
 #include <QVBoxLayout>
@@ -12,7 +13,6 @@
 #include <QEvent>
 #include <QClipboard>
 #include <QApplication>
-#include <QSignalBlocker>
 #include <QTextDocument>
 using namespace mojibake;
 MojibakePage::MojibakePage(QWidget* parent) : ToolPage(parent) {
@@ -57,25 +57,41 @@ MojibakePage::MojibakePage(QWidget* parent) : ToolPage(parent) {
     m_cancel = button("mojibakeCancel"); m_cancel->hide();
     m_copy = button("mojibakeCopy"); m_copy->setEnabled(false);
     m_details = button("mojibakeDetails"); m_details->setCheckable(true); m_details->setEnabled(false);
-    m_candidates = new ElaComboBox(content);
+    m_candidates = new QButtonGroup(this);
     m_candidates->setObjectName("mojibakeCandidates");
-    m_candidates->setEnabled(false);
+    m_candidates->setExclusive(true);
+    auto* candidateRow = new QHBoxLayout;
+    candidateRow->setSpacing(8);
+    for (int i = 0; i < 5; ++i) {
+        auto* b = button(qPrintable(QString("mojibakeCandidate%1").arg(i + 1)));
+        b->setCheckable(true);
+        b->setEnabled(false);
+        b->setFixedHeight(54);
+        b->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+        auto font = b->font(); font.setPixelSize(12); b->setFont(font);
+        m_candidateButtons[i] = b;
+        m_candidates->addButton(b, i);
+        candidateRow->addWidget(b, 1);
+    }
     auto* actions = new QHBoxLayout;
     actions->addWidget(m_analyze); actions->addWidget(m_cancel); actions->addWidget(m_clear); actions->addStretch();
     auto* resultActions = new QHBoxLayout;
     resultActions->addWidget(m_copy); resultActions->addWidget(m_details); resultActions->addStretch();
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addWidget(m_inputLabel);
     layout->addWidget(m_input, 1); layout->addLayout(actions); layout->addWidget(m_status);
-    layout->addWidget(m_outputLabel); layout->addWidget(m_candidates); layout->addWidget(m_output, 1);
+    layout->addWidget(m_outputLabel); layout->addLayout(candidateRow); layout->addWidget(m_output, 1);
     layout->addLayout(resultActions); layout->addWidget(m_process);
     connect(m_analyze, &ElaPushButton::clicked, this, &MojibakePage::analyze);
     connect(m_clear, &ElaPushButton::clicked, this, [this]() { m_input->clear(); invalidate(); });
     connect(m_cancel, &ElaPushButton::clicked, this, [this]() { if (m_cancellation) m_cancellation->store(true); });
     connect(m_input, &ElaPlainTextEdit::textChanged, this, &MojibakePage::invalidate);
-    connect(m_candidates, &ElaComboBox::currentIndexChanged, this, &MojibakePage::showCandidate);
+    connect(m_candidates, &QButtonGroup::idClicked, this, [this](int index) {
+        m_selectedCandidate = index; m_copied = false; showResult();
+    });
+    connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { showCandidate(); });
     connect(m_details, &ElaPushButton::toggled, m_process, &QWidget::setVisible);
     connect(m_copy, &ElaPushButton::clicked, this, [this]() {
-        const int index = m_candidates->currentIndex();
+        const int index = m_selectedCandidate;
         if (index < 0 || index >= m_result.candidates.size()) return;
         QApplication::clipboard()->setText(m_result.candidates[index].text);
         m_copied = true;
@@ -100,8 +116,12 @@ void MojibakePage::invalidate() {
     m_stale = true; m_copied = false;
     if (m_cancellation) m_cancellation->store(true);
     m_result = {}; m_output->clear(); m_process->clear();
-    { QSignalBlocker blocker(m_candidates); m_candidates->clear(); }
-    m_candidates->setEnabled(false); m_copy->setEnabled(false); m_details->setEnabled(false);
+    m_selectedCandidate = -1;
+    m_candidates->setExclusive(false);
+    for (auto* b : m_candidateButtons) { b->setChecked(false); b->setEnabled(false); }
+    m_candidates->setExclusive(true);
+    m_copy->setEnabled(false); m_details->setEnabled(false);
+    showCandidate();
     if (!m_watcher.isRunning()) showResult();
 }
 void MojibakePage::analyze() {
@@ -119,18 +139,18 @@ void MojibakePage::analyze() {
     m_watcher.setFuture(QtConcurrent::run([text, cancel]() { return MojibakeAnalyzer::analyze(text, cancel); }));
 }
 void MojibakePage::showResult() {
-    const int oldIndex = m_candidates->currentIndex();
-    {
-        QSignalBlocker blocker(m_candidates);
-        m_candidates->clear();
-        for (int i = 0; i < m_result.candidates.size(); ++i) {
-            const auto& c = m_result.candidates[i];
-            const auto label = c.path.isEmpty() ? tr("Original text (unchanged)") : tr("Candidate %1 — score %2").arg(i + 1).arg(c.score, 0, 'f', 1);
-            m_candidates->addItem(label);
-        }
-        if (m_candidates->count()) m_candidates->setCurrentIndex(qBound(0, oldIndex, m_candidates->count() - 1));
+    m_selectedCandidate = m_result.candidates.isEmpty() ? -1 : qBound(0, m_selectedCandidate, int(m_result.candidates.size()) - 1);
+    m_candidates->setExclusive(false);
+    for (int i = 0; i < 5; ++i) {
+        auto* b = m_candidateButtons[i];
+        const bool available = i < m_result.candidates.size();
+        b->setEnabled(available);
+        b->setChecked(available && i == m_selectedCandidate);
+        b->setText(available ? tr("Candidate %1\n%2 / 100").arg(i + 1).arg(m_result.candidates[i].score, 0, 'f', 1)
+                             : tr("Candidate %1\nUnavailable").arg(i + 1));
+        b->setToolTip(available && m_result.candidates[i].path.isEmpty() ? tr("Original text (unchanged)") : QString());
     }
-    m_candidates->setEnabled(!m_result.candidates.isEmpty());
+    m_candidates->setExclusive(true);
     m_details->setEnabled(!m_result.candidates.isEmpty());
     ui::setTone(m_status, ui::Tone::Secondary);
     if (m_watcher.isRunning()) m_status->setText(tr("Analyzing locally…"));
@@ -145,12 +165,26 @@ void MojibakePage::showResult() {
     showCandidate();
 }
 void MojibakePage::showCandidate() {
-    const int index = m_candidates->currentIndex();
+    for (auto* b : m_candidateButtons) {
+        const bool selected = b->isChecked();
+        b->setLightDefaultColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase));
+        b->setLightHoverColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover));
+        b->setLightPressColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryPress : ElaThemeType::BasicPress));
+        b->setLightTextColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::BasicTextInvert : ElaThemeType::BasicText));
+        b->setDarkDefaultColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase));
+        b->setDarkHoverColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover));
+        b->setDarkPressColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryPress : ElaThemeType::BasicPress));
+        b->setDarkTextColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::BasicTextInvert : ElaThemeType::BasicText));
+        b->update();
+    }
+    const int index = m_selectedCandidate;
     if (index < 0 || index >= m_result.candidates.size()) { m_output->clear(); m_copy->setEnabled(false); return; }
     const auto& candidate = m_result.candidates[index];
     m_output->setPlainText(candidate.text);
     m_copy->setEnabled(!candidate.text.isEmpty());
     QStringList path;
+    path << tr("Quality score: %1 / 100 (not a probability).").arg(candidate.score, 0, 'f', 1);
+    path << tr("Ranking uses anomaly density, conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.");
     if (candidate.path.isEmpty()) path << tr("Original text: no conversion applied.");
     for (int i = 0; i < candidate.path.size(); ++i) {
         const auto& step = candidate.path[i];

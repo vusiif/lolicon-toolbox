@@ -9,6 +9,7 @@
 #include <ElaPushButton.h>
 #include <QTemporaryDir>
 #include <QLabel>
+#include <QClipboard>
 #include <QStyleHints>
 #include <QSettings>
 #include <QLocale>
@@ -202,6 +203,20 @@ void TestUi::mojibakeWorkflow()
     QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
     QVERIFY(process->toPlainText().contains("UTF-8"));
     QVERIFY(process->toPlainText().contains("Yes"));
+    auto* first = window.findChild<ElaPushButton*>("mojibakeCandidate1");
+    auto* second = window.findChild<ElaPushButton*>("mojibakeCandidate2");
+    QVERIFY(first && second && first->isChecked() && second->isEnabled());
+    second->click();
+    QVERIFY(second->isChecked() && !first->isChecked());
+    QVERIFY(output->toPlainText() != QString::fromUtf8("你好"));
+    window.findChild<ElaPushButton*>("mojibakeCopy")->click();
+    const auto alternative = QApplication::clipboard()->text();
+    first->click();
+    QVERIFY(first->isChecked() && !second->isChecked());
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
+    window.findChild<ElaPushButton*>("mojibakeCopy")->click();
+    QCOMPARE(QApplication::clipboard()->text(), QString::fromUtf8("你好"));
+    QVERIFY(alternative != QApplication::clipboard()->text());
     QVERIFY(settings.setLocale("zh_CN"));
     QCoreApplication::processEvents();
     QCOMPARE(window.getNavigationNodeTitle(window.pageKey(descriptor.id)), QString::fromUtf8("乱码恢复"));
@@ -209,6 +224,10 @@ void TestUi::mojibakeWorkflow()
     QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
     input->setPlainText("normal text");
     QVERIFY(output->toPlainText().isEmpty());
+    for (int i = 1; i <= 5; ++i) {
+        auto* b = window.findChild<ElaPushButton*>(QString("mojibakeCandidate%1").arg(i));
+        QVERIFY(b && !b->isEnabled() && !b->isChecked());
+    }
     analyze->click();
     QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
     QCOMPARE(output->toPlainText(), QString("normal text"));

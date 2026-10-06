@@ -2,9 +2,10 @@
 #include "tool/ToolPage.h"
 #include "MojibakeCandidate.h"
 #include <QFutureWatcher>
+#include <array>
 class ElaPlainTextEdit;
 class ElaPushButton;
-class ElaComboBox;
+class QButtonGroup;
 class QLabel;
 class MojibakePage : public ToolPage {
     Q_OBJECT
@@ -22,7 +23,9 @@ private:
     QString inputText() const;
     ElaPlainTextEdit *m_input, *m_output, *m_process;
     ElaPushButton *m_analyze, *m_copy, *m_clear, *m_cancel, *m_details;
-    ElaComboBox* m_candidates;
+    std::array<ElaPushButton*, 5> m_candidateButtons;
+    QButtonGroup* m_candidates;
+    int m_selectedCandidate = -1;
     QLabel *m_title, *m_description, *m_inputLabel, *m_outputLabel, *m_status;
     QFutureWatcher<mojibake::Result> m_watcher;
     mojibake::Cancellation m_cancellation;

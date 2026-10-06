@@ -101,7 +101,7 @@ The Base64 codec uses the vendored `third_party/base64.hpp` implementation.
 ## Mojibake Repair
 
 Open **Text and Encoding → Mojibake Repair**, paste the original garbled text,
-and choose **Analyze**. Compare up to five candidates, inspect **Recovery process**
+and choose **Analyze**. Click one of five candidate buttons (unused slots are disabled), inspect **Recovery process**
 and copy the selected result. Editing the input invalidates old results; typing
 does not automatically run analysis. All work stays local, with no AI/API calls.
 
@@ -111,7 +111,9 @@ Strict conversions check exact byte/text round-trips. Other Qt kits may provide
 fewer encodings; unavailable codecs are omitted at runtime.
 
 Search is limited to two conversions, 100 unique candidates and a 12-state beam.
-Scores are heuristics rather than calibrated probabilities. Plausible normal
+Scores are length-normalized quality indices from 0 to 100, with penalties for
+conversion steps and incomplete recovery, plus a preference for UTF-8 decoding.
+They are heuristics rather than calibrated probabilities. Plausible normal
 text stays the preferred result; close candidates and lost information remain
 uncertain. Mixed Western garbling can be repaired in representable segments,
 but complete-text reversibility is explicitly marked unproven for such paths.

@@ -138,6 +138,12 @@
         <message><source>Analyzing locally…</source><translation>正在本機分析…</translation></message>
         <message><source>Original text (unchanged)</source><translation>原始文字（未修改）</translation></message>
         <message><source>Candidate %1 — score %2</source><translation>候選 %1 · 評分 %2</translation></message>
+        <message><source>Candidate %1
+%2 / 100</source><translation>候選 %1
+%2 / 100</translation></message>
+        <message><source>Candidate %1
+Unavailable</source><translation>候選 %1
+暫無結果</translation></message>
         <message><source>Input exceeds the 1 MiB limit. Analyze a smaller section.</source><translation>輸入超過 1 MiB 上限，請分析較小的片段。</translation></message>
         <message><source>Analysis cancelled.</source><translation>分析已取消。</translation></message>
         <message><source>Paste text, then analyze. Scores rank possibilities; they are not probabilities.</source><translation>貼上文字後點選分析。評分用於比較候選，不代表正確機率。</translation></message>
@@ -147,6 +153,8 @@
         <message><source>Possible recovery. Several encodings may explain the same bytes; compare the candidates.</source><translation>可能的恢復結果。多種編碼可能對應相同位元組，請比較候選。</translation></message>
         <message><source>Copied to clipboard.</source><translation>已複製到剪貼簿。</translation></message>
         <message><source>Original text: no conversion applied.</source><translation>原始文字：未進行轉換。</translation></message>
+        <message><source>Quality score: %1 / 100 (not a probability).</source><translation>品質評分：%1 / 100（不代表正確機率）。</translation></message>
+        <message><source>Ranking uses anomaly density, conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.</source><translation>排序依據：異常密度、轉換次數、UTF-8 解碼優先項，以及未完整恢復的扣分。</translation></message>
         <message><source>Step %1: encode as %2, then decode as %3.</source><translation>步驟 %1：按 %2 還原位元組，再按 %3 解碼。</translation></message>
         <message><source>Only representable text segments were changed; other text was preserved.</source><translation>僅轉換可表示的文字片段，其餘文字保持原樣。</translation></message>
         <message><source>Readable sections were recovered. Unknown byte regions are marked with U+FFFD; their original content and length cannot be determined.</source><translation>已恢復可讀片段。遺失的位元組區域以 � 標記，無法確定原始內容和長度。</translation></message>

@@ -13,6 +13,7 @@ class TestMojibake : public QObject {
     Q_OBJECT
 private slots:
     void converters();
+    void qualityScores();
     void recoveryDataset();
     void preservesNormal();
     void damagedAndLimits();
@@ -45,6 +46,20 @@ void TestMojibake::converters() {
     QCOMPARE(*EncodingConverter::decode(*EncodingConverter::encode(binary, Encoding::Utf8), Encoding::Utf8), binary);
     QCOMPARE(*EncodingConverter::decode(QByteArray(""), Encoding::Utf8), QString(""));
     QCOMPARE(*EncodingConverter::encode("😀", Encoding::Gb18030), QByteArray::fromHex("9439fc36"));
+}
+void TestMojibake::qualityScores() {
+    const auto shortSample = QString("ä½ å¥½ ").repeated(10);
+    const auto longSample = QString("ä½ å¥½ ").repeated(100);
+    QCOMPARE(CandidateScorer::score({shortSample, {}}), CandidateScorer::score({longSample, {}}));
+    Candidate complete{"你好世界", {{Encoding::Gbk, Encoding::Utf8}}};
+    Candidate partial{"你好�世界", {{Encoding::Gbk, Encoding::Utf8, false, true}}};
+    partial.reversible = false;
+    QVERIFY(CandidateScorer::score(complete) > CandidateScorer::score(partial));
+    const auto damaged = MojibakeAnalyzer::analyze("浣犲ソ�");
+    for (const auto& c : damaged.candidates) {
+        QVERIFY(c.score >= 0 && c.score <= 100);
+    }
+    QVERIFY(CandidateScorer::score({QString(1000, QChar(0xfffd)), {}}) >= 0);
 }
 void TestMojibake::recoveryDataset() {
     QFile file(QString(TEST_DATA_DIR) + "/mojibake_cases.json");
