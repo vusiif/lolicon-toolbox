@@ -157,6 +157,7 @@ void MojibakePage::showCandidate() {
         path << tr("Step %1: encode as %2, then decode as %3.").arg(i + 1)
             .arg(EncodingConverter::name(step.encodeAs), EncodingConverter::name(step.decodeAs));
         if (step.segmented) path << tr("Only representable text segments were changed; other text was preserved.");
+        if (step.partial) path << tr("Readable sections were recovered. Unknown byte regions are marked with U+FFFD; their original content and length cannot be determined.");
     }
     path << tr("Exact inverse verified: %1").arg(candidate.reversible ? tr("Yes") : tr("Not proven for the complete text"));
     path << tr("Detected anomaly count: %1").arg(candidate.anomalies);

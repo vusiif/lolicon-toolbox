@@ -15,7 +15,9 @@ Result MojibakeAnalyzer::analyze(const QString& input, const Cancellation& cance
     std::stable_sort(result.candidates.begin(), result.candidates.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
     const double originalScore = CandidateScorer::score(Candidate{input, {}});
     const double gain = result.candidates.first().score - originalScore;
-    result.likelyMojibake = result.candidates.first().text != input && gain >= 8 &&
+    const bool partial = std::any_of(result.candidates.first().path.begin(), result.candidates.first().path.end(), [](const auto& step) { return step.partial; });
+    result.possibleLoss = result.possibleLoss || partial;
+    result.likelyMojibake = result.candidates.first().text != input && (gain >= 8 || partial) &&
                           result.candidates.first().anomalies < CandidateScorer::anomalies(input);
     if (!result.likelyMojibake) {
         auto it = std::find_if(result.candidates.begin(), result.candidates.end(), [&](const auto& c) { return c.text == input; });

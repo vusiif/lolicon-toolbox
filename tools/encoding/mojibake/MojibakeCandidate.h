@@ -4,7 +4,7 @@
 #include <atomic>
 #include <memory>
 namespace mojibake {
-struct Transformation { Encoding encodeAs; Encoding decodeAs; bool segmented = false; };
+struct Transformation { Encoding encodeAs; Encoding decodeAs; bool segmented = false; bool partial = false; };
 struct Candidate {
     QString text;
     QList<Transformation> path;

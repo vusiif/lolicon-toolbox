@@ -107,7 +107,7 @@ does not automatically run analysis. All work stays local, with no AI/API calls.
 
 The tested Qt 6.11.2 kit provides UTF-8, Latin-1, Windows-1252, GBK, GB18030,
 Big5, Shift-JIS and EUC-KR via named QStringEncoder/QStringDecoder instances.
-Every conversion checks exact byte/text round-trips. Other Qt kits may provide
+Strict conversions check exact byte/text round-trips. Other Qt kits may provide
 fewer encodings; unavailable codecs are omitted at runtime.
 
 Search is limited to two conversions, 100 unique candidates and a 12-state beam.
@@ -115,6 +115,10 @@ Scores are heuristics rather than calibrated probabilities. Plausible normal
 text stays the preferred result; close candidates and lost information remain
 uncertain. Mixed Western garbling can be repaired in representable segments,
 but complete-text reversibility is explicitly marked unproven for such paths.
+Damaged UTF-8-as-GBK/GB18030 paragraphs can also yield partial recovery:
+readable sections are decoded, unknown byte regions remain marked `�`, and
+the result is explicitly uncertain and not reversible. Search avoids paths
+that introduce more anomalies or create fresh mojibake from CJK text.
 Files, directory scans and AI fallback are outside this first tool version.
 
 Regression coverage includes verified byte fixtures, Chinese/Japanese/Big5/Korean

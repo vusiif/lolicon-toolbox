@@ -220,6 +220,12 @@ void TestUi::mojibakeWorkflow()
     window.findChild<ElaPushButton*>("mojibakeDetails")->click();
     QCoreApplication::processEvents();
     QVERIFY(window.grab().save("mojibake-repair.png"));
+    input->setPlainText(QString::fromUtf8("璇峰皬缁勮礋璐ｄ汉鍦ㄧ兢鍐呮眹鎶ュ綋鍓嶉」鐩繘搴︿互鍙婇亣鍒扮殑闂锛屾柟渚挎寚瀵艰�佸笀鎺屾彙椤圭洰鎯呭喌銆佸強鏃剁粰鍑烘寚瀵煎缓璁�傜鍚勪綅椤圭洰鎺ㄨ繘椤哄埄"));
+    analyze->click();
+    QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("请小组负责人在群内汇报当前项目进度以及遇到的问题，方便指导�师掌握项目情况、及时给出指导建议�祝各位项目推进顺利"));
+    QVERIFY(process->toPlainText().contains("丢失的字节区域以 � 标记"));
+    QVERIFY(window.grab().save("mojibake-partial-repair.png"));
     input->setPlainText(QString::fromUtf8("ä½ å¥½ ").repeated(16000));
     analyze->click();
     input->setPlainText("changed during analysis");

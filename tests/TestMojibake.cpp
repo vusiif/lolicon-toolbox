@@ -17,6 +17,7 @@ private slots:
     void preservesNormal();
     void damagedAndLimits();
     void mixedText();
+    void damagedChineseParagraph();
     void performance();
 };
 void TestMojibake::converters() {
@@ -127,6 +128,24 @@ void TestMojibake::performance() {
     const auto result = MojibakeAnalyzer::analyze(QString("ä½ å¥½ ").repeated(16000));
     QVERIFY(result.generated <= 100);
     qInfo() << "large mojibake elapsed ms" << timer.elapsed() << "candidates" << result.generated;
+}
+void TestMojibake::damagedChineseParagraph() {
+    const QString input = "璇峰皬缁勮礋璐ｄ汉鍦ㄧ兢鍐呮眹鎶ュ綋鍓嶉」鐩繘搴︿互鍙婇亣鍒扮殑闂锛屾柟渚挎寚瀵艰�佸笀鎺屾彙椤圭洰鎯呭喌銆佸強鏃剁粰鍑烘寚瀵煎缓璁�傜鍚勪綅椤圭洰鎺ㄨ繘椤哄埄";
+    const auto result = MojibakeAnalyzer::analyze(input);
+    QVERIFY(!result.candidates.isEmpty());
+    const auto& best = result.candidates.first();
+    QCOMPARE(best.text, QString("请小组负责人在群内汇报当前项目进度以及遇到的问题，方便指导�师掌握项目情况、及时给出指导建议�祝各位项目推进顺利"));
+    QVERIFY(best.text.contains(QChar(0xfffd)));
+    QVERIFY(!best.reversible);
+    QVERIFY(result.likelyMojibake);
+    QVERIFY(result.possibleLoss);
+    QCOMPARE(result.confidence, Confidence::Unknown);
+    for (const QString& readable : {QString("请小组负责人在群内汇报当前项目进度。�"),
+                                    QString("正常文本�仍然可读�不该被改成替换字符。")}) {
+        const auto unchanged = MojibakeAnalyzer::analyze(readable);
+        QCOMPARE(unchanged.candidates.first().text, readable);
+        QVERIFY(!unchanged.likelyMojibake);
+    }
 }
 QTEST_GUILESS_MAIN(TestMojibake)
 #include "TestMojibake.moc"

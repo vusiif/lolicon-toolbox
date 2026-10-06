@@ -149,6 +149,7 @@
         <message><source>Original text: no conversion applied.</source><translation>原始文本：未进行转换。</translation></message>
         <message><source>Step %1: encode as %2, then decode as %3.</source><translation>步骤 %1：按 %2 还原字节，再按 %3 解码。</translation></message>
         <message><source>Only representable text segments were changed; other text was preserved.</source><translation>仅转换可表示的文本片段，其余文本保持原样。</translation></message>
+        <message><source>Readable sections were recovered. Unknown byte regions are marked with U+FFFD; their original content and length cannot be determined.</source><translation>已恢复可读片段。丢失的字节区域以 � 标记，无法确定原始内容和长度。</translation></message>
         <message><source>Exact inverse verified: %1</source><translation>完整逆向校验：%1</translation></message>
         <message><source>Yes</source><translation>通过</translation></message>
         <message><source>Not proven for the complete text</source><translation>尚未证明完整文本可逆</translation></message>
