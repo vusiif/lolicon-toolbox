@@ -33,8 +33,10 @@ environment returned no windows. The computer-use helper's capture timed out;
 its indexed click also failed with `coordinate input geometry is unavailable`.
 The CLion UI has now been inspected with wgccli: the project opens, CMake
 configuration/generation completes, and Toolbox/TestUi/TestBase64Codec appear in
-the target list. Running the executable target inside CLion and interactive
-mouse checks remain pending. CLion's command-line CMake toolchain is validated.
+the target list. Selecting Toolbox in the IDE Run menu successfully starts the
+Debug executable. The Run panel displays the correct executable path and a
+wgccli capture confirms its running native window. Interactive mouse checks
+remain pending; both IDE startup and its command-line CMake toolchain are verified.
 
 ## Distribution
 
@@ -54,6 +56,5 @@ does not prove that a clean machine has the required MSVC runtime.
 
 - Complete interactive checks: minimize/maximize, dragging/resizing, group and
   compact-sidebar clicks, copy-to-clipboard and keyboard navigation.
-- Finish the Toolbox executable build/run check inside CLion.
 - Test the archive on a clean Windows machine before publishing a release.
 - Next feature stage: persistent navigation configuration, search and recent tools.
