@@ -19,6 +19,7 @@
 #include "SettingsPage.h"
 #include "UiTheme.h"
 #include "Base64Page.h"
+#include "MojibakePage.h"
 #include "services/AppSettings.h"
 #include "tool/ToolRegistry.h"
 #include "navigation/NavigationManager.h"
@@ -33,6 +34,7 @@ private slots:
     void systemDefaults();
     void settingsPersistence();
     void groupedNavigation();
+    void mojibakeWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -172,6 +174,64 @@ void TestUi::groupedNavigation()
     QVERIFY(!QApplication::activePopupWidget());
     QCOMPARE(compact.findChild<ElaNavigationBar*>()->getDisplayMode(), ElaNavigationType::Compact);
     compact.close();
+}
+void TestUi::mojibakeWorkflow()
+{
+    QTemporaryDir dir;
+    AppSettings settings(dir.filePath("mojibake.ini"));
+    QVERIFY(settings.setLocale("en"));
+    ToolRegistry tools;
+    ToolDescriptor descriptor;
+    descriptor.id = "encoding.mojibake"; descriptor.name = "Mojibake Repair";
+    descriptor.factory = [](QWidget* parent) { return new MojibakePage(parent); };
+    QVERIFY(tools.registerTool(descriptor));
+    NavigationManager config;
+    QVERIFY(config.addGroup({"encoding", "Text and Encoding", 10}));
+    QVERIFY(config.addItem({descriptor.id, "encoding", 20}));
+    MainWindow window(settings, tools, config);
+    window.setAttribute(Qt::WA_DontShowOnScreen);
+    window.show(); QTest::qWait(50);
+    auto* input = window.findChild<ElaPlainTextEdit*>("mojibakeInput");
+    auto* output = window.findChild<ElaPlainTextEdit*>("mojibakeOutput");
+    auto* process = window.findChild<ElaPlainTextEdit*>("mojibakeProcess");
+    auto* analyze = window.findChild<ElaPushButton*>("mojibakeAnalyze");
+    QVERIFY(input && output && process && analyze);
+    input->setPlainText(QString::fromUtf8("ä½ å¥½"));
+    analyze->click();
+    QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
+    QVERIFY(process->toPlainText().contains("UTF-8"));
+    QVERIFY(process->toPlainText().contains("Yes"));
+    QVERIFY(settings.setLocale("zh_CN"));
+    QCoreApplication::processEvents();
+    QCOMPARE(window.getNavigationNodeTitle(window.pageKey(descriptor.id)), QString::fromUtf8("乱码恢复"));
+    QCOMPARE(analyze->text(), QString::fromUtf8("智能分析"));
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
+    input->setPlainText("normal text");
+    QVERIFY(output->toPlainText().isEmpty());
+    analyze->click();
+    QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(output->toPlainText(), QString("normal text"));
+    QVERIFY(window.grab().save("mojibake-normal.png"));
+    input->setPlainText(QString::fromUtf8("浣犲ソ"));
+    analyze->click();
+    QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
+    window.findChild<ElaPushButton*>("mojibakeDetails")->click();
+    QCoreApplication::processEvents();
+    QVERIFY(window.grab().save("mojibake-repair.png"));
+    input->setPlainText(QString::fromUtf8("ä½ å¥½ ").repeated(16000));
+    analyze->click();
+    input->setPlainText("changed during analysis");
+    QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QVERIFY(output->toPlainText().isEmpty());
+    window.close();
+    // Destruction while a worker is running must not capture a dangling page.
+    auto* page = new MojibakePage;
+    page->findChild<ElaPlainTextEdit*>("mojibakeInput")->setPlainText(QString::fromUtf8("ä½ å¥½ ").repeated(16000));
+    page->findChild<ElaPushButton*>("mojibakeAnalyze")->click();
+    delete page;
+    QTest::qWait(100);
 }
 void TestUi::windowWorkflow()
 {

@@ -13,6 +13,8 @@ navigation, theme and controls.
   Settings allows following the system or choosing an explicit language
 - Persisted theme, language, window geometry, navigation state and last page
 - Base64 encoding/decoding with validation, clear and clipboard actions
+- Local Mojibake Repair with ranked candidates, reversible paths, background
+  analysis, cancellation and a maximum input size of 1 MiB
 
 ## Build
 
@@ -95,6 +97,34 @@ Ela uses Qt Widgets private APIs: deploy the same Qt version used for the build,
 and rebuild Ela and Toolbox together after upgrading Qt.
 
 The Base64 codec uses the vendored `third_party/base64.hpp` implementation.
+
+## Mojibake Repair
+
+Open **Text and Encoding → Mojibake Repair**, paste the original garbled text,
+and choose **Analyze**. Compare up to five candidates, inspect **Recovery process**
+and copy the selected result. Editing the input invalidates old results; typing
+does not automatically run analysis. All work stays local, with no AI/API calls.
+
+The tested Qt 6.11.2 kit provides UTF-8, Latin-1, Windows-1252, GBK, GB18030,
+Big5, Shift-JIS and EUC-KR via named QStringEncoder/QStringDecoder instances.
+Every conversion checks exact byte/text round-trips. Other Qt kits may provide
+fewer encodings; unavailable codecs are omitted at runtime.
+
+Search is limited to two conversions, 100 unique candidates and a 12-state beam.
+Scores are heuristics rather than calibrated probabilities. Plausible normal
+text stays the preferred result; close candidates and lost information remain
+uncertain. Mixed Western garbling can be repaired in representable segments,
+but complete-text reversibility is explicitly marked unproven for such paths.
+Files, directory scans and AI fallback are outside this first tool version.
+
+Regression coverage includes verified byte fixtures, Chinese/Japanese/Big5/Korean
+cases, double mojibake, original preservation, invalid/lossy input, inverse paths,
+size/performance bounds and asynchronous page lifecycle. `TestMojibake` results
+are saved in the build's `tests/mojibake-results.txt`.
+
+MSVC builds use a small compiler launcher to emit UTF-8 diagnostics and detect
+the actual `/showIncludes` prefix. This avoids stale objects caused by localized
+include output being parsed with the wrong codepage.
 
 ## License
 

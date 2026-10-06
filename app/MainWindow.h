@@ -22,5 +22,6 @@ private:
     QMap<QString, QString> m_pageKeys;
     QMap<QString, QString> m_groupKeys;
     QMap<QString, QString> m_groupNames;
+    QMap<QString, QString> m_toolNames;
     SettingsPage* m_settingsPage;
 };

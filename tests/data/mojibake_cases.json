@@ -1,0 +1,10 @@
+[
+  {"name":"utf8_latin1","original":"你好","mojibake":"ä½ å¥½","source":"UTF-8","wrong":"Latin-1","top":true},
+  {"name":"utf8_gbk","original":"你好","mojibake":"浣犲ソ","source":"UTF-8","wrong":"GBK","top":true},
+  {"name":"double_latin1","original":"你好世界","source":"UTF-8","wrong":"Latin-1","layers":2,"top":true},
+  {"name":"double_windows1252","original":"你好世界","source":"UTF-8","wrong":"Windows-1252","layers":2,"top":true},
+  {"name":"gbk_singlebyte","original":"你好","source":"GBK","wrong":"Latin-1"},
+  {"name":"big5_singlebyte","original":"中文測試","source":"Big5","wrong":"Latin-1"},
+  {"name":"sjis_singlebyte","original":"こんにちは","source":"Shift-JIS","wrong":"Latin-1"},
+  {"name":"euckr_singlebyte","original":"안녕하세요","source":"EUC-KR","wrong":"Latin-1"}
+]

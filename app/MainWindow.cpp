@@ -54,9 +54,11 @@ MainWindow::MainWindow(AppSettings& settings, const ToolRegistry& tools, const N
             if (!tool) continue;
             auto* page = new LazyToolPage(*tool, this);
             page->setObjectName(tool->id);
-            if (addPageNode(tool->name, page, groupKey, tool->icon) == ElaNavigationType::Success) {
+            const auto toolTitle = QCoreApplication::translate("Tools", tool->name.toUtf8().constData());
+            if (addPageNode(toolTitle, page, groupKey, tool->icon) == ElaNavigationType::Success) {
                 const auto key = page->property("ElaPageKey").toString();
                 m_pageKeys.insert(tool->id, key);
+                m_toolNames.insert(tool->id, tool->name);
                 if (firstPageKey.isEmpty()) firstPageKey = key;
             } else delete page;
         }
@@ -88,6 +90,8 @@ void MainWindow::retranslate()
     setNavigationNodeTitle(pageKey("settings"), tr("Settings"));
     for (auto it = m_groupNames.cbegin(); it != m_groupNames.cend(); ++it)
         setNavigationNodeTitle(groupKey(it.key()), QCoreApplication::translate("Navigation", it.value().toUtf8().constData()));
+    for (auto it = m_toolNames.cbegin(); it != m_toolNames.cend(); ++it)
+        setNavigationNodeTitle(pageKey(it.key()), QCoreApplication::translate("Tools", it.value().toUtf8().constData()));
 }
 void MainWindow::changeEvent(QEvent* event)
 {
