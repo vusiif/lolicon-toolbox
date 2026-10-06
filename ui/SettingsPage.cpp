@@ -1,222 +1,66 @@
 #include "SettingsPage.h"
-#include "theme/Theme.h"
-#include "theme/ThemeManager.h"
-#include "services/LanguageManager.h"
-
+#include "UiTheme.h"
+#include "services/AppSettings.h"
+#include <ElaComboBox.h>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QFrame>
 #include <QLabel>
-#include <QComboBox>
-#include <QGroupBox>
-#include <QPushButton>
-
-SettingsPage::SettingsPage(QWidget* parent)
-    : QWidget(parent)
+#include <QEvent>
+#include <QSignalBlocker>
+SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings)
 {
-    setupUi();
+    setObjectName("settingsPage");
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(32, 28, 32, 28);
+    layout->setSpacing(20);
+    m_title = ui::label({}, 18, ui::Tone::Primary, this);
+    layout->addWidget(m_title);
+    auto row = [this, layout](QLabel*& label, ElaComboBox*& combo, const char* name) {
+        auto* card = new QFrame(this);
+        ui::styleCard(card);
+        auto* box = new QHBoxLayout(card);
+        box->setContentsMargins(20, 20, 20, 20);
+        label = ui::label({}, 11, ui::Tone::Primary, card);
+        combo = new ElaComboBox(card);
+        combo->setObjectName(name);
+        combo->setMinimumWidth(180);
+        box->addWidget(label, 1);
+        box->addWidget(combo);
+        layout->addWidget(card);
+    };
+    row(m_languageLabel, m_language, "languageCombo");
+    m_language->addItem(QString(), QStringLiteral("system"));
+    m_language->addItem("English", "en");
+    m_language->addItem(QString::fromUtf8("简体中文"), "zh_CN");
+    m_language->addItem(QString::fromUtf8("繁體中文"), "zh_TW");
+    m_error = ui::label({}, 10, ui::Tone::Danger, this);
+    layout->addWidget(m_error);
+    layout->addStretch();
+    retranslate();
+    synchronize();
+    connect(m_language, &QComboBox::currentIndexChanged, this, [this]() {
+        if (!m_settings.setLocale(m_language->currentData().toString())) {
+            m_error->setText(tr("Could not load translation."));
+            synchronize();
+        } else m_error->clear();
+    });
+    connect(&settings, &AppSettings::localeChanged, this, &SettingsPage::synchronize);
 }
-
-void SettingsPage::setupUi()
+void SettingsPage::synchronize()
 {
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(32, 28, 32, 28);
-    mainLayout->setSpacing(24);
-
-    auto* titleLabel = new QLabel(tr("Settings"), this);
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(18);
-    titleFont.setWeight(QFont::DemiBold);
-    titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextPrimary()));
-
-    mainLayout->addWidget(titleLabel);
-
-    // Theme group
-    auto* themeGroup = new QGroupBox(tr("Theme"), this);
-    themeGroup->setStyleSheet(QStringLiteral(R"(
-        QGroupBox {
-            background-color: %1;
-            border: 1px solid %2;
-            border-radius: 8px;
-            margin-top: 12px;
-            padding: 16px;
-            font-size: 13px;
-            font-weight: 600;
-            color: %3;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 12px;
-            padding: 0 6px;
-        }
-    )").arg(theme::Surface1(), theme::Border(), theme::TextPrimary()));
-
-    auto* themeLayout = new QVBoxLayout(themeGroup);
-    themeLayout->setSpacing(12);
-
-    auto* themeLabel = new QLabel(tr("Color Theme"), this);
-    themeLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: normal;").arg(theme::TextSecondary()));
-
-    m_themeCombo = new QComboBox(this);
-    m_themeCombo->setFixedHeight(36);
-    m_themeCombo->setStyleSheet(QStringLiteral(R"(
-        QComboBox {
-            background-color: %1;
-            color: %2;
-            border: 1px solid %3;
-            border-radius: 6px;
-            padding: 0 12px;
-            font-size: 13px;
-        }
-        QComboBox:hover {
-            border-color: %4;
-        }
-        QComboBox::drop-down {
-            border: none;
-            width: 24px;
-        }
-        QListView {
-            background-color: %1;
-            color: %2;
-            border: 1px solid %3;
-            outline: none;
-        }
-        QListView::item {
-            padding: 6px 12px;
-        }
-        QListView::item:hover {
-            background-color: %5;
-        }
-        QListView::item:selected {
-            background-color: %4;
-        }
-    )").arg(theme::Surface0(), theme::TextPrimary(), theme::Border(), theme::Accent(), theme::Surface2()));
-
-    auto presets = ThemeManager::instance().presetNames();
-    for (const auto& name : presets) {
-        m_themeCombo->addItem(name);
-    }
-    m_themeCombo->setCurrentText(ThemeManager::instance().currentPresetName());
-
-    connect(m_themeCombo, &QComboBox::currentTextChanged, this, [](const QString& name) {
-        ThemeManager::instance().applyPreset(name);
-    });
-
-    themeLayout->addWidget(themeLabel);
-    themeLayout->addWidget(m_themeCombo);
-
-    mainLayout->addWidget(themeGroup);
-
-    // Language group
-    auto* langGroup = new QGroupBox(tr("Language"), this);
-    langGroup->setStyleSheet(QStringLiteral(R"(
-        QGroupBox {
-            background-color: %1;
-            border: 1px solid %2;
-            border-radius: 8px;
-            margin-top: 12px;
-            padding: 16px;
-            font-size: 13px;
-            font-weight: 600;
-            color: %3;
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            left: 12px;
-            padding: 0 6px;
-        }
-    )").arg(theme::Surface1(), theme::Border(), theme::TextPrimary()));
-
-    auto* langLayout = new QVBoxLayout(langGroup);
-    langLayout->setSpacing(12);
-
-    auto* langLabel = new QLabel(tr("Display Language"), this);
-    langLabel->setStyleSheet(QStringLiteral("color: %1; font-weight: normal;").arg(theme::TextSecondary()));
-
-    m_langCombo = new QComboBox(this);
-    m_langCombo->setFixedHeight(36);
-    m_langCombo->setStyleSheet(QStringLiteral(R"(
-        QComboBox {
-            background-color: %1;
-            color: %2;
-            border: 1px solid %3;
-            border-radius: 6px;
-            padding: 0 12px;
-            font-size: 13px;
-        }
-        QComboBox:hover {
-            border-color: %4;
-        }
-        QComboBox::drop-down {
-            border: none;
-            width: 24px;
-        }
-        QListView {
-            background-color: %1;
-            color: %2;
-            border: 1px solid %3;
-            outline: none;
-        }
-        QListView::item {
-            padding: 6px 12px;
-        }
-        QListView::item:hover {
-            background-color: %5;
-        }
-        QListView::item:selected {
-            background-color: %4;
-        }
-    )").arg(theme::Surface0(), theme::TextPrimary(), theme::Border(), theme::Accent(), theme::Surface2()));
-
-    auto& langMgr = LanguageManager::instance();
-    auto locales = langMgr.availableLocales();
-    for (const auto& locale : locales) {
-        m_langCombo->addItem(langMgr.localeName(locale), locale);
-    }
-    m_langCombo->setCurrentText(langMgr.localeName(langMgr.currentLocale()));
-
-    langLayout->addWidget(langLabel);
-    langLayout->addWidget(m_langCombo);
-
-    mainLayout->addWidget(langGroup);
-
-    // Apply button
-    auto* btnLayout = new QHBoxLayout();
-    btnLayout->addStretch();
-
-    m_applyBtn = new QPushButton(tr("Apply Language"), this);
-    m_applyBtn->setCursor(Qt::PointingHandCursor);
-    m_applyBtn->setFixedHeight(36);
-    m_applyBtn->setMinimumWidth(120);
-    m_applyBtn->setStyleSheet(QStringLiteral(R"(
-        QPushButton {
-            background-color: %1;
-            color: %2;
-            border: none;
-            border-radius: 6px;
-            padding: 0 24px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-        QPushButton:hover {
-            background-color: %3;
-        }
-        QPushButton:pressed {
-            background-color: %4;
-        }
-    )")
-    .arg(theme::Accent())
-    .arg(theme::WindowBg())
-    .arg(theme::AccentHover())
-    .arg(theme::AccentPressed()));
-
-    connect(m_applyBtn, &QPushButton::clicked, this, [this]() {
-        QString locale = m_langCombo->currentData().toString();
-        emit languageApplyRequested(locale);
-    });
-
-    btnLayout->addWidget(m_applyBtn);
-
-    mainLayout->addLayout(btnLayout);
-    mainLayout->addStretch();
+    const QSignalBlocker languageBlock(m_language);
+    m_language->setCurrentIndex(m_language->findData(m_settings.localePreference()));
+}
+void SettingsPage::retranslate()
+{
+    const QSignalBlocker blocker(m_language);
+    m_title->setText(tr("Settings"));
+    m_languageLabel->setText(tr("Display Language"));
+    m_language->setItemText(0, tr("Follow system"));
+}
+void SettingsPage::changeEvent(QEvent* event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) retranslate();
 }

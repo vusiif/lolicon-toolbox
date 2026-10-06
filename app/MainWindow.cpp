@@ -1,127 +1,104 @@
 #include "MainWindow.h"
-#include "Sidebar.h"
-#include "SettingsPage.h"
-#include "theme/Theme.h"
-#include "theme/ThemeManager.h"
-#include "services/LanguageManager.h"
-#include "navigation/NavigationManager.h"
+#include "services/AppSettings.h"
 #include "tool/ToolRegistry.h"
-#include "tool/ToolPageManager.h"
-
+#include "navigation/NavigationManager.h"
+#include "LazyToolPage.h"
+#include "SettingsPage.h"
+#include <ElaTheme.h>
+#include <ElaNavigationBar.h>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QLabel>
-#include <QStackedWidget>
-#include <QPropertyAnimation>
-#include <QGraphicsOpacityEffect>
+#include <QEvent>
+#include <QCloseEvent>
+#include <QStyle>
 
-#include <windows.h>
-#include <dwmapi.h>
-
-MainWindow::MainWindow(NavigationManager* navManager,
-                       ToolRegistry* registry,
-                       ToolPageManager* pageManager,
-                       QWidget* parent)
-    : QMainWindow(parent)
-    , m_navManager(navManager)
-    , m_registry(registry)
-    , m_pageManager(pageManager)
+MainWindow::MainWindow(AppSettings& settings, const ToolRegistry& tools, const NavigationManager& navigationConfig, QWidget* parent)
+    : ElaWindow(parent), m_settings(settings)
 {
-    setupUi();
+    setObjectName("toolboxWindow");
     setWindowTitle("Toolbox");
-    resize(960, 640);
-}
-
-void MainWindow::setupUi()
-{
-    setStyleSheet(theme::globalStyleSheet());
-
-    auto* centralWidget = new QWidget(this);
-    centralWidget->setObjectName("centralWidget");
-    auto* layout = new QHBoxLayout(centralWidget);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(0);
-
-    m_sidebar = new Sidebar(this);
-    m_sidebar->build(m_navManager, m_registry);
-    m_sidebar->setFixedWidth(220);
-
-    auto* placeholder = new QLabel(tr("Select a tool from the sidebar"), this);
-    placeholder->setObjectName("placeholderLabel");
-    placeholder->setAlignment(Qt::AlignCenter);
-    QFont placeholderFont = placeholder->font();
-    placeholderFont.setPointSize(13);
-    placeholder->setFont(placeholderFont);
-    placeholder->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextDisabled()));
-
-    m_pageStack = m_pageManager->stackWidget();
-    m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg()));
-    m_pageStack->addWidget(placeholder);
-
-    m_settingsPage = new SettingsPage(this);
-    m_pageStack->addWidget(m_settingsPage);
-
-    layout->addWidget(m_sidebar);
-    layout->addWidget(m_pageStack, 1);
-
-    setCentralWidget(centralWidget);
-
-    connect(m_sidebar, &Sidebar::toolSelected, this, [this](const QString& toolId) {
-        if (m_pageManager) {
-            m_pageManager->openTool(toolId);
-
-            auto* newPage = m_pageStack->currentWidget();
-            if (newPage) {
-                auto* effect = new QGraphicsOpacityEffect(newPage);
-                newPage->setGraphicsEffect(effect);
-
-                auto* fadeAnim = new QPropertyAnimation(effect, "opacity");
-                fadeAnim->setDuration(200);
-                fadeAnim->setStartValue(0.0);
-                fadeAnim->setEndValue(1.0);
-                fadeAnim->setEasingCurve(QEasingCurve::OutCubic);
-                fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
-            }
+    setWindowIcon(style()->standardIcon(QStyle::SP_ComputerIcon));
+    resize(1000, 700);
+    setMinimumSize(640, 480);
+    setUserInfoCardVisible(false);
+    setIsAllowPageOpenInNewWindow(false);
+    setNavigationBarWidth(220);
+    // Populate/expand groups in full mode; Compact expansion opens popup menus.
+    setNavigationBarDisplayMode(ElaNavigationType::Maximal);
+    setStackSwitchMode(ElaWindowType::None);
+    setThemeChangeTime(180);
+    setWindowButtonFlags(ElaAppBarType::NavigationButtonHint | ElaAppBarType::ThemeChangeButtonHint
+        | ElaAppBarType::StayTopButtonHint | ElaAppBarType::MinimizeButtonHint
+        | ElaAppBarType::MaximizeButtonHint | ElaAppBarType::CloseButtonHint);
+    // Adapt the two utility positions; Ela retains drag, resize and window controls.
+    auto* bar = findChild<ElaAppBar*>();
+    auto* box = qobject_cast<QHBoxLayout*>(bar->layout());
+    auto* right = qobject_cast<QHBoxLayout*>(box->itemAt(box->count() - 1)->layout());
+    auto* pin = right->takeAt(0)->layout();
+    right->insertLayout(1, pin);
+    connect(eTheme, &ElaTheme::themeModeChanged, &settings, [&settings](ElaThemeType::ThemeMode mode) {
+        // System-driven changes already updated settings; only user toggles are overrides.
+        if (mode != settings.themeMode()) settings.setThemeMode(mode);
+    });
+    connect(&settings, &AppSettings::themeChanged, this, [](ElaThemeType::ThemeMode mode) {
+        if (eTheme->getThemeMode() != mode) eTheme->setThemeMode(mode);
+    });
+    QString firstPageKey;
+    for (const auto& section : navigationConfig.sections(tools)) {
+        QString groupKey;
+        const auto title = QCoreApplication::translate("Navigation", section.group.name.toUtf8().constData());
+        if (addExpanderNode(title, groupKey, ElaIconType::Folder) != ElaNavigationType::Success) continue;
+        m_groupKeys.insert(section.group.id, groupKey);
+        m_groupNames.insert(section.group.id, section.group.name);
+        for (const auto& item : section.items) {
+            const auto tool = tools.findTool(item.toolId);
+            if (!tool) continue;
+            auto* page = new LazyToolPage(*tool, this);
+            page->setObjectName(tool->id);
+            if (addPageNode(tool->name, page, groupKey, tool->icon) == ElaNavigationType::Success) {
+                const auto key = page->property("ElaPageKey").toString();
+                m_pageKeys.insert(tool->id, key);
+                if (firstPageKey.isEmpty()) firstPageKey = key;
+            } else delete page;
         }
+        expandNavigationNode(groupKey);
+    }
+    m_settingsPage = new SettingsPage(settings, this);
+    QString key;
+    addFooterNode(tr("Settings"), m_settingsPage, key, 0, ElaIconType::Gear);
+    m_pageKeys.insert("settings", key);
+    connect(this, &ElaWindow::navigationNodeClicked, this, [this](ElaNavigationType::NavigationNodeType, const QString& key) {
+        const auto id = m_pageKeys.key(key);
+        if (!id.isEmpty()) m_settings.setLastPage(id);
     });
-
-    connect(m_sidebar, &Sidebar::settingsClicked, this, [this]() {
-        m_pageStack->setCurrentWidget(m_settingsPage);
-
-        auto* effect = new QGraphicsOpacityEffect(m_settingsPage);
-        m_settingsPage->setGraphicsEffect(effect);
-
-        auto* fadeAnim = new QPropertyAnimation(effect, "opacity");
-        fadeAnim->setDuration(200);
-        fadeAnim->setStartValue(0.0);
-        fadeAnim->setEndValue(1.0);
-        fadeAnim->setEasingCurve(QEasingCurve::OutCubic);
-        fadeAnim->start(QAbstractAnimation::DeleteWhenStopped);
-    });
-
-    connect(m_settingsPage, &SettingsPage::languageApplyRequested, this, [this](const QString& locale) {
-        LanguageManager::instance().setLanguage(locale);
-    });
-
-    connect(&ThemeManager::instance(), &ThemeManager::themeChanged, this, [this]() {
-        setStyleSheet(theme::globalStyleSheet());
-        m_pageStack->setStyleSheet(QStringLiteral("background-color: %1;").arg(theme::WindowBg()));
-    });
-
-    connect(&LanguageManager::instance(), &LanguageManager::languageChanged, this, [this]() {
-        // Retranslate UI
-        auto* placeholder = m_pageStack->findChild<QLabel*>("placeholderLabel");
-        if (placeholder) {
-            placeholder->setText(tr("Select a tool from the sidebar"));
-        }
-    });
+    const auto savedGeometry = settings.windowGeometry();
+    if (!savedGeometry.isEmpty()) restoreGeometry(savedGeometry);
+    auto savedKey = pageKey(settings.lastPage());
+    if (savedKey.isEmpty()) savedKey = firstPageKey.isEmpty() ? pageKey("settings") : firstPageKey;
+    if (!savedKey.isEmpty()) {
+        navigation(savedKey);
+        // Ela may already select the first inserted page without emitting a click.
+        m_settings.setLastPage(m_pageKeys.key(savedKey));
+    }
+    setNavigationBarDisplayMode(settings.navigationExpanded() ? ElaNavigationType::Maximal : ElaNavigationType::Compact);
 }
-
-void MainWindow::showEvent(QShowEvent* event)
+QString MainWindow::pageKey(const QString& id) const { return m_pageKeys.value(id); }
+QString MainWindow::groupKey(const QString& id) const { return m_groupKeys.value(id); }
+void MainWindow::retranslate()
 {
-    QMainWindow::showEvent(event);
-
-    HWND hwnd = reinterpret_cast<HWND>(winId());
-    BOOL useDarkMode = TRUE;
-    DwmSetWindowAttribute(hwnd, 20, &useDarkMode, sizeof(useDarkMode));
+    setNavigationNodeTitle(pageKey("settings"), tr("Settings"));
+    for (auto it = m_groupNames.cbegin(); it != m_groupNames.cend(); ++it)
+        setNavigationNodeTitle(groupKey(it.key()), QCoreApplication::translate("Navigation", it.value().toUtf8().constData()));
+}
+void MainWindow::changeEvent(QEvent* event)
+{
+    ElaWindow::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) retranslate();
+}
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    m_settings.setWindowGeometry(saveGeometry());
+    const auto* nav = findChild<ElaNavigationBar*>();
+    if (nav) m_settings.setNavigationExpanded(nav->getDisplayMode() == ElaNavigationType::Maximal);
+    m_settings.sync();
+    ElaWindow::closeEvent(event);
 }

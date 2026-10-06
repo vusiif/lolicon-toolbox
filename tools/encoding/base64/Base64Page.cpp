@@ -1,213 +1,128 @@
 #include "Base64Page.h"
 #include "Base64Codec.h"
-#include "theme/Theme.h"
-
+#include "UiTheme.h"
+#include <ElaPlainTextEdit.h>
+#include <ElaPushButton.h>
+#include <ElaScrollArea.h>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QTextEdit>
-#include <QPushButton>
 #include <QLabel>
-#include <QFont>
+#include <QClipboard>
+#include <QGuiApplication>
+#include <QEvent>
 
-Base64Page::Base64Page(QWidget* parent)
-    : ToolPage(parent)
+Base64Page::Base64Page(QWidget* parent) : ToolPage(parent)
 {
-    setupUi();
+    setObjectName("base64Page");
+    auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0);
+    auto* scroll = new ElaScrollArea(this);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    auto* content = new QWidget(scroll);
+    scroll->setWidget(content);
+    outer->addWidget(scroll);
+    auto* layout = new QVBoxLayout(content);
+    layout->setSizeConstraint(QLayout::SetMinimumSize);
+    layout->setContentsMargins(32, 28, 32, 28);
+    layout->setSpacing(14);
+    m_title = ui::label({}, 18, ui::Tone::Primary, this);
+    m_description = ui::label({}, 10, ui::Tone::Secondary, this);
+    m_inputLabel = ui::label({}, 10, ui::Tone::Secondary, this);
+    m_outputLabel = ui::label({}, 10, ui::Tone::Secondary, this);
+    m_input = new ElaPlainTextEdit(this);
+    m_input->setObjectName("inputText");
+    m_input->setMinimumHeight(100);
+    m_input->setFont(QFont("Consolas", 11));
+    m_output = new ElaPlainTextEdit(this);
+    m_output->setObjectName("outputText");
+    m_output->setReadOnly(true);
+    m_output->setMinimumHeight(100);
+    m_output->setFont(m_input->font());
+    auto button = [this](const char* name, bool primary) {
+        auto* result = new ElaPushButton(this);
+        result->setObjectName(name);
+        result->setMinimumWidth(100);
+        result->setCursor(Qt::PointingHandCursor);
+        if (primary) ui::primaryButton(result);
+        return result;
+    };
+    m_encode = button("encodeButton", true);
+    m_decode = button("decodeButton", true);
+    m_clear = button("clearButton", false);
+    m_copy = button("copyButton", false);
+    auto* actions = new QHBoxLayout;
+    actions->setSpacing(10);
+    actions->addWidget(m_encode);
+    actions->addWidget(m_decode);
+    actions->addWidget(m_clear);
+    actions->addStretch();
+    auto* bottom = new QHBoxLayout;
+    m_statusLabel = ui::label({}, 10, ui::Tone::Secondary, this);
+    m_statusLabel->setObjectName("statusLabel");
+    bottom->addWidget(m_statusLabel, 1);
+    bottom->addWidget(m_copy);
+    layout->addWidget(m_title);
+    layout->addWidget(m_description);
+    layout->addWidget(m_inputLabel);
+    layout->addWidget(m_input, 1);
+    layout->addLayout(actions);
+    layout->addWidget(m_outputLabel);
+    layout->addWidget(m_output, 1);
+    layout->addLayout(bottom);
+    connect(m_encode, &ElaPushButton::clicked, this, [this]() {
+        const auto bytes = m_input->toPlainText().toUtf8();
+        if (bytes.isEmpty()) { setStatus(Status::Empty); return; }
+        const auto result = Base64Codec::encode(std::string(bytes.constData(), bytes.size()));
+        m_output->setPlainText(QString::fromLatin1(result.data(), qsizetype(result.size())));
+        setStatus(Status::Encoded);
+    });
+    connect(m_decode, &ElaPushButton::clicked, this, [this]() {
+        const auto bytes = m_input->toPlainText().toUtf8();
+        if (bytes.isEmpty()) { setStatus(Status::Empty); return; }
+        const auto result = Base64Codec::decode(std::string(bytes.constData(), bytes.size()));
+        if (!result) { m_output->clear(); setStatus(Status::Invalid); return; }
+        m_output->setPlainText(QString::fromUtf8(result->data(), qsizetype(result->size())));
+        setStatus(Status::Decoded);
+    });
+    connect(m_clear, &ElaPushButton::clicked, this, [this]() {
+        m_input->clear(); m_output->clear(); setStatus(Status::Ready);
+    });
+    connect(m_copy, &ElaPushButton::clicked, this, [this]() {
+        if (m_output->toPlainText().isEmpty()) return;
+        QGuiApplication::clipboard()->setText(m_output->toPlainText());
+        setStatus(Status::Copied);
+    });
+    retranslate();
 }
-
-QPushButton* Base64Page::createButton(const QString& text, bool primary)
+void Base64Page::setStatus(Status status)
 {
-    auto* btn = new QPushButton(text, this);
-    btn->setCursor(Qt::PointingHandCursor);
-    btn->setFixedHeight(36);
-    btn->setMinimumWidth(80);
-
-    QFont btnFont = btn->font();
-    btnFont.setPointSize(11);
-    btn->setFont(btnFont);
-
-    if (primary) {
-        btn->setStyleSheet(QStringLiteral(R"(
-            QPushButton {
-                background-color: %1;
-                color: %2;
-                border: none;
-                border-radius: 6px;
-                padding: 0 20px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: %3;
-            }
-            QPushButton:pressed {
-                background-color: %4;
-            }
-        )")
-        .arg(theme::Accent())
-        .arg(theme::WindowBg())
-        .arg(theme::AccentHover())
-        .arg(theme::AccentPressed()));
-    } else {
-        btn->setStyleSheet(QStringLiteral(R"(
-            QPushButton {
-                background-color: %1;
-                color: %2;
-                border: 1px solid %3;
-                border-radius: 6px;
-                padding: 0 20px;
-            }
-            QPushButton:hover {
-                background-color: %4;
-                border-color: %5;
-            }
-            QPushButton:pressed {
-                background-color: %6;
-            }
-        )")
-        .arg(theme::ButtonBg())
-        .arg(theme::TextPrimary())
-        .arg(theme::Border())
-        .arg(theme::ButtonHover())
-        .arg(theme::Surface3())
-        .arg(theme::ButtonPressed()));
+    m_status = status;
+    ui::setTone(m_statusLabel, status == Status::Empty || status == Status::Invalid ? ui::Tone::Danger
+        : status == Status::Ready ? ui::Tone::Secondary : ui::Tone::Success);
+    switch (status) {
+    case Status::Ready: m_statusLabel->clear(); break;
+    case Status::Empty: m_statusLabel->setText(tr("Input is empty")); break;
+    case Status::Encoded: m_statusLabel->setText(tr("Encoded successfully")); break;
+    case Status::Decoded: m_statusLabel->setText(tr("Decoded successfully")); break;
+    case Status::Invalid: m_statusLabel->setText(tr("Invalid Base64 input")); break;
+    case Status::Copied: m_statusLabel->setText(tr("Copied to clipboard")); break;
     }
-    return btn;
 }
-
-void Base64Page::setupUi()
+void Base64Page::retranslate()
 {
-    QString textEditStyle = QStringLiteral(R"(
-        QTextEdit {
-            background-color: %1;
-            color: %2;
-            border: 1px solid %3;
-            border-radius: 8px;
-            padding: 12px;
-            font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
-            font-size: 13px;
-            selection-background-color: %4;
-        }
-        QTextEdit:focus {
-            border-color: %5;
-        }
-    )")
-    .arg(theme::InputBg())
-    .arg(theme::TextPrimary())
-    .arg(theme::InputBorder())
-    .arg(theme::Accent())
-    .arg(theme::InputFocus());
-
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(32, 28, 32, 28);
-    mainLayout->setSpacing(20);
-
-    auto* titleLabel = new QLabel(tr("Base64 Encoder / Decoder"), this);
-    QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(18);
-    titleFont.setWeight(QFont::DemiBold);
-    titleLabel->setFont(titleFont);
-    titleLabel->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextPrimary()));
-
-    auto* descLabel = new QLabel(tr("Encode text to Base64 or decode Base64 to text."), this);
-    QFont descFont = descLabel->font();
-    descFont.setPointSize(11);
-    descLabel->setFont(descFont);
-    descLabel->setStyleSheet(QStringLiteral("color: %1; margin-bottom: 8px;").arg(theme::TextSecondary()));
-
-    auto* inputHeader = new QLabel(tr("Input"), this);
-    QFont sectionFont = inputHeader->font();
-    sectionFont.setPointSize(11);
-    sectionFont.setWeight(QFont::DemiBold);
-    inputHeader->setFont(sectionFont);
-    inputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary()));
-
-    m_inputEdit = new QTextEdit(this);
-    m_inputEdit->setPlaceholderText(tr("Enter text to encode, or Base64 to decode..."));
-    m_inputEdit->setMinimumHeight(120);
-    m_inputEdit->setStyleSheet(textEditStyle);
-
-    auto* buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(10);
-    auto* encodeBtn = createButton(tr("Encode"), true);
-    auto* decodeBtn = createButton(tr("Decode"), true);
-    auto* clearBtn = createButton(tr("Clear"));
-    buttonLayout->addWidget(encodeBtn);
-    buttonLayout->addWidget(decodeBtn);
-    buttonLayout->addWidget(clearBtn);
-    buttonLayout->addStretch();
-
-    auto* outputHeader = new QLabel(tr("Output"), this);
-    outputHeader->setFont(sectionFont);
-    outputHeader->setStyleSheet(QStringLiteral("color: %1;").arg(theme::TextSecondary()));
-
-    m_outputEdit = new QTextEdit(this);
-    m_outputEdit->setPlaceholderText(tr("Result will appear here..."));
-    m_outputEdit->setReadOnly(true);
-    m_outputEdit->setMinimumHeight(120);
-    m_outputEdit->setStyleSheet(textEditStyle);
-
-    auto* bottomLayout = new QHBoxLayout();
-    bottomLayout->setContentsMargins(0, 0, 0, 0);
-    m_statusLabel = new QLabel(this);
-    m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::TextSecondary()));
-    auto* copyBtn = createButton(tr("Copy Result"));
-    bottomLayout->addWidget(m_statusLabel, 1);
-    bottomLayout->addWidget(copyBtn);
-
-    mainLayout->addWidget(titleLabel);
-    mainLayout->addWidget(descLabel);
-    mainLayout->addWidget(inputHeader);
-    mainLayout->addWidget(m_inputEdit, 1);
-    mainLayout->addLayout(buttonLayout);
-    mainLayout->addWidget(outputHeader);
-    mainLayout->addWidget(m_outputEdit, 1);
-    mainLayout->addLayout(bottomLayout);
-
-    connect(encodeBtn, &QPushButton::clicked, this, [this]() {
-        QString input = m_inputEdit->toPlainText();
-        if (input.isEmpty()) {
-            m_statusLabel->setText(tr("Input is empty"));
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
-            return;
-        }
-        std::string result = Base64Codec::encode(input.toStdString());
-        m_outputEdit->setPlainText(QString::fromStdString(result));
-        m_statusLabel->setText(tr("Encoded successfully"));
-        m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
-    });
-
-    connect(decodeBtn, &QPushButton::clicked, this, [this]() {
-        QString input = m_inputEdit->toPlainText();
-        if (input.isEmpty()) {
-            m_statusLabel->setText(tr("Input is empty"));
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
-            return;
-        }
-        auto result = Base64Codec::decode(input.toStdString());
-        if (result.has_value()) {
-            m_outputEdit->setPlainText(QString::fromStdString(result.value()));
-            m_statusLabel->setText(tr("Decoded successfully"));
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
-        } else {
-            m_outputEdit->clear();
-            m_statusLabel->setText(tr("Invalid Base64 input"));
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Danger()));
-        }
-    });
-
-    connect(clearBtn, &QPushButton::clicked, this, [this]() {
-        m_inputEdit->clear();
-        m_outputEdit->clear();
-        m_statusLabel->clear();
-    });
-
-    connect(copyBtn, &QPushButton::clicked, this, [this]() {
-        QString text = m_outputEdit->toPlainText();
-        if (!text.isEmpty()) {
-            m_outputEdit->selectAll();
-            m_outputEdit->copy();
-            m_statusLabel->setText(tr("Copied to clipboard"));
-            m_statusLabel->setStyleSheet(QStringLiteral("color: %1; font-size: 12px;").arg(theme::Success()));
-        }
-    });
+    m_title->setText(tr("Base64 Encoder / Decoder"));
+    m_description->setText(tr("Encode text to Base64 or decode Base64 to text."));
+    m_inputLabel->setText(tr("Input"));
+    m_outputLabel->setText(tr("Output"));
+    m_encode->setText(tr("Encode")); m_decode->setText(tr("Decode"));
+    m_clear->setText(tr("Clear")); m_copy->setText(tr("Copy Result"));
+    m_input->setPlaceholderText(tr("Enter text to encode, or Base64 to decode..."));
+    m_output->setPlaceholderText(tr("Result will appear here..."));
+    setStatus(m_status);
+}
+void Base64Page::changeEvent(QEvent* event)
+{
+    ToolPage::changeEvent(event);
+    if (event->type() == QEvent::LanguageChange) retranslate();
 }

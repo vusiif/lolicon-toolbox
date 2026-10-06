@@ -1,30 +1,9 @@
 add_library(ToolboxCore STATIC
-    tool/ToolPage.h
-    tool/ToolPage.cpp
-    tool/ToolDescriptor.h
-    tool/ToolRegistry.h
-    tool/ToolRegistry.cpp
-    tool/ToolPageManager.h
-    tool/ToolPageManager.cpp
-    navigation/NavigationGroup.h
-    navigation/NavigationItem.h
-    navigation/NavigationManager.h
-    navigation/NavigationManager.cpp
-    services/SettingsService.h
-    services/SettingsService.cpp
-    services/AppServices.h
-    services/AppServices.cpp
-    services/LanguageManager.h
-    services/LanguageManager.cpp
-    theme/Theme.h
-    theme/Theme.cpp
-    theme/ThemeManager.h
-    theme/ThemeManager.cpp
+    navigation/NavigationGroup.h navigation/NavigationItem.h
+    navigation/NavigationManager.h navigation/NavigationManager.cpp
+    tool/ToolPage.h tool/ToolPage.cpp
+    tool/ToolDescriptor.h tool/ToolRegistry.h tool/ToolRegistry.cpp
+    services/AppSettings.h services/AppSettings.cpp
 )
-
 target_include_directories(ToolboxCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-target_link_libraries(ToolboxCore PUBLIC
-    Qt6::Core
-    Qt6::Widgets
-)
+target_link_libraries(ToolboxCore PUBLIC Qt6::Core Qt6::Widgets Ela::WidgetTools)

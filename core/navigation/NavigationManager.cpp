@@ -1,64 +1,47 @@
 #include "NavigationManager.h"
-
+#include "tool/ToolRegistry.h"
 #include <algorithm>
 
-NavigationManager::NavigationManager(QObject* parent)
-    : QObject(parent)
+bool NavigationManager::addGroup(const NavigationGroup& group)
 {
+    if (group.id.trimmed().isEmpty() || group.name.trimmed().isEmpty()) return false;
+    for (const auto& existing : m_groups)
+        if (existing.id == group.id) return false;
+    m_groups.append(group);
+    return true;
 }
 
-void NavigationManager::registerGroup(const NavigationGroup& group)
+bool NavigationManager::addItem(const NavigationItem& item)
 {
-    m_groups.insert(group.id, group);
-}
-
-void NavigationManager::registerItem(const NavigationItem& item)
-{
-    m_items[item.groupId].append(item);
-}
-
-QList<NavigationNode> NavigationManager::buildTree() const
-{
-    QList<NavigationNode> result;
-
-    auto sortedGroups = groups();
-    for (const auto& group : sortedGroups) {
-        NavigationNode node;
-        node.group = group;
-        node.items = itemsForGroup(group.id);
-
-        std::sort(node.items.begin(), node.items.end(),
-            [](const NavigationItem& a, const NavigationItem& b) {
-                return a.order < b.order;
-            });
-
-        result.append(node);
+    if (item.toolId.trimmed().isEmpty()) return false;
+    for (const auto& existing : m_items)
+        if (existing.toolId == item.toolId) return false;
+    for (const auto& group : m_groups) {
+        if (group.id == item.groupId) {
+            m_items.append(item);
+            return true;
+        }
     }
-
-    return result;
+    return false;
 }
 
-QList<NavigationGroup> NavigationManager::groups() const
+QList<NavigationSection> NavigationManager::sections(const ToolRegistry& tools) const
 {
-    auto result = m_groups.values();
-    std::sort(result.begin(), result.end(),
-        [](const NavigationGroup& a, const NavigationGroup& b) {
-            return a.order < b.order;
+    auto groups = m_groups;
+    std::sort(groups.begin(), groups.end(), [](const auto& a, const auto& b) {
+        return a.order == b.order ? a.id < b.id : a.order < b.order;
+    });
+    QList<NavigationSection> result;
+    for (const auto& group : groups) {
+        NavigationSection section{group, {}};
+        for (const auto& item : m_items)
+            if (item.groupId == group.id && item.visible && tools.contains(item.toolId))
+                section.items.append(item);
+        std::sort(section.items.begin(), section.items.end(), [](const auto& a, const auto& b) {
+            return a.order == b.order ? a.toolId < b.toolId : a.order < b.order;
         });
-    return result;
-}
-
-QList<NavigationItem> NavigationManager::itemsForGroup(const QString& groupId) const
-{
-    auto it = m_items.find(groupId);
-    if (it == m_items.end()) {
-        return {};
+        // Don't display categories that have no available, visible tools.
+        if (!section.items.isEmpty()) result.append(section);
     }
-
-    auto result = *it;
-    std::sort(result.begin(), result.end(),
-        [](const NavigationItem& a, const NavigationItem& b) {
-            return a.order < b.order;
-        });
     return result;
 }

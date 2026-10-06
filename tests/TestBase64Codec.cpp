@@ -77,7 +77,9 @@ void TestBase64Codec::decodeInvalid_data()
     QTest::addColumn<QString>("description");
 
     QTest::newRow("invalid chars") << "SGVs!bG8=" << "contains invalid character !";
-    QTest::newRow("invalid length") << "====" << "all padding characters";
+    QTest::newRow("all padding") << "====" << "all padding characters";
+    QTest::newRow("invalid length one") << "S" << "length not divisible by four";
+    QTest::newRow("invalid length three") << "SGV" << "missing final character";
     QTest::newRow("invalid padding") << "SGVsbG8==" << "extra padding";
 }
 

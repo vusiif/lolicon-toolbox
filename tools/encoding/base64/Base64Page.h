@@ -1,24 +1,29 @@
 #pragma once
-
 #include "tool/ToolPage.h"
-
-class QTextEdit;
+class ElaPlainTextEdit;
+class ElaPushButton;
 class QLabel;
-class QPushButton;
-
 class Base64Page : public ToolPage
 {
     Q_OBJECT
-
 public:
     explicit Base64Page(QWidget* parent = nullptr);
-    ~Base64Page() override = default;
-
+protected:
+    void changeEvent(QEvent* event) override;
 private:
-    void setupUi();
-    QPushButton* createButton(const QString& text, bool primary = false);
-
-    QTextEdit* m_inputEdit = nullptr;
-    QTextEdit* m_outputEdit = nullptr;
-    QLabel* m_statusLabel = nullptr;
+    enum class Status { Ready, Empty, Encoded, Decoded, Invalid, Copied };
+    void retranslate();
+    void setStatus(Status status);
+    ElaPlainTextEdit* m_input;
+    ElaPlainTextEdit* m_output;
+    ElaPushButton* m_encode;
+    ElaPushButton* m_decode;
+    ElaPushButton* m_clear;
+    ElaPushButton* m_copy;
+    QLabel* m_title;
+    QLabel* m_description;
+    QLabel* m_inputLabel;
+    QLabel* m_outputLabel;
+    QLabel* m_statusLabel;
+    Status m_status = Status::Ready;
 };

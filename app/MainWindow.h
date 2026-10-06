@@ -1,33 +1,26 @@
 #pragma once
-
-#include <QMainWindow>
-
-class QStackedWidget;
-class Sidebar;
-class SettingsPage;
-class NavigationManager;
+#include <ElaWindow.h>
+#include <QMap>
+class AppSettings;
 class ToolRegistry;
-class ToolPageManager;
-
-class MainWindow : public QMainWindow
+class NavigationManager;
+class LazyToolPage;
+class SettingsPage;
+class MainWindow : public ElaWindow
 {
     Q_OBJECT
-
 public:
-    explicit MainWindow(NavigationManager* navManager,
-                        ToolRegistry* registry,
-                        ToolPageManager* pageManager,
-                        QWidget* parent = nullptr);
-    ~MainWindow() override = default;
-
+    MainWindow(AppSettings& settings, const ToolRegistry& tools, const NavigationManager& navigation, QWidget* parent = nullptr);
+    QString pageKey(const QString& id) const;
+    QString groupKey(const QString& id) const;
+protected:
+    void changeEvent(QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 private:
-    void setupUi();
-    void showEvent(QShowEvent* event) override;
-
-    QStackedWidget* m_pageStack = nullptr;
-    Sidebar* m_sidebar = nullptr;
-    SettingsPage* m_settingsPage = nullptr;
-    NavigationManager* m_navManager = nullptr;
-    ToolRegistry* m_registry = nullptr;
-    ToolPageManager* m_pageManager = nullptr;
+    void retranslate();
+    AppSettings& m_settings;
+    QMap<QString, QString> m_pageKeys;
+    QMap<QString, QString> m_groupKeys;
+    QMap<QString, QString> m_groupNames;
+    SettingsPage* m_settingsPage;
 };

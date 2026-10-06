@@ -1,25 +1,21 @@
 #pragma once
-
 #include <QWidget>
-
-class QComboBox;
-class QPushButton;
-
+class AppSettings;
+class ElaComboBox;
+class QLabel;
 class SettingsPage : public QWidget
 {
     Q_OBJECT
-
 public:
-    explicit SettingsPage(QWidget* parent = nullptr);
-    ~SettingsPage() override = default;
-
-signals:
-    void languageApplyRequested(const QString& locale);
-
+    explicit SettingsPage(AppSettings& settings, QWidget* parent = nullptr);
+protected:
+    void changeEvent(QEvent* event) override;
 private:
-    void setupUi();
-
-    QComboBox* m_themeCombo = nullptr;
-    QComboBox* m_langCombo = nullptr;
-    QPushButton* m_applyBtn = nullptr;
+    void retranslate();
+    void synchronize();
+    AppSettings& m_settings;
+    QLabel* m_title;
+    QLabel* m_languageLabel;
+    QLabel* m_error;
+    ElaComboBox* m_language;
 };

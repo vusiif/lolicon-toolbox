@@ -2,6 +2,11 @@
 build/
 cmake-build-*/
 out/
+dist/
+/rebuilt-*.png
+# Downloaded reference examples/assets; the library sources and license are vendored.
+/third_party/ElaWidgetTools-main/ElaWidgetToolsExample/
+/third_party/ElaWidgetTools-main/doc/
 
 # IDE files
 .idea/

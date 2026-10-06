@@ -2,7 +2,7 @@
 
 bool ToolRegistry::registerTool(const ToolDescriptor& descriptor)
 {
-    if (descriptor.id.isEmpty()) {
+    if (descriptor.id.isEmpty() || !descriptor.factory) {
         return false;
     }
 

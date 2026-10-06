@@ -1,34 +1,24 @@
 #pragma once
-
 #include "NavigationGroup.h"
 #include "NavigationItem.h"
-
 #include <QList>
-#include <QMap>
-#include <QObject>
-#include <QString>
 
-struct NavigationNode
+class ToolRegistry;
+
+struct NavigationSection
 {
     NavigationGroup group;
     QList<NavigationItem> items;
 };
 
-class NavigationManager : public QObject
+// Navigation placement is separate from tool implementation and registration.
+class NavigationManager
 {
-    Q_OBJECT
-
 public:
-    explicit NavigationManager(QObject* parent = nullptr);
-
-    void registerGroup(const NavigationGroup& group);
-    void registerItem(const NavigationItem& item);
-
-    QList<NavigationNode> buildTree() const;
-    QList<NavigationGroup> groups() const;
-    QList<NavigationItem> itemsForGroup(const QString& groupId) const;
-
+    bool addGroup(const NavigationGroup& group);
+    bool addItem(const NavigationItem& item);
+    QList<NavigationSection> sections(const ToolRegistry& tools) const;
 private:
-    QMap<QString, NavigationGroup> m_groups;
-    QMap<QString, QList<NavigationItem>> m_items;
+    QList<NavigationGroup> m_groups;
+    QList<NavigationItem> m_items;
 };
