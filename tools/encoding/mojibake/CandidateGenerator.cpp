@@ -78,7 +78,9 @@ QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancell
     original.anomalies = CandidateScorer::anomalies(text);
     QList<Candidate> all{original}, frontier{original};
     QSet<QString> seen{text};
-    const auto encodings = EncodingConverter::supported();
+    // UTF-16/32 byte detection belongs to the file analyzer. Adding them to
+    // Unicode-string inversion would manufacture unrelated wide-codec text.
+    const auto encodings = EncodingConverter::supported(false);
     for (int depth = 0; depth < 2; ++depth) {
         QList<Candidate> next;
         for (const auto& parent : frontier) {

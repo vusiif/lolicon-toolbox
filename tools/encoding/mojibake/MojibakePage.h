@@ -31,6 +31,7 @@ private:
     QString inputText() const;
     ElaPlainTextEdit *m_input, *m_output, *m_process;
     ElaPushButton *m_analyze, *m_copy, *m_clear, *m_cancel, *m_details;
+    ElaPushButton *m_textMode, *m_fileMode;
     std::array<ElaPushButton*, 5> m_candidateButtons;
     QButtonGroup* m_candidates;
     int m_selectedCandidate = -1;

@@ -122,7 +122,33 @@ Damaged UTF-8-as-GBK/GB18030 paragraphs can also yield partial recovery:
 readable sections are decoded, unknown byte regions remain marked `�`, and
 the result is explicitly uncertain and not reversible. Search avoids paths
 that introduce more anomalies or create fresh mojibake from CJK text.
-Files and directory scans remain outside this tool version.
+
+### Single text files
+
+Switch to **Text file** to load the original bytes (up to 10 MiB), compare up
+to five candidates and save a repaired copy. File analysis additionally supports
+UTF-16LE, UTF-16BE, UTF-32LE and UTF-32BE, giving twelve source/output encodings
+on the tested Qt kit. BOM markers are recognized before decoding; without a BOM,
+byte structure and text quality rank alternatives. You can explicitly choose a
+source encoding when automatic comparison is inconclusive. An encoding that
+passes validation does not prove the original meaning.
+
+Already-garbled text stored in a valid encoding can undergo the existing local
+repair search after decoding. This extra search is skipped when a decoded
+candidate exceeds 1 MiB in UTF-8; direct decoding remains available up to the
+10 MiB file limit. Analysis runs in the background with cancellation. The preview
+shows at most 32,768 UTF-16 code units, while export uses the complete candidate.
+File contents are not sent to AI.
+
+Choose the output encoding, BOM and newline convention before saving. Defaults
+are UTF-8, the source BOM's presence and preserved newlines. Unrepresentable
+output characters cause an error instead of substitution. Saving requires a new
+destination: existing files, including the source, are never overwritten. The
+source's SHA-256 is checked again before export; changed sources require another
+analysis. Filename repair and folder batches remain deferred.
+
+See [manual file-recovery checks](docs/File-Recovery-Testing.md) for reproducible
+fixtures and acceptance steps.
 
 ### Optional AI assistance
 

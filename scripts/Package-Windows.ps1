@@ -29,6 +29,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'cmake-build-release/app/Toolbox.exe') -Destination $package
     Invoke-Checked $deployTool @('--release', '--compiler-runtime', (Join-Path $package 'Toolbox.exe'))
     Copy-Item -LiteralPath (Join-Path $projectRoot 'README.md') -Destination $package
+    $packageDocs = Join-Path $package 'docs'
+    New-Item -ItemType Directory -Path $packageDocs | Out-Null
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/File-Recovery-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/ElaWidgetTools-main/LICENSE') -Destination (Join-Path $package 'ElaWidgetTools-LICENSE.txt')
     Compress-Archive -LiteralPath $package -DestinationPath "$package.zip"
     Get-FileHash -LiteralPath "$package.zip" -Algorithm SHA256 |

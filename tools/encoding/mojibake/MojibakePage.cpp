@@ -1,5 +1,7 @@
 #include "MojibakePage.h"
 #include "MojibakeAnalyzer.h"
+#include "TextFileRecoveryPage.h"
+#include <QStackedWidget>
 #include "UiTheme.h"
 #include "services/AppSettings.h"
 #include "ai/AiService.h"
@@ -28,7 +30,15 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     scroll->setWidget(content);
     content->setAutoFillBackground(false);
     scroll->viewport()->setAutoFillBackground(false);
-    outer->addWidget(scroll);
+    auto* modes = new QHBoxLayout; modes->setContentsMargins(32, 12, 32, 0);
+    m_textMode = new ElaPushButton(this); m_textMode->setObjectName("mojibakeTextMode");
+    m_fileMode = new ElaPushButton(this); m_fileMode->setObjectName("mojibakeFileMode");
+    modes->addWidget(m_textMode); modes->addWidget(m_fileMode); modes->addStretch(); outer->addLayout(modes);
+    auto* pages = new QStackedWidget(this); pages->setObjectName("mojibakeSources");
+    pages->addWidget(scroll); pages->addWidget(new TextFileRecoveryPage(pages)); outer->addWidget(pages);
+    m_textMode->setEnabled(false);
+    connect(m_textMode, &ElaPushButton::clicked, this, [this, pages] { pages->setCurrentIndex(0); m_textMode->setEnabled(false); m_fileMode->setEnabled(true); });
+    connect(m_fileMode, &ElaPushButton::clicked, this, [this, pages] { pages->setCurrentIndex(1); m_textMode->setEnabled(true); m_fileMode->setEnabled(false); });
     auto* layout = new QVBoxLayout(content);
     layout->setContentsMargins(32, 28, 32, 28);
     layout->setSpacing(12);
@@ -255,6 +265,7 @@ void MojibakePage::showCandidate() {
 }
 void MojibakePage::retranslate() {
     m_title->setText(tr("Mojibake Repair"));
+    m_textMode->setText(tr("Pasted text")); m_fileMode->setText(tr("Text file"));
     m_description->setText(tr("Local analysis stays offline. AI assistance sends text only when you explicitly request it."));
     m_inputLabel->setText(tr("Original text")); m_outputLabel->setText(tr("Recovery candidates"));
     m_analyze->setText(tr("Analyze")); m_cancel->setText(tr("Cancel")); m_clear->setText(tr("Clear"));

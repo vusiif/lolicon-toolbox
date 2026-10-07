@@ -141,6 +141,8 @@
     </context>
     <context>
         <name>MojibakePage</name>
+        <message><source>Pasted text</source><translation>粘贴文本</translation></message>
+        <message><source>Text file</source><translation>文本文件</translation></message>
         <message><source>Waiting for the service to start responding… %1 s elapsed (90 s limit).</source><translation>正在等待服务开始回复…已等待 %1 秒（最多 90 秒）。</translation></message>
         <message><source>The model is thinking… %1 s elapsed, %2 reasoning characters received.</source><translation>模型正在思考…已等待 %1 秒，已收到 %2 个思考字符。</translation></message>
         <message><source>Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.</source><translation>正在接收 AI 回复…已等待 %1 秒，已收到 %2 个输出字符。完成后将校验结果。</translation></message>
@@ -222,5 +224,61 @@ Unavailable</source><translation>候选 %1
     <context>
         <name>ai::AiService</name>
         <message><source>AI analysis requires nonempty input of at most 16 KiB. Analyze a smaller section.</source><translation>AI 分析需要非空文本，最多 16 KiB，请分析较小的片段。</translation></message>
+    </context>
+    <context>
+        <name>TextFileRecoveryPage</name>
+        <message><source>Open a text file</source><translation>打开文本文件</translation></message>
+        <message><source>Text files (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;All files (*)</source><translation>文本文件 (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;所有文件 (*)</translation></message>
+        <message><source>Create a repaired copy</source><translation>生成修复副本</translation></message>
+        <message><source>No file selected.</source><translation>尚未选择文件。</translation></message>
+        <message><source>Analyzing file bytes locally…</source><translation>正在本地分析文件字节…</translation></message>
+        <message><source>Creating the complete repaired copy…</source><translation>正在生成完整修复副本…</translation></message>
+        <message><source>Created copy: %1. The source file was preserved.</source><translation>已生成副本：%1。源文件保持不变。</translation></message>
+        <message><source>Could not read the file: %1</source><translation>无法读取文件：%1</translation></message>
+        <message><source>File analysis cancelled.</source><translation>文件分析已取消。</translation></message>
+        <message><source>File exceeds the 10 MiB limit.</source><translation>文件超过 10 MiB 上限。</translation></message>
+        <message><source>The BOM conflicts with the selected encoding or the content cannot be decoded strictly. Try automatic detection.</source><translation>BOM 与所选编码冲突，或内容无法严格解码，请尝试自动检测。</translation></message>
+        <message><source>This appears to be a binary file. Text recovery is not applicable.</source><translation>文件具有二进制特征。若确定是文本，请指定源编码再分析。</translation></message>
+        <message><source>Choose one text file. Analysis does not modify or upload it.</source><translation>选择一个文本文件，分析不会修改或上传文件。</translation></message>
+        <message><source>No valid text candidate for this encoding. Try automatic detection or another source encoding.</source><translation>当前编码没有有效文本候选，请尝试自动检测或其他源编码。</translation></message>
+        <message><source>Compare the candidates before exporting. No existing file will be overwritten.</source><translation>请核对候选后导出。不会覆盖任何已有文件。</translation></message>
+        <message><source>Candidate %1
+Unavailable</source><translation>候选 %1
+暂无结果</translation></message>
+        <message><source>Source bytes: %1; decoded characters: %2.</source><translation>源文件 %1 字节，候选 %2 个字符。</translation></message>
+        <message><source>Source encoding candidates: %1</source><translation>对应的源编码：%1</translation></message>
+        <message><source>BOM: %1</source><translation>BOM：%1</translation></message>
+        <message><source>None</source><translation>无</translation></message>
+        <message><source>Newlines: CRLF %1, LF %2, CR %3.</source><translation>换行：CRLF %1，LF %2，CR %3。</translation></message>
+        <message><source>Exact inverse verified: %1</source><translation>完整逆向校验：%1</translation></message>
+        <message><source>Yes</source><translation>通过</translation></message>
+        <message><source>No; partial recovery</source><translation>未通过；部分恢复</translation></message>
+        <message><source>Byte evidence prefers %1. This does not prove the original meaning.</source><translation>字节证据优先选择 %1，但不能据此证明原文语义。</translation></message>
+        <message><source>Text repair: encode as %1, then decode as %2.</source><translation>文本修复：按 %1 还原字节，再按 %2 解码。</translation></message>
+        <message><source>Possible missing information. Unknown characters cannot be uniquely restored.</source><translation>可能存在信息丢失，未知字符无法唯一还原。</translation></message>
+        <message><source>For large text, only byte encoding detection was performed; further mojibake search is limited to 1 MiB.</source><translation>大文本仅进行字节编码诊断，后续乱码逆向搜索限制为 1 MiB。</translation></message>
+        <message><source>Preview shows the first %1 characters. Export includes the complete candidate.</source><translation>仅预览前 %1 个字符，导出包含完整候选。</translation></message>
+        <message><source>Scores rank possibilities, not probabilities. File contents are not sent to AI.</source><translation>评分用于比较候选，不代表正确概率。文件内容不会发送给 AI。</translation></message>
+        <message><source>Text file encoding diagnosis</source><translation>文本文件编码诊断</translation></message>
+        <message><source>Analyze original bytes and preview decoding or repair candidates. Save a new copy; the source stays unchanged.</source><translation>分析原始字节，预览解码或修复候选。另存新副本，保留源文件。</translation></message>
+        <message><source>Choose file</source><translation>选择文件</translation></message>
+        <message><source>Analyze again</source><translation>重新分析</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Save repaired copy…</source><translation>另存修复副本…</translation></message>
+        <message><source>Source encoding</source><translation>源编码</translation></message>
+        <message><source>Automatic comparison</source><translation>自动比较</translation></message>
+        <message><source>Output encoding</source><translation>输出编码</translation></message>
+        <message><source>Output newlines</source><translation>输出换行</translation></message>
+        <message><source>Preserve original</source><translation>保留原样</translation></message>
+        <message><source>Write BOM (defaults to source BOM presence)</source><translation>写入 BOM（默认跟随源文件是否有 BOM）</translation></message>
+    </context>
+    <context>
+        <name>RecoveryOperation</name>
+        <message><source>No file candidate selected.</source><translation>未选择文件候选。</translation></message>
+        <message><source>The selected output encoding cannot represent all characters without loss.</source><translation>所选输出编码无法无损表示全部字符，请更换编码。</translation></message>
+        <message><source>The source file is no longer readable. Analyze it again.</source><translation>源文件已无法读取，请重新分析。</translation></message>
+        <message><source>The source file changed after analysis. Analyze it again before exporting.</source><translation>源文件在分析后发生了变化，请重新分析后导出。</translation></message>
+        <message><source>Cannot create the copy. Choose a new filename; existing files are never overwritten.</source><translation>无法创建副本，请使用新文件名。不会覆盖已有文件。</translation></message>
+        <message><source>Could not write the complete copy.</source><translation>无法写入完整副本。</translation></message>
     </context>
 </TS>

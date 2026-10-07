@@ -141,6 +141,8 @@
     </context>
     <context>
         <name>MojibakePage</name>
+        <message><source>Pasted text</source><translation>貼上文字</translation></message>
+        <message><source>Text file</source><translation>文字檔案</translation></message>
         <message><source>Waiting for the service to start responding… %1 s elapsed (90 s limit).</source><translation>正在等待服務開始回覆…已等待 %1 秒（最多 90 秒）。</translation></message>
         <message><source>The model is thinking… %1 s elapsed, %2 reasoning characters received.</source><translation>模型正在思考…已等待 %1 秒，已收到 %2 個思考字元。</translation></message>
         <message><source>Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.</source><translation>正在接收 AI 回覆…已等待 %1 秒，已收到 %2 個輸出字元。完成後將驗證結果。</translation></message>
@@ -222,5 +224,61 @@ Unavailable</source><translation>候選 %1
     <context>
         <name>ai::AiService</name>
         <message><source>AI analysis requires nonempty input of at most 16 KiB. Analyze a smaller section.</source><translation>AI 分析需要非空文字，最多 16 KiB，請分析較小的片段。</translation></message>
+    </context>
+    <context>
+        <name>TextFileRecoveryPage</name>
+        <message><source>Open a text file</source><translation>開啟文字檔案</translation></message>
+        <message><source>Text files (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;All files (*)</source><translation>文字檔案 (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;所有檔案 (*)</translation></message>
+        <message><source>Create a repaired copy</source><translation>產生修復副本</translation></message>
+        <message><source>No file selected.</source><translation>尚未選擇檔案。</translation></message>
+        <message><source>Analyzing file bytes locally…</source><translation>正在本機分析檔案位元組…</translation></message>
+        <message><source>Creating the complete repaired copy…</source><translation>正在產生完整修復副本…</translation></message>
+        <message><source>Created copy: %1. The source file was preserved.</source><translation>已產生副本：%1。來源檔案保持不變。</translation></message>
+        <message><source>Could not read the file: %1</source><translation>無法讀取檔案：%1</translation></message>
+        <message><source>File analysis cancelled.</source><translation>檔案分析已取消。</translation></message>
+        <message><source>File exceeds the 10 MiB limit.</source><translation>檔案超過 10 MiB 上限。</translation></message>
+        <message><source>The BOM conflicts with the selected encoding or the content cannot be decoded strictly. Try automatic detection.</source><translation>BOM 與所選編碼衝突，或內容無法嚴格解碼，請嘗試自動偵測。</translation></message>
+        <message><source>This appears to be a binary file. Text recovery is not applicable.</source><translation>檔案具有二進位特徵。若確定是文字，請指定來源編碼再分析。</translation></message>
+        <message><source>Choose one text file. Analysis does not modify or upload it.</source><translation>選擇一個文字檔案，分析不會修改或上傳檔案。</translation></message>
+        <message><source>No valid text candidate for this encoding. Try automatic detection or another source encoding.</source><translation>目前編碼沒有有效文字候選，請嘗試自動偵測或其他來源編碼。</translation></message>
+        <message><source>Compare the candidates before exporting. No existing file will be overwritten.</source><translation>請核對候選後匯出。不會覆寫任何已有檔案。</translation></message>
+        <message><source>Candidate %1
+Unavailable</source><translation>候選 %1
+暫無結果</translation></message>
+        <message><source>Source bytes: %1; decoded characters: %2.</source><translation>來源檔案 %1 位元組，候選 %2 個字元。</translation></message>
+        <message><source>Source encoding candidates: %1</source><translation>對應的來源編碼：%1</translation></message>
+        <message><source>BOM: %1</source><translation>BOM：%1</translation></message>
+        <message><source>None</source><translation>無</translation></message>
+        <message><source>Newlines: CRLF %1, LF %2, CR %3.</source><translation>換行：CRLF %1，LF %2，CR %3。</translation></message>
+        <message><source>Exact inverse verified: %1</source><translation>完整逆向驗證：%1</translation></message>
+        <message><source>Yes</source><translation>通過</translation></message>
+        <message><source>No; partial recovery</source><translation>未通過；部分恢復</translation></message>
+        <message><source>Byte evidence prefers %1. This does not prove the original meaning.</source><translation>位元組證據優先選擇 %1，但不能據此證明原文語意。</translation></message>
+        <message><source>Text repair: encode as %1, then decode as %2.</source><translation>文字修復：按 %1 還原位元組，再按 %2 解碼。</translation></message>
+        <message><source>Possible missing information. Unknown characters cannot be uniquely restored.</source><translation>可能存在資訊遺失，未知字元無法唯一還原。</translation></message>
+        <message><source>For large text, only byte encoding detection was performed; further mojibake search is limited to 1 MiB.</source><translation>大型文字僅進行位元組編碼診斷，後續亂碼逆向搜尋限制為 1 MiB。</translation></message>
+        <message><source>Preview shows the first %1 characters. Export includes the complete candidate.</source><translation>僅預覽前 %1 個字元，匯出包含完整候選。</translation></message>
+        <message><source>Scores rank possibilities, not probabilities. File contents are not sent to AI.</source><translation>評分用於比較候選，不代表正確機率。檔案內容不會傳送給 AI。</translation></message>
+        <message><source>Text file encoding diagnosis</source><translation>文字檔案編碼診斷</translation></message>
+        <message><source>Analyze original bytes and preview decoding or repair candidates. Save a new copy; the source stays unchanged.</source><translation>分析原始位元組，預覽解碼或修復候選。另存新副本，保留來源檔案。</translation></message>
+        <message><source>Choose file</source><translation>選擇檔案</translation></message>
+        <message><source>Analyze again</source><translation>重新分析</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Save repaired copy…</source><translation>另存修復副本…</translation></message>
+        <message><source>Source encoding</source><translation>來源編碼</translation></message>
+        <message><source>Automatic comparison</source><translation>自動比較</translation></message>
+        <message><source>Output encoding</source><translation>輸出編碼</translation></message>
+        <message><source>Output newlines</source><translation>輸出換行</translation></message>
+        <message><source>Preserve original</source><translation>保留原樣</translation></message>
+        <message><source>Write BOM (defaults to source BOM presence)</source><translation>寫入 BOM（預設跟隨來源檔案是否有 BOM）</translation></message>
+    </context>
+    <context>
+        <name>RecoveryOperation</name>
+        <message><source>No file candidate selected.</source><translation>未選擇檔案候選。</translation></message>
+        <message><source>The selected output encoding cannot represent all characters without loss.</source><translation>所選輸出編碼無法無損表示全部字元，請更換編碼。</translation></message>
+        <message><source>The source file is no longer readable. Analyze it again.</source><translation>來源檔案已無法讀取，請重新分析。</translation></message>
+        <message><source>The source file changed after analysis. Analyze it again before exporting.</source><translation>來源檔案在分析後發生了變化，請重新分析後匯出。</translation></message>
+        <message><source>Cannot create the copy. Choose a new filename; existing files are never overwritten.</source><translation>無法建立副本，請使用新檔案名稱。不會覆寫已有檔案。</translation></message>
+        <message><source>Could not write the complete copy.</source><translation>無法寫入完整副本。</translation></message>
     </context>
 </TS>

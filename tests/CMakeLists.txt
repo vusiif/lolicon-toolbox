@@ -12,9 +12,13 @@ add_test(NAME TestMojibake COMMAND TestMojibake -o mojibake-results.txt,txt)
 add_executable(TestAi TestAi.cpp TestHttpServer.h)
 target_link_libraries(TestAi PRIVATE Qt6::Test ToolboxCore)
 add_test(NAME TestAi COMMAND TestAi -o ai-results.txt,txt)
-set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi PROPERTIES
+add_executable(TestFileRecovery TestFileRecovery.cpp)
+target_link_libraries(TestFileRecovery PRIVATE Qt6::Test MojibakeLogic)
+add_test(NAME TestFileRecovery COMMAND TestFileRecovery -o file-recovery-results.txt,txt)
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"
 )
 set_tests_properties(TestMojibake PROPERTIES TIMEOUT 90)
+set_tests_properties(TestFileRecovery PROPERTIES TIMEOUT 90)

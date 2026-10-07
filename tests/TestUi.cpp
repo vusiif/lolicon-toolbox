@@ -23,6 +23,9 @@
 #include "UiTheme.h"
 #include "Base64Page.h"
 #include "MojibakePage.h"
+#include "TextFileRecoveryPage.h"
+#include "ByteEncodingAnalyzer.h"
+#include <QFile>
 #include "services/AppSettings.h"
 #include "tool/ToolRegistry.h"
 #include "navigation/NavigationManager.h"
@@ -40,6 +43,7 @@ private slots:
     void mojibakeWorkflow();
     void aiWorkflow();
     void modelListingWorkflow();
+    void fileRecoveryWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -334,6 +338,44 @@ void TestUi::modelListingWorkflow()
     QCOMPARE(models->count(), 0);
     models->setEditText("manual-model");
     QCOMPARE(models->currentText(), QString("manual-model"));
+}
+void TestUi::fileRecoveryWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("file-ui.ini")); QVERIFY(settings.setLocale("en"));
+    const auto source = dir.filePath("input.log"), destination = dir.filePath("output.log");
+    const QString text = "你好\r\nNBSP 😀\n";
+    const auto original = mojibake::ByteEncodingAnalyzer::bom(mojibake::Encoding::Utf16LE) + *mojibake::EncodingConverter::encode(text, mojibake::Encoding::Utf16LE);
+    { QFile file(source); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(original); }
+    MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1000, 1000); page.show();
+    auto* pasted = page.findChild<ElaPlainTextEdit*>("mojibakeInput"); pasted->setPlainText("preserve pasted input");
+    page.findChild<ElaPushButton*>("mojibakeFileMode")->click();
+    auto* filePage = page.findChild<TextFileRecoveryPage*>(); QVERIFY(filePage);
+    auto* analyze = page.findChild<ElaPushButton*>("fileRecoveryAnalyze");
+    auto* save = page.findChild<ElaPushButton*>("fileRecoverySave");
+    auto* preview = page.findChild<ElaPlainTextEdit*>("fileRecoveryPreview");
+    auto* details = page.findChild<ElaPlainTextEdit*>("fileRecoveryDetails");
+    auto* status = page.findChild<QLabel*>("fileRecoveryStatus");
+    filePage->openFile(source); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QVERIFY(preview->toPlainText().startsWith(QString::fromUtf8("你好"))); QVERIFY(save->isEnabled());
+    QVERIFY(details->toPlainText().contains("UTF-16LE")); QVERIFY(details->toPlainText().contains("CRLF 1"));
+    QVERIFY(page.grab().save("file-recovery-preview.png"));
+    filePage->exportCopy(destination); QTRY_VERIFY_WITH_TIMEOUT(save->isEnabled(), 5000);
+    QVERIFY(status->text().contains("Created copy"));
+    { QFile file(destination); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), mojibake::ByteEncodingAnalyzer::bom(mojibake::Encoding::Utf8) + text.toUtf8()); }
+    filePage->exportCopy(source); QTRY_VERIFY_WITH_TIMEOUT(save->isEnabled(), 5000);
+    QVERIFY(status->text().contains("never overwritten"));
+    { QFile file(source); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), original); }
+    QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents();
+    QCOMPARE(page.findChild<ElaPushButton*>("mojibakeFileMode")->text(), QString::fromUtf8("文本文件"));
+    QCOMPARE(save->text(), QString::fromUtf8("另存修复副本…"));
+    page.findChild<ElaPushButton*>("mojibakeTextMode")->click(); QCOMPARE(pasted->toPlainText(), QString("preserve pasted input"));
+    const auto large = dir.filePath("large.txt"), largeCopy = dir.filePath("large-copy.txt");
+    const QByteArray bytes(100 * 1024, 'a');
+    { QFile file(large); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(bytes); }
+    filePage->openFile(large); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QVERIFY(preview->toPlainText().size() <= 32768); QVERIFY(details->toPlainText().contains(QString::fromUtf8("完整候选")));
+    filePage->exportCopy(largeCopy); QTRY_VERIFY_WITH_TIMEOUT(save->isEnabled(), 5000);
+    { QFile file(largeCopy); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), bytes); }
 }
 void TestUi::windowWorkflow()
 {
