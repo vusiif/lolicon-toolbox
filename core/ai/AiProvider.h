@@ -23,6 +23,7 @@ signals:
     void failed(const QString& message);
     void cancelled();
     void modelsListed(const QStringList& models);
+    void progress(bool thinking, int characters);
 };
 }
 Q_DECLARE_METATYPE(ai::Reply)

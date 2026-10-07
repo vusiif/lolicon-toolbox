@@ -3,6 +3,7 @@
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QTimer>
+#include <QJsonArray>
 #include <optional>
 class QNetworkReply;
 namespace ai {
@@ -20,8 +21,10 @@ public:
     static QUrl modelsEndpoint(const QString& baseUrl);
     static std::optional<QStringList> parseModels(const QByteArray&);
     static std::optional<Reply> parse(const QByteArray&, int candidateCount);
+    static QByteArray requestBody(const Configuration&, const QJsonArray& messages);
 private:
     void read();
+    void readEvents(const QByteArray& bytes);
     void send(const Configuration&, const QByteArray& body, bool models);
     QNetworkAccessManager m_network;
     QPointer<QNetworkReply> m_reply;
@@ -32,5 +35,9 @@ private:
     int m_candidateCount = 0;
     int m_timeoutMs;
     bool m_listingModels = false;
+    QByteArray m_eventBuffer;
+    QString m_streamText, m_finishReason;
+    int m_reasoningCharacters = 0;
+    bool m_streaming = false, m_streamDone = false;
 };
 }

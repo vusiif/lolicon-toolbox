@@ -6,12 +6,16 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <memory>
+#include <QTimer>
 // Loopback only. No live service, credentials, or model billing in tests.
 class TestHttpServer : public QTcpServer {
 public:
     int requests = 0;
     int status = 200;
     bool hold = false;
+    bool keepOpen = false, omitContentLength = false;
+    QByteArray contentType = "application/json";
+    QList<QByteArray> chunks;
     QByteArray response, lastBody, lastHeaders, extraHeaders;
     explicit TestHttpServer(QObject* parent = nullptr) : QTcpServer(parent) {
         listen(QHostAddress::LocalHost);
@@ -31,8 +35,19 @@ public:
                     *handled = true; ++requests;
                     lastHeaders = header; lastBody = buffer->mid(end + 4, length);
                     if (hold) return;
-                    socket->write("HTTP/1.1 " + QByteArray::number(status) + " Result\r\nContent-Type: application/json\r\nContent-Length: " + QByteArray::number(response.size()) + "\r\n" + extraHeaders + "Connection: close\r\n\r\n" + response);
-                    socket->disconnectFromHost();
+                    socket->write("HTTP/1.1 " + QByteArray::number(status) + " Result\r\nContent-Type: " + contentType + "\r\n" +
+                        (omitContentLength ? QByteArray() : "Content-Length: " + QByteArray::number(response.size()) + "\r\n") + extraHeaders + "Connection: close\r\n\r\n");
+                    if (chunks.isEmpty()) { socket->write(response); if (!keepOpen) socket->disconnectFromHost(); }
+                    else {
+                        auto* timer = new QTimer(socket); timer->setTimerType(Qt::PreciseTimer);
+                        auto index = std::make_shared<int>(0);
+                        connect(timer, &QTimer::timeout, socket, [socket, timer, index, parts = chunks, keep = keepOpen] {
+                            if (!socket->isOpen()) { timer->stop(); return; }
+                            socket->write(parts[(*index)++]);
+                            if (*index == parts.size()) { timer->stop(); if (!keep) socket->disconnectFromHost(); }
+                        });
+                        timer->start(10);
+                    }
                 });
                 connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
             }

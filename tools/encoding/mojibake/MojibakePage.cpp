@@ -100,7 +100,14 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     connect(m_aiAnalyze, &ElaPushButton::clicked, this, &MojibakePage::analyzeAi);
     connect(m_aiCancel, &ElaPushButton::clicked, m_aiService, &ai::AiService::cancel);
     connect(m_aiCopy, &ElaPushButton::clicked, this, [this] { QApplication::clipboard()->setText(m_aiResult.text); });
+    m_aiProgressTimer.setInterval(1000);
+    connect(&m_aiProgressTimer, &QTimer::timeout, this, &MojibakePage::showAiProgress);
+    connect(m_aiService, &ai::AiService::progress, this, [this](bool thinking, int characters) {
+        if (m_aiStale) return;
+        m_aiThinking = thinking; m_aiCharacters = characters; showAiProgress();
+    });
     connect(m_aiService, &ai::AiService::completed, this, [this](const ai::Reply& reply) {
+        m_aiProgressTimer.stop();
         if (m_aiStale || m_aiSubmitted != inputText()) { updateAiControls(); return; }
         m_aiResult = reply;
         m_aiOutput->setPlainText(reply.text); m_aiOutput->setVisible(!reply.text.isEmpty());
@@ -114,10 +121,12 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
         updateAiControls();
     });
     connect(m_aiService, &ai::AiService::failed, this, [this](const QString& error) {
+        m_aiProgressTimer.stop();
         if (!m_aiStale) m_aiStatus->setText(error);
         updateAiControls();
     });
     connect(m_aiService, &ai::AiService::cancelled, this, [this] {
+        m_aiProgressTimer.stop();
         if (!m_aiStale) m_aiStatus->setText(tr("AI request cancelled. Local results are unchanged."));
         updateAiControls();
     });
@@ -256,6 +265,7 @@ void MojibakePage::retranslate() {
     showResult();
 }
 void MojibakePage::invalidateAi() {
+    m_aiProgressTimer.stop();
     m_aiStale = true; m_aiService->cancel(); m_aiResult = {};
     m_aiOutput->clear(); m_aiExplanation->clear(); m_aiStatus->clear();
     m_aiOutput->hide(); m_aiExplanation->hide(); m_aiCopy->setEnabled(false);
@@ -284,9 +294,18 @@ void MojibakePage::analyzeAi() {
                                       {"inverse_verified", candidate.reversible}, {"path", path}});
     }
     const QJsonObject context{{"original_text", m_aiSubmitted}, {"candidates", candidates}, {"possible_loss", m_result.possibleLoss}};
+    m_aiCharacters = 0; m_aiThinking = false; m_aiElapsed.start();
     m_aiStatus->setText(tr("Waiting for AI response…"));
     m_aiService->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
+    if (m_aiService->isBusy()) { m_aiProgressTimer.start(); showAiProgress(); }
     updateAiControls();
+}
+void MojibakePage::showAiProgress() {
+    if (m_aiStale || !m_aiService->isBusy()) return;
+    const auto seconds = m_aiElapsed.elapsed() / 1000;
+    if (!m_aiCharacters) m_aiStatus->setText(tr("Waiting for the service to start responding… %1 s elapsed (90 s limit).").arg(seconds));
+    else if (m_aiThinking) m_aiStatus->setText(tr("The model is thinking… %1 s elapsed, %2 reasoning characters received.").arg(seconds).arg(m_aiCharacters));
+    else m_aiStatus->setText(tr("Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.").arg(seconds).arg(m_aiCharacters));
 }
 void MojibakePage::changeEvent(QEvent* event) {
     ToolPage::changeEvent(event);

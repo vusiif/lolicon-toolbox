@@ -299,6 +299,7 @@ void TestUi::aiWorkflow()
     QCOMPARE(output->toPlainText(), QString::fromUtf8("你好！"));
     server.hold = true;
     aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests, 2, 3000);
+    QVERIFY(page.findChild<QLabel*>("mojibakeAiStatus")->text().contains(QString::fromUtf8("已等待")));
     input->setPlainText("changed input");
     QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), 3000);
     QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiAnalyze->isEnabled());

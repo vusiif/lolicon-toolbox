@@ -15,6 +15,7 @@ signals:
     void failed(const QString&);
     void cancelled();
     void modelsListed(const QStringList& models);
+    void progress(bool thinking, int characters);
 private:
     AiProvider* m_provider;
 };

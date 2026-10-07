@@ -141,6 +141,9 @@
     </context>
     <context>
         <name>MojibakePage</name>
+        <message><source>Waiting for the service to start responding… %1 s elapsed (90 s limit).</source><translation>正在等待服务开始回复…已等待 %1 秒（最多 90 秒）。</translation></message>
+        <message><source>The model is thinking… %1 s elapsed, %2 reasoning characters received.</source><translation>模型正在思考…已等待 %1 秒，已收到 %2 个思考字符。</translation></message>
+        <message><source>Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.</source><translation>正在接收 AI 回复…已等待 %1 秒，已收到 %2 个输出字符。完成后将校验结果。</translation></message>
         <message><source>Local analysis stays offline. AI assistance sends text only when you explicitly request it.</source><translation>本地分析不联网，仅主动调用 AI 时发送文本。</translation></message>
         <message><source>AI suggestion (semantic inference)</source><translation>AI 建议（语义推测）</translation></message>
         <message><source>AI deep analysis</source><translation>AI 深度分析</translation></message>
@@ -199,6 +202,7 @@ Unavailable</source><translation>候选 %1
     </context>
     <context>
         <name>ai::OpenAICompatibleProvider</name>
+        <message><source>The AI stream contained an invalid response.</source><translation>AI 流式回复格式无效。</translation></message>
         <message><source>This service does not support model listing (HTTP %1). Enter the model ID manually.</source><translation>服务不支持模型列表（HTTP %1），请手动填写模型 ID。</translation></message>
         <message><source>The service returned no valid model IDs. Enter the model ID manually.</source><translation>服务未返回有效模型 ID，请手动填写。</translation></message>
         <message><source>The API rejected the request (HTTP 400). Check the exact model ID, API key and interface compatibility. A product name is not a model ID.</source><translation>API 拒绝了请求（HTTP 400），请检查准确的模型 ID、密钥及接口兼容性。品牌名称不是模型 ID。</translation></message>

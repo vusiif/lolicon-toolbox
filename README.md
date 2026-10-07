@@ -162,7 +162,13 @@ to persist nonempty keys rather than falling back to plaintext.
 
 AI input is limited to 16 KiB, the complete request to 128 KiB, the response to
 1 MiB, and the request duration to 90 seconds. A model must follow the requested
-JSON structure; this version does not stream replies. Real-provider behavior
+JSON structure. Replies are received as SSE streams with elapsed-time and
+character-count progress; providers returning ordinary JSON remain supported.
+Official MiMo endpoints receive `thinking.type=disabled` for this task, as
+documented in [MiMo's thinking-mode guide](https://mimo.mi.com/docs/en-US/quick-start/usage-guide/other/deep-thinking).
+Other providers do not receive this nonstandard parameter. A completed stream
+is validated before showing a final suggestion; truncated output is rejected.
+Real-provider behavior
 must be verified with your configured service; automated tests use loopback only.
 
 Regression coverage includes verified byte fixtures, Chinese/Japanese/Big5/Korean

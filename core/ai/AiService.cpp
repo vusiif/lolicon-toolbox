@@ -6,6 +6,7 @@ AiService::AiService(QObject* parent) : QObject(parent), m_provider(new OpenAICo
     connect(m_provider, &AiProvider::failed, this, &AiService::failed);
     connect(m_provider, &AiProvider::cancelled, this, &AiService::cancelled);
     connect(m_provider, &AiProvider::modelsListed, this, &AiService::modelsListed);
+    connect(m_provider, &AiProvider::progress, this, &AiService::progress);
 }
 bool AiService::isBusy() const { return m_provider->isBusy(); }
 void AiService::cancel() { m_provider->cancel(); }

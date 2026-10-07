@@ -17,6 +17,7 @@ private slots:
     void configuration();
     void parsing();
     void modelListing();
+    void streaming();
     void networkSuccess();
     void networkFailures();
     void cancellationAndTimeout();
@@ -107,6 +108,36 @@ void TestAi::networkFailures() {
     provider.request({server.url(), "model", ""}, context(), "English");
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
     QVERIFY(failed.first().first().toString().contains("limit"));
+}
+void TestAi::streaming() {
+    const QJsonArray messages{QJsonObject{{"role", "user"}, {"content", "test"}}};
+    const auto mimo = QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({"https://token-plan-cn.xiaomimimo.com/v1", "mimo-v2.6-flash", ""}, messages)).object();
+    QVERIFY(mimo.value("stream").toBool());
+    QCOMPARE(mimo.value("thinking").toObject().value("type").toString(), QString("disabled"));
+    QVERIFY(!QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({"https://example.com/v1", "model", ""}, messages)).object().contains("thinking"));
+    const auto content = QJsonDocument::fromJson(TestHttpServer::success(QString::fromUtf8("你好 😀"))).object().value("choices").toArray().first().toObject().value("message").toObject().value("content").toString();
+    auto event = [](const QJsonObject& delta, const QJsonValue& finish = QJsonValue(QJsonValue::Null)) {
+        return "data: " + QJsonDocument(QJsonObject{{"choices", QJsonArray{QJsonObject{{"delta", delta}, {"finish_reason", finish}}}}}).toJson(QJsonDocument::Compact) + "\r\n\r\n";
+    };
+    TestHttpServer server; server.contentType = "text/event-stream";
+    server.keepOpen = true; server.omitContentLength = true;
+    server.response = ": keepalive\r\n\r\n" + event({{"reasoning_content", "private reasoning"}});
+    for (int i = 0; i < content.size(); i += 17) server.response += event({{"content", content.mid(i, 17)}});
+    server.response += event({}, "stop") + "data: [DONE]\r\n\r\n";
+    for (int i = 0; i < server.response.size(); i += 41) server.chunks << server.response.mid(i, 41);
+    OpenAICompatibleProvider provider; QSignalSpy complete(&provider, &AiProvider::completed), progress(&provider, &AiProvider::progress), failed(&provider, &AiProvider::failed);
+    provider.request({server.url(), "model", ""}, context(), "English");
+    QTRY_VERIFY_WITH_TIMEOUT(complete.count() || failed.count(), 5000);
+    if (!failed.isEmpty()) qInfo() << "stream failure" << failed.first().first().toString();
+    QCOMPARE(complete.count(), 1);
+    QCOMPARE(failed.count(), 0); QVERIFY(progress.count() > 1); QVERIFY(!provider.isBusy());
+    QCOMPARE(qvariant_cast<Reply>(complete.first().first()).text, QString::fromUtf8("你好 😀"));
+    QVERIFY(progress.first().first().toBool()); QVERIFY(!progress.last().first().toBool());
+    server.keepOpen = false; server.omitContentLength = false; server.chunks.clear();
+    server.response = event({{"content", "incomplete"}});
+    provider.request({server.url(), "model", ""}, context(), "English");
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
+    QCOMPARE(complete.count(), 1);
 }
 void TestAi::cancellationAndTimeout() {
     TestHttpServer server; server.hold = true;

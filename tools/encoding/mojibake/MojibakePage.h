@@ -3,6 +3,8 @@
 #include "MojibakeCandidate.h"
 #include <QFutureWatcher>
 #include <array>
+#include <QElapsedTimer>
+#include <QTimer>
 #include "ai/AiProvider.h"
 class AppSettings;
 namespace ai { class AiService; }
@@ -47,4 +49,9 @@ private:
     ai::Reply m_aiResult;
     QString m_aiSubmitted;
     bool m_aiStale = false;
+    QElapsedTimer m_aiElapsed;
+    QTimer m_aiProgressTimer;
+    int m_aiCharacters = 0;
+    bool m_aiThinking = false;
+    void showAiProgress();
 };
