@@ -54,6 +54,17 @@ target machine. The MSVC x64 runtime is required; if it is missing, install the
 included `vc_redist.x64.exe` before running Toolbox. This is a portable development
 package, not an installer.
 
+Packaging keeps the newest three local builds. Older ZIPs and checksum files are
+uploaded to the GitHub `dist-archive` prerelease; local directories/ZIPs/checksums
+are removed only after remote size and SHA-256 verification. GitHub CLI authentication
+is required; an upload failure preserves the affected local build. Inspect or run
+retention separately in PowerShell 7:
+
+```powershell
+./scripts/Archive-Old-Dist.ps1 -PlanOnly
+./scripts/Archive-Old-Dist.ps1
+```
+
 In CLion, open the project root and select the `default` or `release` CMake preset
 with an MSVC x64 toolchain. Build/run the `Toolbox` target; the test targets
 are also available. The preset's Qt path is local and can be overridden.

@@ -22,7 +22,7 @@ try {
     Invoke-Checked $CMakePath @('--build', '--preset', 'release', '--parallel', "$Jobs")
     $ctest = Join-Path (Split-Path (Get-Command $CMakePath).Source) 'ctest.exe'
     Invoke-Checked $ctest @('--preset', 'release')
-    # Each run creates a fresh package; no stale DLLs and no recursive deletion.
+    # Each run creates a fresh package; retention runs only after ZIP completion.
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $package = Join-Path $projectRoot "dist/Toolbox-0.2.0-windows-x64-$stamp"
     New-Item -ItemType Directory -Path $package | Out-Null
@@ -45,4 +45,6 @@ try {
         ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($_.Path))" } |
         Set-Content -LiteralPath "$package.zip.sha256" -Encoding utf8
     Write-Output "Package: $package.zip"
+    try { & (Join-Path $PSScriptRoot 'Archive-Old-Dist.ps1') -KeepLast 3 }
+    catch { Write-Warning "Package completed, but old builds were retained: $($_.Exception.Message)" }
 } finally { Pop-Location }
