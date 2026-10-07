@@ -439,7 +439,6 @@ Unavailable</source><translation>候选 %1
         <message><source>Copied.</source><translation>已复制。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>请输入要转换的文本。文本和种子不会跨会话保存。</translation></message>
         <message><source>Ready. Convert uses the displayed seed. Use the dice button to change it.</source><translation>准备就绪。转换使用框内种子，点击骰子可随机更换。</translation></message>
-        <message><source>Keep the original input and matching rule/runtime versions to reproduce a result. Copied parameters contain hashes, not the original text.</source><translation>复现需保留原输入及匹配的规则和运行环境版本。复制的参数包含哈希，不含原文。</translation></message>
         <message><source>Text Style Converter</source><translation>文本风格转换</translation></message>
         <message><source>Local, reproducible text styling. Rules are data-driven; unknown characters stay intact and newlines become LF. No AI or reverse restoration.</source><translation>本地、可复现的文本风格转换。规则由数据定义，未知字符保留，换行统一为 LF。不调用 AI，不进行反向还原。</translation></message>
         <message><source>Style</source><translation>风格</translation></message>
@@ -453,14 +452,14 @@ Unavailable</source><translation>候选 %1
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>复制输出</translation></message>
-        <message><source>Reproduction details</source><translation>复现详情</translation></message>
         <message><source>Seed</source><translation>种子</translation></message>
         <message><source>ASCII letters and digits; case-insensitive</source><translation>英文字母和数字，不区分大小写</translation></message>
         <message><source>Up to 64 ASCII letters/digits. Numeric seeds keep their original value; letters are case-insensitive.</source><translation>最多 64 个 ASCII 字母或数字。纯数字种子保留原数值；字母不区分大小写。</translation></message>
         <message><source>Randomize seed (does not convert)</source><translation>随机种子（不执行转换）</translation></message>
+        <message><source>Random convert</source><translation>随机转换</translation></message>
+        <message><source>Choose a new seed and convert immediately</source><translation>选择新种子并立即转换</translation></message>
         <message><source>Randomize seed</source><translation>随机种子</translation></message>
         <message><source>Copy seed</source><translation>复制种子</translation></message>
-        <message><source>Copy generation parameters</source><translation>复制生成参数</translation></message>
     </context>
     <context>
         <name>Tools</name>

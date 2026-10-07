@@ -439,7 +439,6 @@ Unavailable</source><translation>候選 %1
         <message><source>Copied.</source><translation>已複製。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>請輸入要轉換的文字。文字和種子不會跨工作階段儲存。</translation></message>
         <message><source>Ready. Convert uses the displayed seed. Use the dice button to change it.</source><translation>準備就緒。轉換使用框內種子，點擊骰子可隨機更換。</translation></message>
-        <message><source>Keep the original input and matching rule/runtime versions to reproduce a result. Copied parameters contain hashes, not the original text.</source><translation>重現需保留原輸入及相符的規則和執行環境版本。複製的參數包含雜湊，不含原文。</translation></message>
         <message><source>Text Style Converter</source><translation>文字風格轉換</translation></message>
         <message><source>Local, reproducible text styling. Rules are data-driven; unknown characters stay intact and newlines become LF. No AI or reverse restoration.</source><translation>本機、可重現的文字風格轉換。規則由資料定義，未知字元保留，換行統一為 LF。不呼叫 AI，不進行反向還原。</translation></message>
         <message><source>Style</source><translation>風格</translation></message>
@@ -453,14 +452,14 @@ Unavailable</source><translation>候選 %1
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>複製輸出</translation></message>
-        <message><source>Reproduction details</source><translation>重現詳情</translation></message>
         <message><source>Seed</source><translation>種子</translation></message>
         <message><source>ASCII letters and digits; case-insensitive</source><translation>英文字母和數字，不區分大小寫</translation></message>
         <message><source>Up to 64 ASCII letters/digits. Numeric seeds keep their original value; letters are case-insensitive.</source><translation>最多 64 個 ASCII 字母或數字。純數字種子保留原數值；字母不區分大小寫。</translation></message>
         <message><source>Randomize seed (does not convert)</source><translation>隨機種子（不執行轉換）</translation></message>
+        <message><source>Random convert</source><translation>隨機轉換</translation></message>
+        <message><source>Choose a new seed and convert immediately</source><translation>選擇新種子並立即轉換</translation></message>
         <message><source>Randomize seed</source><translation>隨機種子</translation></message>
         <message><source>Copy seed</source><translation>複製種子</translation></message>
-        <message><source>Copy generation parameters</source><translation>複製產生參數</translation></message>
     </context>
     <context>
         <name>Tools</name>

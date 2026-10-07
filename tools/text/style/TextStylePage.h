@@ -44,9 +44,8 @@ private:
     ElaPlainTextEdit *m_input, *m_output;
     ElaComboBox *m_styles, *m_presets;
     ElaLineEdit* m_seed;
-    ElaPushButton *m_convert, *m_cancel, *m_clear, *m_copy, *m_advanced, *m_copySeed, *m_copyParameters;
+    ElaPushButton *m_convert, *m_randomConvert, *m_cancel, *m_clear, *m_copy, *m_copySeed;
     ElaIconButton* m_randomSeed;
-    QLabel *m_title, *m_description, *m_styleLabel, *m_presetLabel, *m_inputLabel, *m_outputLabel, *m_status, *m_seedLabel, *m_versions;
-    QWidget* m_advancedArea;
+    QLabel *m_title, *m_description, *m_styleLabel, *m_presetLabel, *m_inputLabel, *m_outputLabel, *m_status, *m_seedLabel;
     QBoxLayout* m_columns = nullptr;
 };
