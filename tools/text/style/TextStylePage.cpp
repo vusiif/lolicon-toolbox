@@ -57,11 +57,12 @@ TextStylePage::TextStylePage(QWidget* parent, AppSettings* settings) : ToolPage(
     right->addWidget(m_copy, 0, Qt::AlignLeft);
     m_advanced = button("textStyleAdvanced"); m_advanced->setCheckable(true); m_advanced->setChecked(settings && settings->textStyleAdvanced());
     m_advancedArea = new QWidget(content); auto* advanced = new QVBoxLayout(m_advancedArea); advanced->setContentsMargins(0, 0, 0, 0);
-    m_seedLabel = ui::label({}, 10, ui::Tone::Secondary, m_advancedArea); m_seed = new ElaLineEdit(m_advancedArea); m_seed->setObjectName("textStyleSeed"); m_seed->setMaxLength(128);
+    m_seedLabel = ui::label({}, 10, ui::Tone::Secondary, content); m_seed = new ElaLineEdit(content); m_seed->setObjectName("textStyleSeed"); m_seed->setMaxLength(128);
     m_copySeed = button("textStyleCopySeed"); m_copyParameters = button("textStyleCopyParameters");
-    auto* seedRow = new QHBoxLayout; seedRow->addWidget(m_seedLabel); seedRow->addWidget(m_seed, 1); seedRow->addWidget(m_copySeed);
+    auto* seedRow = new QHBoxLayout; seedRow->addWidget(m_seed, 1); seedRow->addWidget(m_copySeed);
+    form->addRow(m_seedLabel, seedRow);
     m_versions = ui::label({}, 9, ui::Tone::Secondary, m_advancedArea); m_versions->setTextFormat(Qt::PlainText);
-    advanced->addLayout(seedRow); advanced->addWidget(m_copyParameters, 0, Qt::AlignLeft); advanced->addWidget(m_versions); m_advancedArea->setVisible(m_advanced->isChecked());
+    advanced->addWidget(m_copyParameters, 0, Qt::AlignLeft); advanced->addWidget(m_versions); m_advancedArea->setVisible(m_advanced->isChecked());
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addLayout(form); layout->addLayout(columns); layout->addLayout(actions); layout->addWidget(m_status);
     layout->addWidget(m_advanced, 0, Qt::AlignLeft); layout->addWidget(m_advancedArea); layout->addStretch();
     connect(m_input, &ElaPlainTextEdit::textChanged, this, &TextStylePage::invalidate);
@@ -118,7 +119,7 @@ void TextStylePage::refresh() {
         else m_status->setText(tr("Conversion failed (%1). Check the style and options.").arg(name));
     } else if (m_success) {
         const auto& s = m_result.stats;
-        m_status->setText(tr("Seed %1 · matched %2 · replaced %3 · decorated lines %4 · output %5 bytes.").arg(m_result.metadata["seed"].toString()).arg(s.matched).arg(s.replaced).arg(s.decorated).arg(s.outputBytes) +
+        m_status->setText(tr("Matched %1 · replaced %2 · decorated lines %3 · output %4 bytes.").arg(s.matched).arg(s.replaced).arg(s.decorated).arg(s.outputBytes) +
             (s.matched == 0 && s.decorated == 0 ? " " + tr("No rules matched; only newline normalization was applied.") : QString()) + (m_copied ? " " + tr("Copied.") : QString()));
     } else m_status->setText(input.isEmpty() ? tr("Enter text to convert. Text and seeds are not saved between sessions.") : tr("Ready. Convert reuses the seed; regenerate chooses a new seed, but text may still be identical."));
     if (m_clipboardFailed) m_status->setText(m_status->text() + " " + tr("Clipboard ownership was not obtained. Another application may be using it; retry copying."));
@@ -133,7 +134,7 @@ void TextStylePage::retranslate() {
     if (m_loaded.style) { QSignalBlocker block(m_styles); m_styles->setItemText(0, m_loaded.style->names.value(locale).toString(m_loaded.style->names["en"].toString())); }
     { QSignalBlocker block(m_presets); m_presets->setItemText(0, tr("Light")); m_presets->setItemText(1, tr("Medium")); m_presets->setItemText(2, tr("Heavy")); }
     m_convert->setText(tr("Convert")); m_regenerate->setText(tr("Regenerate")); m_cancel->setText(tr("Cancel")); m_clear->setText(tr("Clear")); m_copy->setText(tr("Copy output"));
-    m_advanced->setText(tr("Seed and reproduction options")); m_seedLabel->setText(tr("Seed")); m_seed->setPlaceholderText(tr("Empty: select a seed on successful conversion"));
+    m_advanced->setText(tr("Reproduction details")); m_seedLabel->setText(tr("Seed")); m_seed->setPlaceholderText(tr("Empty: select a seed on successful conversion"));
     m_copySeed->setText(tr("Copy seed")); m_copyParameters->setText(tr("Copy generation parameters")); refresh();
 }
 void TextStylePage::changeEvent(QEvent* event) { ToolPage::changeEvent(event); if (event->type() == QEvent::LanguageChange) retranslate(); }

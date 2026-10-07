@@ -434,7 +434,7 @@ Unavailable</source><translation>候选 %1
         <message><source>Input contains invalid Unicode surrogate sequences.</source><translation>输入含有无效的 Unicode 代理项。</translation></message>
         <message><source>Conversion exceeded the 5-second budget. Use a smaller input.</source><translation>转换超过 5 秒预算，请缩短输入。</translation></message>
         <message><source>Conversion failed (%1). Check the style and options.</source><translation>转换失败（%1），请检查风格和选项。</translation></message>
-        <message><source>Seed %1 · matched %2 · replaced %3 · decorated lines %4 · output %5 bytes.</source><translation>种子 %1 · 命中 %2 · 替换 %3 · 装饰行 %4 · 输出 %5 字节。</translation></message>
+        <message><source>Matched %1 · replaced %2 · decorated lines %3 · output %4 bytes.</source><translation>命中 %1 · 替换 %2 · 装饰行 %3 · 输出 %4 字节。</translation></message>
         <message><source>No rules matched; only newline normalization was applied.</source><translation>未命中规则，仅进行了换行统一。</translation></message>
         <message><source>Copied.</source><translation>已复制。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>请输入要转换的文本。文本和种子不会跨会话保存。</translation></message>
@@ -454,7 +454,7 @@ Unavailable</source><translation>候选 %1
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>复制输出</translation></message>
-        <message><source>Seed and reproduction options</source><translation>种子与复现选项</translation></message>
+        <message><source>Reproduction details</source><translation>复现详情</translation></message>
         <message><source>Seed</source><translation>种子</translation></message>
         <message><source>Empty: select a seed on successful conversion</source><translation>留空：成功转换后固定一个种子</translation></message>
         <message><source>Copy seed</source><translation>复制种子</translation></message>

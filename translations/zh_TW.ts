@@ -434,7 +434,7 @@ Unavailable</source><translation>候選 %1
         <message><source>Input contains invalid Unicode surrogate sequences.</source><translation>輸入含有無效的 Unicode 代理項。</translation></message>
         <message><source>Conversion exceeded the 5-second budget. Use a smaller input.</source><translation>轉換超過 5 秒預算，請縮短輸入。</translation></message>
         <message><source>Conversion failed (%1). Check the style and options.</source><translation>轉換失敗（%1），請檢查風格和選項。</translation></message>
-        <message><source>Seed %1 · matched %2 · replaced %3 · decorated lines %4 · output %5 bytes.</source><translation>種子 %1 · 命中 %2 · 替換 %3 · 裝飾行 %4 · 輸出 %5 位元組。</translation></message>
+        <message><source>Matched %1 · replaced %2 · decorated lines %3 · output %4 bytes.</source><translation>命中 %1 · 替換 %2 · 裝飾行 %3 · 輸出 %4 位元組。</translation></message>
         <message><source>No rules matched; only newline normalization was applied.</source><translation>未命中規則，僅進行了換行統一。</translation></message>
         <message><source>Copied.</source><translation>已複製。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>請輸入要轉換的文字。文字和種子不會跨工作階段儲存。</translation></message>
@@ -454,7 +454,7 @@ Unavailable</source><translation>候選 %1
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>複製輸出</translation></message>
-        <message><source>Seed and reproduction options</source><translation>種子與重現選項</translation></message>
+        <message><source>Reproduction details</source><translation>重現詳情</translation></message>
         <message><source>Seed</source><translation>種子</translation></message>
         <message><source>Empty: select a seed on successful conversion</source><translation>留空：成功轉換後固定一個種子</translation></message>
         <message><source>Copy seed</source><translation>複製種子</translation></message>
