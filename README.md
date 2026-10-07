@@ -179,6 +179,36 @@ destination. Original entries are never renamed or deleted.
 
 See [manual name-recovery checks](docs/Filename-Recovery-Testing.md).
 
+### Clipboard sources
+
+Switch to **Clipboard** and click **Read clipboard** to capture one snapshot.
+The app does not monitor clipboard changes. It lists advertised MIME formats,
+then compares plain text and text extracted from HTML side by side, including
+anomaly and replacement-character counts. Plain text is selected when usable;
+HTML is the fallback when no usable plain text is offered. Different strings
+can reflect formatting differences as well as encoding damage: review them
+before choosing a source.
+
+HTML extraction runs in the background and preserves NBSP, line breaks and
+Unicode text; external images, stylesheets and other resources are not loaded.
+Non-text objects retain placeholders. RTF and unknown formats are listed but
+their payloads are not retrieved or parsed. Each accepted text or HTML input is
+limited to 1 MiB in UTF-8 (HTML markup counts toward the limit); previews show
+at most 32,768 UTF-16 units. Clipboard providers may allocate/convert their data
+before the app can reject an oversized offered representation.
+
+**Use selected text** transfers the complete chosen text to the existing pasted
+text page, invalidating previous results. It does not run analysis or call AI.
+Run **Analyze** to compare five recovery candidates and inspect their paths;
+AI still requires its own explicit action and sends only the current analysis
+input and local candidates. Reading a snapshot does not replace pasted input.
+Clearing it does not clear the system clipboard or your analysis input. The
+text editor normalizes paragraph/newline separators; no original-byte claim is
+made for clipboard sources. Even more readable HTML text is not proof of the
+original meaning.
+
+See [manual clipboard checks](docs/Clipboard-Testing.md).
+
 ### Optional AI assistance
 
 In **Settings → AI API**, enter your provider's HTTPS base URL (normally ending

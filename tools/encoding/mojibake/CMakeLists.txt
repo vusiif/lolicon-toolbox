@@ -6,7 +6,10 @@ add_library(MojibakeLogic STATIC EncodingConverter.h EncodingConverter.cpp
 target_include_directories(MojibakeLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(MojibakeLogic PUBLIC Qt6::Core)
 find_package(Qt6 REQUIRED COMPONENTS Concurrent)
+add_library(ClipboardSourceLogic STATIC ClipboardSource.h ClipboardSource.cpp)
+target_include_directories(ClipboardSourceLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ClipboardSourceLogic PUBLIC Qt6::Gui)
 add_library(ToolMojibake STATIC MojibakePage.h MojibakePage.cpp TextFileRecoveryPage.h TextFileRecoveryPage.cpp
-    FilenameRecoveryPage.h FilenameRecoveryPage.cpp)
+    FilenameRecoveryPage.h FilenameRecoveryPage.cpp ClipboardSourcePage.h ClipboardSourcePage.cpp)
 target_include_directories(ToolMojibake PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ToolMojibake PUBLIC MojibakeLogic ToolboxUI Qt6::Concurrent)
+target_link_libraries(ToolMojibake PUBLIC MojibakeLogic ClipboardSourceLogic ToolboxUI Qt6::Concurrent)

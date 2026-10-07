@@ -26,6 +26,10 @@
 #include "TextFileRecoveryPage.h"
 #include "ByteEncodingAnalyzer.h"
 #include "FilenameRecoveryPage.h"
+#include "ClipboardSourcePage.h"
+#include <QMimeData>
+#include <QTextDocument>
+#include <QStackedWidget>
 #include <QDir>
 #include <QFile>
 #include "services/AppSettings.h"
@@ -47,6 +51,7 @@ private slots:
     void modelListingWorkflow();
     void fileRecoveryWorkflow();
     void filenameRecoveryWorkflow();
+    void clipboardSourceWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -425,6 +430,48 @@ void TestUi::filenameRecoveryWorkflow()
     names->exportCopy(output); QTRY_VERIFY_WITH_TIMEOUT(rescan->isEnabled(), 5000); QVERIFY(status->text().contains("输出已存在"));
     QVERIFY(settings.setLocale("en")); QCoreApplication::processEvents(); QCOMPARE(mode->text(), QString("File and folder names"));
     QCOMPARE(tree->model()->headerData(1, Qt::Horizontal).toString(), QString("Proposed name"));
+}
+void TestUi::clipboardSourceWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("clipboard-ui.ini")); QVERIFY(settings.setLocale("zh_CN"));
+    MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1000, 900); page.show();
+    auto* mode = page.findChild<ElaPushButton*>("mojibakeClipboardMode"); QCOMPARE(mode->text(), QString("剪贴板")); mode->click();
+    auto* clipboardPage = page.findChild<ClipboardSourcePage*>(); QVERIFY(clipboardPage);
+    auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput"); input->setPlainText("keep current input");
+    auto* read = page.findChild<ElaPushButton*>("clipboardRead");
+    auto* use = page.findChild<ElaPushButton*>("clipboardUse");
+    auto* plain = page.findChild<ElaPushButton*>("clipboardPlain");
+    auto* html = page.findChild<ElaPushButton*>("clipboardHtml");
+    auto* details = page.findChild<ElaPlainTextEdit*>("clipboardDetails");
+    auto* status = page.findChild<QLabel*>("clipboardStatus");
+    QVERIFY(!use->isEnabled()); QVERIFY(status->text().contains("不会自动监听"));
+    QMimeData mime; mime.setText("浣犲ソ"); mime.setHtml("<p>你好</p>"); mime.setData("text/rtf", "{not parsed}");
+    clipboardPage->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(read->isEnabled(), 5000);
+    QVERIFY(use->isEnabled()); QVERIFY(plain->isChecked()); QVERIFY(!html->isChecked());
+    QVERIFY(status->text().contains("内容不同")); QVERIFY(details->toPlainText().contains("暂不解析")); QCOMPARE(input->toPlainText(), QString("keep current input"));
+    html->click(); QVERIFY(html->isChecked()); QVERIFY(!plain->isChecked());
+    QVERIFY(page.grab().save("clipboard-source-preview.png"));
+    use->click(); QCOMPARE(input->toPlainText(), QString("你好")); QCOMPARE(page.findChild<QStackedWidget*>("mojibakeSources")->currentIndex(), 0);
+    QVERIFY(!page.findChild<ElaPushButton*>("mojibakeCandidate1")->isEnabled()); // Reading/importing does not start analysis.
+    auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze"); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(page.findChild<ElaPlainTextEdit*>("mojibakeOutput")->toPlainText(), QString("你好"));
+    mode->click(); plain->click(); use->click(); QCOMPARE(input->toPlainText(), QString("浣犲ソ"));
+    analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000); QCOMPARE(page.findChild<ElaPlainTextEdit*>("mojibakeOutput")->toPlainText(), QString("你好"));
+    mode->click(); mime.setText(QString("ä½ å¥½")); mime.setHtml("<p>ä½&nbsp;å¥½</p>"); clipboardPage->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(read->isEnabled(), 5000);
+    QVERIFY(details->toPlainText().contains("相同的 Unicode")); html->click(); use->click();
+    QVERIFY(input->document()->toRawText().contains(QChar(0xa0))); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QCOMPARE(page.findChild<ElaPlainTextEdit*>("mojibakeOutput")->toPlainText(), QString("你好"));
+    mode->click(); mime.clear(); mime.setHtml("<p>HTML only</p>"); clipboardPage->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(read->isEnabled(), 5000);
+    QVERIFY(!plain->isEnabled()); QVERIFY(html->isChecked()); QVERIFY(use->isEnabled());
+    mime.clear(); mime.setData("application/x-unknown", "opaque"); clipboardPage->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(read->isEnabled(), 5000); QVERIFY(!use->isEnabled());
+    mime.setText(QString(100 * 1024, 'a')); clipboardPage->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(read->isEnabled(), 5000);
+    QVERIFY(page.findChild<ElaPlainTextEdit*>("clipboardPlainPreview")->toPlainText().size() <= 32768); QVERIFY(details->toPlainText().contains("完整文本"));
+    use->click(); QCOMPARE(input->toPlainText().size(), 100 * 1024);
+    mode->click(); page.findChild<ElaPushButton*>("clipboardClear")->click(); QVERIFY(!use->isEnabled()); QCOMPARE(input->toPlainText().size(), 100 * 1024);
+    QVERIFY(settings.setLocale("en")); QCoreApplication::processEvents(); QCOMPARE(mode->text(), QString("Clipboard")); QCOMPARE(read->text(), QString("Read clipboard"));
+    page.resize(640, 480); QCoreApplication::processEvents(); QVERIFY(page.grab().save("clipboard-source-small.png"));
+    // A worker only owns captured values; destroying a page during extraction is safe.
+    auto* closing = new ClipboardSourcePage(); mime.setHtml("<p>" + QString(200 * 1024, 'x') + "</p>"); closing->inspect(mime); delete closing;
 }
 void TestUi::windowWorkflow()
 {

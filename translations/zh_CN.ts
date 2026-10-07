@@ -358,4 +358,37 @@ Unavailable</source><translation>候选 %1
         <name>FilenameRecoveryPage</name>
         <message><source>Possible missing information: replacement characters do not identify the original name.</source><translation>可能存在信息丢失：替换字符无法确定原名称。</translation></message>
     </context>
+    <context>
+        <name>ClipboardSourcePage</name>
+        <message><source>Extracting clipboard text locally…</source><translation>正在本地提取剪贴板文本…</translation></message>
+        <message><source>Read the clipboard explicitly. It is not monitored automatically.</source><translation>请主动读取剪贴板。不会自动监听变化。</translation></message>
+        <message><source>No usable text representation. Check the format and limit notes below.</source><translation>没有可用的文本来源，请检查下方格式与限额说明。</translation></message>
+        <message><source>The two representations differ. Compare them; formatting differences can also explain this.</source><translation>两份文本内容不同，请比较后选择；排版差异也可能导致不同。</translation></message>
+        <message><source>Select a representation, then use it in the text analysis page.</source><translation>选择一种来源，再将其送入文本分析页面。</translation></message>
+        <message><source>No advertised formats in this snapshot.</source><translation>此快照没有提供格式。</translation></message>
+        <message><source>Advertised formats (not all are decoded):</source><translation>提供的格式（并非全部解码）：</translation></message>
+        <message><source>%1: not provided.</source><translation>%1：未提供。</translation></message>
+        <message><source>%1: exceeds the 1 MiB limit; not loaded.</source><translation>%1：超过 1 MiB 上限，未载入。</translation></message>
+        <message><source>%1: invalid Unicode; not loaded.</source><translation>%1：Unicode 无效，未载入。</translation></message>
+        <message><source>%1: %2 UTF-16 units, %3 anomalies, %4 replacement characters.</source><translation>%1：%2 个 UTF-16 单元，%3 个异常，%4 个替换字符。</translation></message>
+        <message><source>Plain text</source><translation>纯文本</translation></message>
+        <message><source>HTML-extracted text</source><translation>HTML 提取文本</translation></message>
+        <message><source>Both representations contain identical Unicode text.</source><translation>两种来源包含相同的 Unicode 文本。</translation></message>
+        <message><source>RTF is advertised but is not parsed in this stage.</source><translation>提供了 RTF 格式，本阶段暂不解析。</translation></message>
+        <message><source>Possible information loss. A replacement character does not identify the missing original bytes.</source><translation>可能存在信息丢失。替换字符无法确定丢失的原始字节。</translation></message>
+        <message><source>HTML contains non-text objects. Their placeholders are retained; images are not loaded.</source><translation>HTML 含有非文本对象。保留其占位符，不加载图片。</translation></message>
+        <message><source>Previews show at most 32,768 UTF-16 units. Using a representation transfers its complete text.</source><translation>预览最多显示 32,768 个 UTF-16 单元。使用所选来源时会传入完整文本。</translation></message>
+        <message><source>Clipboard text is decoded Unicode, not proven original file bytes. HTML may offer different text but does not prove the original meaning.</source><translation>剪贴板文本是解码后的 Unicode，不能证明是原始文件字节。HTML 可能提供不同文本，但不能证明原意。</translation></message>
+        <message><source>HTML is extracted as text without loading external resources. Unknown formats are not read. AI is only called separately from the text analysis page.</source><translation>HTML 仅提取文字，不加载外部资源。不读取未知格式内容。AI 只能在文本分析页面单独调用。</translation></message>
+        <message><source>Clipboard source analysis</source><translation>剪贴板来源分析</translation></message>
+        <message><source>Read one snapshot and compare plain text with HTML-extracted text. Choose the text to analyze; reading does not upload it or replace your current input.</source><translation>读取一次快照，比较纯文本与 HTML 提取文本，再选择要分析的内容。读取不会上传内容，也不会替换当前输入。</translation></message>
+        <message><source>Read clipboard</source><translation>读取剪贴板</translation></message>
+        <message><source>Clear snapshot</source><translation>清除快照</translation></message>
+        <message><source>Use selected text</source><translation>使用所选文本</translation></message>
+    </context>
+    <context>
+        <name>MojibakePage</name>
+        <message><source>Clipboard</source><translation>剪贴板</translation></message>
+        <message><source>Selected clipboard text loaded. Run local analysis before requesting AI.</source><translation>已载入所选剪贴板文本，请先进行本地分析，再决定是否调用 AI。</translation></message>
+    </context>
 </TS>

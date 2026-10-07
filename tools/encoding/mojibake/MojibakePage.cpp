@@ -2,6 +2,7 @@
 #include "MojibakeAnalyzer.h"
 #include "TextFileRecoveryPage.h"
 #include "FilenameRecoveryPage.h"
+#include "ClipboardSourcePage.h"
 #include <QStackedWidget>
 #include "UiTheme.h"
 #include "services/AppSettings.h"
@@ -35,16 +36,20 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     m_textMode = new ElaPushButton(this); m_textMode->setObjectName("mojibakeTextMode");
     m_fileMode = new ElaPushButton(this); m_fileMode->setObjectName("mojibakeFileMode");
     m_nameMode = new ElaPushButton(this); m_nameMode->setObjectName("mojibakeNameMode");
-    modes->addWidget(m_textMode); modes->addWidget(m_fileMode); modes->addWidget(m_nameMode); modes->addStretch(); outer->addLayout(modes);
+    m_clipboardMode = new ElaPushButton(this); m_clipboardMode->setObjectName("mojibakeClipboardMode");
+    modes->addWidget(m_textMode); modes->addWidget(m_fileMode); modes->addWidget(m_nameMode); modes->addWidget(m_clipboardMode); modes->addStretch(); outer->addLayout(modes);
     auto* pages = new QStackedWidget(this); pages->setObjectName("mojibakeSources");
     pages->addWidget(scroll); pages->addWidget(new TextFileRecoveryPage(pages)); pages->addWidget(new FilenameRecoveryPage(pages)); outer->addWidget(pages);
+    auto* clipboardPage = new ClipboardSourcePage(pages); pages->addWidget(clipboardPage);
     m_textMode->setEnabled(false);
     auto selectMode = [this, pages](int index) {
         pages->setCurrentIndex(index); m_textMode->setEnabled(index != 0); m_fileMode->setEnabled(index != 1); m_nameMode->setEnabled(index != 2);
+        m_clipboardMode->setEnabled(index != 3);
     };
     connect(m_textMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(0); });
     connect(m_fileMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(1); });
     connect(m_nameMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(2); });
+    connect(m_clipboardMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(3); });
     auto* layout = new QVBoxLayout(content);
     layout->setContentsMargins(32, 28, 32, 28);
     layout->setSpacing(12);
@@ -63,6 +68,10 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
         return edit;
     };
     m_input = editor("mojibakeInput", false);
+    connect(clipboardPage, &ClipboardSourcePage::textChosen, this, [this, selectMode](const QString& text) {
+        m_input->setPlainText(text); invalidate(); selectMode(0);
+        m_status->setText(tr("Selected clipboard text loaded. Run local analysis before requesting AI."));
+    });
     m_output = editor("mojibakeOutput", true);
     m_process = editor("mojibakeProcess", true);
     m_process->hide();
@@ -273,6 +282,7 @@ void MojibakePage::retranslate() {
     m_title->setText(tr("Mojibake Repair"));
     m_textMode->setText(tr("Pasted text")); m_fileMode->setText(tr("Text file"));
     m_nameMode->setText(tr("File and folder names"));
+    m_clipboardMode->setText(tr("Clipboard"));
     m_description->setText(tr("Local analysis stays offline. AI assistance sends text only when you explicitly request it."));
     m_inputLabel->setText(tr("Original text")); m_outputLabel->setText(tr("Recovery candidates"));
     m_analyze->setText(tr("Analyze")); m_cancel->setText(tr("Cancel")); m_clear->setText(tr("Clear"));
