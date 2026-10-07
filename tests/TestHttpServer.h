@@ -26,8 +26,7 @@ public:
                     if (*handled || end < 0) return;
                     const auto header = buffer->left(end);
                     const auto match = QRegularExpression("Content-Length: *(\\d+)", QRegularExpression::CaseInsensitiveOption).match(QString::fromLatin1(header));
-                    if (!match.hasMatch()) return;
-                    const auto length = match.captured(1).toInt();
+                    const auto length = match.hasMatch() ? match.captured(1).toInt() : 0;
                     if (buffer->size() < end + 4 + length) return;
                     *handled = true; ++requests;
                     lastHeaders = header; lastBody = buffer->mid(end + 4, length);

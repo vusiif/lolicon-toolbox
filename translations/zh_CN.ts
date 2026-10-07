@@ -18,6 +18,14 @@
     </context>
     <context>
         <name>SettingsPage</name>
+        <message><source>Model ID</source><translation>模型 ID</translation></message>
+        <message><source>Fetch models or enter the provider's model ID</source><translation>获取模型或填写服务商的模型 ID</translation></message>
+        <message><source>Use the exact model ID, not the provider's product name.</source><translation>请填写准确的模型 ID，而非服务商品牌名称。</translation></message>
+        <message><source>Fetch models</source><translation>获取模型</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Found %1 models. Choose a model ID and save. The list may also include models that do not support text chat.</source><translation>已获取 %1 个模型，请选择模型 ID 后保存。列表也可能包含不支持文本聊天的模型。</translation></message>
+        <message><source>Model listing cancelled. You can enter a model ID manually.</source><translation>模型获取已取消，仍可手动填写模型 ID。</translation></message>
+        <message><source>Fetching models from the entered address. Only the API key is sent; no text is uploaded.</source><translation>正在从填写的地址获取模型，仅发送 API 密钥，不上传文本。</translation></message>
         <message><source>AI API (OpenAI compatible)</source><translation>AI 接口（OpenAI 兼容）</translation></message>
         <message><source>AI runs only when you click AI analysis. The API key is encrypted for your Windows account. Leave the key empty only if your service requires no authentication.</source><translation>仅点击 AI 分析时联网。密钥使用当前 Windows 账户加密保存；仅在服务无需认证时留空。</translation></message>
         <message><source>API base URL</source><translation>API 基础地址</translation></message>
@@ -191,6 +199,9 @@ Unavailable</source><translation>候选 %1
     </context>
     <context>
         <name>ai::OpenAICompatibleProvider</name>
+        <message><source>This service does not support model listing (HTTP %1). Enter the model ID manually.</source><translation>服务不支持模型列表（HTTP %1），请手动填写模型 ID。</translation></message>
+        <message><source>The service returned no valid model IDs. Enter the model ID manually.</source><translation>服务未返回有效模型 ID，请手动填写。</translation></message>
+        <message><source>The API rejected the request (HTTP 400). Check the exact model ID, API key and interface compatibility. A product name is not a model ID.</source><translation>API 拒绝了请求（HTTP 400），请检查准确的模型 ID、密钥及接口兼容性。品牌名称不是模型 ID。</translation></message>
         <message><source>AI request timed out.</source><translation>AI 请求超时。</translation></message>
         <message><source>Use an HTTPS API address. HTTP is allowed only for localhost. Credentials, query strings and fragments are not allowed in the address.</source><translation>请使用 HTTPS 地址（本机接口可用 HTTP），地址不能包含认证信息、查询参数或片段。</translation></message>
         <message><source>Enter a model name in Settings.</source><translation>请在设置中填写模型名称。</translation></message>

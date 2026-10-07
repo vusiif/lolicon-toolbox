@@ -16,6 +16,7 @@ class TestAi : public QObject {
 private slots:
     void configuration();
     void parsing();
+    void modelListing();
     void networkSuccess();
     void networkFailures();
     void cancellationAndTimeout();
@@ -68,8 +69,28 @@ void TestAi::networkSuccess() {
     service.analyze({server.url(), "model", ""}, {{"original_text", QString(16 * 1024 + 1, 'x')}}, "en");
     QCOMPARE(failed.count(), 1); QCOMPARE(server.requests, 1);
 }
+void TestAi::modelListing() {
+    const QByteArray response = R"({"data":[{"id":"z-model"},{"id":"a-model"},{"id":"z-model"},{"id":""},{"id":3}]})";
+    const auto parsed = OpenAICompatibleProvider::parseModels(response);
+    QVERIFY(parsed); QCOMPARE(*parsed, QStringList({"a-model", "z-model"}));
+    QVERIFY(!OpenAICompatibleProvider::parseModels("not json"));
+    QVERIFY(!OpenAICompatibleProvider::parseModels(R"({"error":{"message":"no access"}})"));
+    QCOMPARE(OpenAICompatibleProvider::modelsEndpoint("https://example.com/v1/chat/completions/"), QUrl("https://example.com/v1/models"));
+    QCOMPARE(OpenAICompatibleProvider::modelsEndpoint("https://example.com/v1/models"), QUrl("https://example.com/v1/models"));
+    TestHttpServer server; server.response = response;
+    AiService service; QSignalSpy listed(&service, &AiService::modelsListed), failed(&service, &AiService::failed);
+    service.listModels({server.url(), "", "test-only-key"});
+    QTRY_COMPARE_WITH_TIMEOUT(listed.count(), 1, 3000);
+    QCOMPARE(failed.count(), 0); QVERIFY(server.lastHeaders.startsWith("GET /v1/models "));
+    QVERIFY(server.lastHeaders.contains("Bearer test-only-key")); QVERIFY(server.lastBody.isEmpty());
+    QCOMPARE(listed.first().first().toStringList(), *parsed);
+    server.status = 404;
+    service.listModels({server.url(), "", ""});
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
+    QVERIFY(failed.first().first().toString().contains("manually"));
+}
 void TestAi::networkFailures() {
-    for (int status : {401, 429, 500, 302, 200}) {
+    for (int status : {400, 401, 429, 500, 302, 200}) {
         TestHttpServer redirected;
         TestHttpServer server; server.status = status; server.response = "test-only-key";
         if (status == 302) server.extraHeaders = "Location: " + redirected.url().toUtf8() + "\r\n";

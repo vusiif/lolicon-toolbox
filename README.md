@@ -133,6 +133,17 @@ appending `/chat/completions` unless already present. Saving settings sends no
 request. HTTP is accepted only for loopback services; leave the key empty only
 for services that do not require authentication. Redirects are not followed.
 
+Enter the base URL and key, then click **Fetch models** to query the provider's
+[model list](https://developers.openai.com/api/reference/resources/models/methods/list)
+using `GET /models`. Choose an exact model ID from the editable list and save;
+a provider/product name such as `MiMo` is not a model ID. Discovery sends only
+authentication, never tool input, and does not require a model ID beforehand.
+The current typed selection is preserved, and changing the address/key clears
+the old catalog and cancels pending discovery. Services without a model-list
+endpoint retain manual entry. Listed models may include non-chat models or models
+outside your account's permissions; listing is not a guarantee of chat access.
+MiMo also documents a [models endpoint](https://mimo.mi.com/docs/en-US/api/model/list-models).
+
 Run local analysis first, then click **AI deep analysis**. The original text and
 local candidates (including scores, paths and inverse verification) are sent to
 the configured service. AI suggestions and explanations are displayed separately;

@@ -4,6 +4,7 @@
 #include <QJsonArray>
 #include <QHostAddress>
 #include <cmath>
+#include <algorithm>
 namespace ai {
 namespace { constexpr qsizetype MaxResponseBytes = 1024 * 1024; }
 OpenAICompatibleProvider::OpenAICompatibleProvider(QObject* parent, int timeoutMs) : AiProvider(parent), m_timeoutMs(timeoutMs) {
@@ -34,6 +35,21 @@ QUrl OpenAICompatibleProvider::endpoint(const QString& base) {
     result.setPath(path);
     return result;
 }
+QUrl OpenAICompatibleProvider::modelsEndpoint(const QString& base) {
+    QUrl result(base.trimmed());
+    auto path = result.path();
+    while (path.endsWith('/')) path.chop(1);
+    if (path.endsWith("/chat/completions")) path.chop(QString("/chat/completions").size());
+    if (!path.endsWith("/models")) path += "/models";
+    result.setPath(path); return result;
+}
+void OpenAICompatibleProvider::listModels(const Configuration& config) {
+    if (isBusy()) return;
+    auto c = config; c.model = "model-list"; // No model ID is needed for discovery.
+    const auto error = validate(c);
+    if (!error.isEmpty()) { emit failed(error); return; }
+    send(c, {}, true);
+}
 void OpenAICompatibleProvider::read() {
     if (!m_reply || !m_reply->isOpen() || !m_abortReason.isEmpty()) return;
     m_body += m_reply->read(MaxResponseBytes + 1 - m_body.size());
@@ -61,14 +77,18 @@ void OpenAICompatibleProvider::request(const Configuration& c, const QJsonObject
     };
     const auto body = QJsonDocument(QJsonObject{{"model", c.model.trimmed()}, {"messages", messages}, {"stream", false}}).toJson(QJsonDocument::Compact);
     if (body.size() > 128 * 1024) { emit failed(tr("AI request is too large. Analyze a smaller section.")); return; }
-    QNetworkRequest request(endpoint(c.baseUrl));
+    m_candidateCount = context.value("candidates").toArray().size();
+    send(c, body, false);
+}
+void OpenAICompatibleProvider::send(const Configuration& c, const QByteArray& body, bool models) {
+    m_listingModels = models;
+    QNetworkRequest request(models ? modelsEndpoint(c.baseUrl) : endpoint(c.baseUrl));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     if (!c.apiKey.isEmpty()) request.setRawHeader("Authorization", "Bearer " + c.apiKey.toUtf8());
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setTransferTimeout(m_timeoutMs);
     m_body.clear(); m_abortReason.clear(); m_cancelled = false;
-    m_candidateCount = context.value("candidates").toArray().size();
-    m_reply = m_network.post(request, body);
+    m_reply = models ? m_network.get(request) : m_network.post(request, body);
     m_reply->setReadBufferSize(64 * 1024);
     connect(m_reply, &QNetworkReply::readyRead, this, &OpenAICompatibleProvider::read);
     connect(m_reply, &QNetworkReply::finished, this, [this] {
@@ -84,8 +104,17 @@ void OpenAICompatibleProvider::request(const Configuration& c, const QJsonObject
         // Never display server error bodies: they may echo credentials or text.
         if (status == 401 || status == 403) { emit failed(tr("API authorization failed. Check the API key and model permissions.")); return; }
         if (status == 429) { emit failed(tr("API rate limit or quota exceeded.")); return; }
+        if (status == 400) { emit failed(tr("The API rejected the request (HTTP 400). Check the exact model ID, API key and interface compatibility. A product name is not a model ID.")); return; }
+        if (m_listingModels && (status == 404 || status == 405 || status == 501)) {
+            emit failed(tr("This service does not support model listing (HTTP %1). Enter the model ID manually.").arg(status)); return;
+        }
         if (status < 200 || status >= 300) { emit failed(status ? tr("AI service returned HTTP %1.").arg(status) : tr("Could not connect to the AI service. Check the address and network.")); return; }
         if (networkError != QNetworkReply::NoError) { emit failed(tr("AI connection failed or the response was incomplete.")); return; }
+        if (m_listingModels) {
+            const auto models = parseModels(m_body); m_body.clear();
+            if (!models || models->isEmpty()) { emit failed(tr("The service returned no valid model IDs. Enter the model ID manually.")); return; }
+            emit modelsListed(*models); return;
+        }
         const auto parsed = parse(m_body, m_candidateCount);
         m_body.clear();
         if (!parsed) { emit failed(tr("The AI response was empty or did not match the required JSON format. Try another model.")); return; }
@@ -95,6 +124,20 @@ void OpenAICompatibleProvider::request(const Configuration& c, const QJsonObject
 }
 void OpenAICompatibleProvider::cancel() {
     if (m_reply) { m_cancelled = true; m_reply->abort(); }
+}
+std::optional<QStringList> OpenAICompatibleProvider::parseModels(const QByteArray& body) {
+    QJsonParseError error;
+    const auto document = QJsonDocument::fromJson(body, &error);
+    if (error.error != QJsonParseError::NoError || !document.isObject() || document.object().contains("error") || !document.object().value("data").isArray()) return {};
+    QStringList models;
+    for (const auto& entry : document.object().value("data").toArray()) {
+        const auto value = entry.toObject().value("id");
+        if (!value.isString()) continue;
+        const auto id = value.toString();
+        if (id.trimmed().isEmpty() || id.size() > 256 || std::any_of(id.begin(), id.end(), [](QChar c) { return c.category() == QChar::Other_Control; })) continue;
+        models.append(id);
+    }
+    models.removeDuplicates(); models.sort(); return models;
 }
 std::optional<Reply> OpenAICompatibleProvider::parse(const QByteArray& body, int count) {
     QJsonParseError error;

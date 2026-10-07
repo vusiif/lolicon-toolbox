@@ -13,7 +13,7 @@
 #include <QLabel>
 #include <QEvent>
 #include <QSignalBlocker>
-SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings)
+SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings), m_models(new ai::AiService(this))
 {
     setObjectName("settingsPage");
     auto* outer = new QVBoxLayout(this);
@@ -63,21 +63,50 @@ SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(par
         form->addRow(label, edit); return edit;
     };
     m_apiUrl = field(m_apiUrlLabel, "aiApiUrl");
-    m_apiModel = field(m_apiModelLabel, "aiApiModel");
+    m_apiModelLabel = ui::label({}, 10, ui::Tone::Secondary, card);
+    m_apiModel = new ElaComboBox(card); m_apiModel->setObjectName("aiApiModel"); m_apiModel->setEditable(true);
+    m_apiModel->setInsertPolicy(QComboBox::NoInsert);
+    m_apiModel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_apiModel->setMinimumContentsLength(16);
+    auto* modelRow = new QHBoxLayout;
+    m_fetchModels = new ElaPushButton(card); m_fetchModels->setObjectName("aiFetchModels");
+    modelRow->addWidget(m_apiModel, 1); modelRow->addWidget(m_fetchModels);
+    form->addRow(m_apiModelLabel, modelRow);
     m_apiKey = field(m_apiKeyLabel, "aiApiKey"); m_apiKey->setEchoMode(QLineEdit::Password);
     const auto config = settings.aiConfiguration();
-    m_apiUrl->setText(config.baseUrl); m_apiModel->setText(config.model); m_apiKey->setText(config.apiKey);
+    m_apiUrl->setText(config.baseUrl); m_apiModel->setEditText(config.model); m_apiKey->setText(config.apiKey);
     aiLayout->addLayout(form);
     m_saveAi = new ElaPushButton(card); m_saveAi->setObjectName("aiSaveSettings"); ui::primaryButton(m_saveAi);
     m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, card);
     aiLayout->addWidget(m_saveAi, 0, Qt::AlignLeft); aiLayout->addWidget(m_aiStatus);
     layout->addWidget(card);
     connect(m_saveAi, &ElaPushButton::clicked, this, [this] {
-        const ai::Configuration config{m_apiUrl->text(), m_apiModel->text(), m_apiKey->text()};
+        const ai::Configuration config{m_apiUrl->text(), m_apiModel->currentText(), m_apiKey->text()};
         const auto error = ai::AiService::validate(config);
         if (!error.isEmpty()) { m_aiStatus->setText(error); return; }
         if (!m_settings.setAiConfiguration(config)) m_aiStatus->setText(tr("Could not securely save the API settings."));
         else m_aiStatus->setText(tr("API settings saved. No network request was sent."));
+    });
+    connect(m_fetchModels, &ElaPushButton::clicked, this, &SettingsPage::fetchModels);
+    connect(m_apiUrl, &QLineEdit::textChanged, this, &SettingsPage::invalidateModels);
+    connect(m_apiKey, &QLineEdit::textChanged, this, &SettingsPage::invalidateModels);
+    connect(m_models, &ai::AiService::modelsListed, this, [this](const QStringList& models) {
+        if (!m_modelsStale) {
+            const auto current = m_apiModel->currentText();
+            const QSignalBlocker blocker(m_apiModel);
+            m_apiModel->clear(); m_apiModel->addItems(models);
+            m_apiModel->setCurrentIndex(-1); m_apiModel->setEditText(current);
+            m_aiStatus->setText(tr("Found %1 models. Choose a model ID and save. The list may also include models that do not support text chat.").arg(models.size()));
+        }
+        updateFetchButton();
+    });
+    connect(m_models, &ai::AiService::failed, this, [this](const QString& error) {
+        if (!m_modelsStale) m_aiStatus->setText(error);
+        updateFetchButton();
+    });
+    connect(m_models, &ai::AiService::cancelled, this, [this] {
+        if (!m_modelsStale) m_aiStatus->setText(tr("Model listing cancelled. You can enter a model ID manually."));
+        updateFetchButton();
     });
     layout->addStretch();
     retranslate();
@@ -103,9 +132,27 @@ void SettingsPage::retranslate()
     m_language->setItemText(0, tr("Follow system"));
     m_aiTitle->setText(tr("AI API (OpenAI compatible)"));
     m_aiInfo->setText(tr("AI runs only when you click AI analysis. The API key is encrypted for your Windows account. Leave the key empty only if your service requires no authentication."));
-    m_apiUrlLabel->setText(tr("API base URL")); m_apiModelLabel->setText(tr("Model")); m_apiKeyLabel->setText(tr("API key"));
-    m_apiUrl->setPlaceholderText("https://api.example.com/v1"); m_apiModel->setPlaceholderText(tr("Model name supplied by your provider"));
+    m_apiUrlLabel->setText(tr("API base URL")); m_apiModelLabel->setText(tr("Model ID")); m_apiKeyLabel->setText(tr("API key"));
+    m_apiUrl->setPlaceholderText("https://api.example.com/v1"); m_apiModel->lineEdit()->setPlaceholderText(tr("Fetch models or enter the provider's model ID"));
+    m_apiModel->setToolTip(tr("Use the exact model ID, not the provider's product name."));
     m_saveAi->setText(tr("Save API settings"));
+    updateFetchButton();
+}
+void SettingsPage::updateFetchButton() {
+    m_fetchModels->setText(m_models->isBusy() ? tr("Cancel") : tr("Fetch models"));
+}
+void SettingsPage::invalidateModels() {
+    m_modelsStale = true; m_models->cancel();
+    const auto current = m_apiModel->currentText();
+    { const QSignalBlocker blocker(m_apiModel); m_apiModel->clear(); m_apiModel->setEditText(current); }
+    m_aiStatus->clear(); updateFetchButton();
+}
+void SettingsPage::fetchModels() {
+    if (m_models->isBusy()) { m_models->cancel(); return; }
+    m_modelsStale = false;
+    m_aiStatus->setText(tr("Fetching models from the entered address. Only the API key is sent; no text is uploaded."));
+    m_models->listModels({m_apiUrl->text(), {}, m_apiKey->text()});
+    updateFetchButton();
 }
 void SettingsPage::changeEvent(QEvent* event)
 {

@@ -39,6 +39,7 @@ private slots:
     void groupedNavigation();
     void mojibakeWorkflow();
     void aiWorkflow();
+    void modelListingWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -269,7 +270,7 @@ void TestUi::aiWorkflow()
     TestHttpServer server; server.response = TestHttpServer::success(QString::fromUtf8("你好！"));
     SettingsPage config(settings);
     config.findChild<ElaLineEdit*>("aiApiUrl")->setText(server.url());
-    config.findChild<ElaLineEdit*>("aiApiModel")->setText("test-model");
+    config.findChild<ElaComboBox*>("aiApiModel")->setEditText("test-model");
     auto* key = config.findChild<ElaLineEdit*>("aiApiKey");
     QCOMPARE(key->echoMode(), QLineEdit::Password); key->setText("test-only-key");
     config.findChild<ElaPushButton*>("aiSaveSettings")->click();
@@ -301,6 +302,37 @@ void TestUi::aiWorkflow()
     input->setPlainText("changed input");
     QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), 3000);
     QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiAnalyze->isEnabled());
+}
+void TestUi::modelListingWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("models.ini"));
+    QVERIFY(settings.setLocale("en"));
+    TestHttpServer server; server.response = R"({"data":[{"id":"model-a"},{"id":"model-b"}]})";
+    SettingsPage page(settings);
+    auto* url = page.findChild<ElaLineEdit*>("aiApiUrl");
+    auto* key = page.findChild<ElaLineEdit*>("aiApiKey");
+    auto* models = page.findChild<ElaComboBox*>("aiApiModel");
+    auto* fetch = page.findChild<ElaPushButton*>("aiFetchModels");
+    url->setText(server.url()); key->setText("test-only-key");
+    QVERIFY(models->isEditable()); QCOMPARE(server.requests, 0);
+    fetch->click(); QTRY_COMPARE_WITH_TIMEOUT(models->count(), 2, 3000);
+    QVERIFY(models->currentText().isEmpty());
+    models->setCurrentIndex(1);
+    page.findChild<ElaPushButton*>("aiSaveSettings")->click();
+    QCOMPARE(settings.aiConfiguration().model, QString("model-b"));
+    fetch->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests, 2, 3000);
+    QTRY_COMPARE_WITH_TIMEOUT(fetch->text(), QString("Fetch models"), 3000);
+    QCOMPARE(models->currentText(), QString("model-b"));
+    page.resize(850, 750); page.setAttribute(Qt::WA_DontShowOnScreen); page.show();
+    QVERIFY(page.grab().save("ai-model-list.png"));
+    key->setText("changed-test-key"); QCOMPARE(models->count(), 0);
+    QCOMPARE(models->currentText(), QString("model-b"));
+    server.hold = true; fetch->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests, 3, 3000);
+    url->setText(server.url() + "/other");
+    QTRY_COMPARE_WITH_TIMEOUT(fetch->text(), QString("Fetch models"), 3000);
+    QCOMPARE(models->count(), 0);
+    models->setEditText("manual-model");
+    QCOMPARE(models->currentText(), QString("manual-model"));
 }
 void TestUi::windowWorkflow()
 {

@@ -17,10 +17,12 @@ public:
     virtual bool isBusy() const = 0;
     virtual void request(const Configuration&, const QJsonObject&, const QString& language) = 0;
     virtual void cancel() = 0;
+    virtual void listModels(const Configuration&) = 0;
 signals:
     void completed(const ai::Reply& reply);
     void failed(const QString& message);
     void cancelled();
+    void modelsListed(const QStringList& models);
 };
 }
 Q_DECLARE_METATYPE(ai::Reply)
