@@ -8,6 +8,7 @@ struct FileCandidate {
     QList<Transformation> repairPath;
     double score = 0;
     bool reversible = true;
+    int anomalies = 0;
 };
 struct FileResult {
     QString path;

@@ -21,7 +21,10 @@ add_test(NAME TestFilenameRecovery COMMAND TestFilenameRecovery -o filename-reco
 add_executable(TestClipboardSource TestClipboardSource.cpp)
 target_link_libraries(TestClipboardSource PRIVATE Qt6::Test ClipboardSourceLogic)
 add_test(NAME TestClipboardSource COMMAND TestClipboardSource -o clipboard-source-results.txt,txt)
-set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource PROPERTIES
+add_executable(TestDiagnosticReport TestDiagnosticReport.cpp)
+target_link_libraries(TestDiagnosticReport PRIVATE Qt6::Test RecoveryReporting)
+add_test(NAME TestDiagnosticReport COMMAND TestDiagnosticReport -o diagnostic-report-results.txt,txt)
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"

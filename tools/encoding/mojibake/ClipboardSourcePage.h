@@ -5,6 +5,7 @@
 class ElaPushButton;
 class ElaPlainTextEdit;
 class QLabel;
+class DiagnosticReportWidget;
 class ClipboardSourcePage : public QWidget {
     Q_OBJECT
 public:
@@ -20,6 +21,7 @@ private:
     QLabel *m_title, *m_description, *m_status;
     ElaPushButton *m_read, *m_plain, *m_html, *m_use, *m_clear;
     ElaPlainTextEdit *m_formats, *m_plainPreview, *m_htmlPreview, *m_details;
+    DiagnosticReportWidget* m_report;
     QFutureWatcher<mojibake::ClipboardTexts> m_worker;
     mojibake::ClipboardTexts m_snapshot;
     int m_selected = -1;

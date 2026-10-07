@@ -1,4 +1,5 @@
 #include "ClipboardSourcePage.h"
+#include "DiagnosticReportWidget.h"
 #include "CandidateScorer.h"
 #include "UiTheme.h"
 #include <ElaScrollArea.h>
@@ -39,13 +40,14 @@ ClipboardSourcePage::ClipboardSourcePage(QWidget* parent) : QWidget(parent) {
     m_formats = edit("clipboardFormats", 80); m_formats->setMaximumHeight(110);
     m_plainPreview = edit("clipboardPlainPreview", 150); m_htmlPreview = edit("clipboardHtmlPreview", 150);
     m_details = edit("clipboardDetails", 140);
+    m_report = new DiagnosticReportWidget(content); m_report->setObjectName("clipboardDiagnosticReport");
     auto* actions = new QHBoxLayout; actions->addWidget(m_read); actions->addWidget(m_clear); actions->addStretch();
     auto* sources = new QHBoxLayout;
     auto* plainColumn = new QVBoxLayout; plainColumn->addWidget(m_plain); plainColumn->addWidget(m_plainPreview);
     auto* htmlColumn = new QVBoxLayout; htmlColumn->addWidget(m_html); htmlColumn->addWidget(m_htmlPreview);
     sources->addLayout(plainColumn, 1); sources->addLayout(htmlColumn, 1);
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addLayout(actions); layout->addWidget(m_status);
-    layout->addWidget(m_formats); layout->addLayout(sources); layout->addWidget(m_details); layout->addWidget(m_use, 0, Qt::AlignLeft); layout->addStretch();
+    layout->addWidget(m_formats); layout->addLayout(sources); layout->addWidget(m_report); layout->addWidget(m_details); layout->addWidget(m_use, 0, Qt::AlignLeft); layout->addStretch();
     connect(m_read, &ElaPushButton::clicked, this, [this] {
         const auto* mime = QApplication::clipboard()->mimeData(QClipboard::Clipboard);
         if (mime) inspect(*mime);
@@ -74,6 +76,7 @@ void ClipboardSourcePage::inspect(const QMimeData& mime) {
 }
 void ClipboardSourcePage::refresh() {
     const bool busy = m_worker.isRunning(); const auto& capture = m_snapshot.capture;
+    m_report->setReport(busy || !m_readOnce ? DiagnosticReport{} : DiagnosticReport::clipboard(m_snapshot, m_selected));
     m_read->setEnabled(!busy); m_clear->setEnabled(!busy && m_readOnce);
     m_plain->setEnabled(!busy && m_snapshot.plainUsable()); m_html->setEnabled(!busy && m_snapshot.htmlUsable());
     m_plain->setChecked(m_selected == 0); m_html->setChecked(m_selected == 1); m_use->setEnabled(!busy && m_selected >= 0);

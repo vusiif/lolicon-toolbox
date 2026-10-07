@@ -11,6 +11,7 @@ class ElaPlainTextEdit;
 class QLabel;
 class QStandardItemModel;
 class QStandardItem;
+class DiagnosticReportWidget;
 class FilenameRecoveryPage : public QWidget {
     Q_OBJECT
 public:
@@ -34,6 +35,7 @@ private:
     QStandardItemModel* m_model;
     ElaLineEdit* m_name;
     ElaPlainTextEdit* m_details;
+    DiagnosticReportWidget* m_report;
     std::array<ElaPushButton*, 5> m_candidates;
     QList<QStandardItem*> m_rows;
     mojibake::NamePlan m_plan;

@@ -391,4 +391,36 @@ Unavailable</source><translation>候選 %1
         <message><source>Clipboard</source><translation>剪貼簿</translation></message>
         <message><source>Selected clipboard text loaded. Run local analysis before requesting AI.</source><translation>已載入所選剪貼簿文字，請先進行本機分析，再決定是否呼叫 AI。</translation></message>
     </context>
+    <context>
+        <name>DiagnosticReport</name>
+        <message><source>Diagnostic report will be available after analysis or a source read.</source><translation>完成分析或讀取來源後，可查看診斷報告。</translation></message>
+        <message><source>Blocked; review input or plan errors</source><translation>操作受阻，請檢查輸入或計畫錯誤</translation></message>
+        <message><source>Partial recovery; complete inverse not proven</source><translation>部分恢復，未證明完整逆向可恢復</translation></message>
+        <message><source>Possible recovery or information loss; review required</source><translation>可能恢復或存在資訊遺失，需要核對</translation></message>
+        <message><source>Original retained or decoded without text repair</source><translation>保留原文或僅解碼，未進行文字逆向恢復</translation></message>
+        <message><source>Source selected; repair analysis has not run</source><translation>已選擇來源，尚未執行亂碼恢復分析</translation></message>
+        <message><source>No usable result</source><translation>沒有可用結果</translation></message>
+        <message><source>Diagnosis: %1.</source><translation>診斷：%1。</translation></message>
+        <message><source>Source evidence: %1. Inverse: %2.</source><translation>來源證據：%1。逆向驗證：%2。</translation></message>
+        <message><source>original file bytes</source><translation>原始檔案位元組</translation></message>
+        <message><source>original bytes not captured</source><translation>未取得原始位元組</translation></message>
+        <message><source>Unicode text or names</source><translation>Unicode 文字或名稱</translation></message>
+        <message><source>not verified</source><translation>未驗證</translation></message>
+        <message><source>verified</source><translation>已驗證</translation></message>
+        <message><source>not proven for the complete text</source><translation>未證明完整文字可逆</translation></message>
+        <message><source>Possible information loss is a warning, not proof that a replacement character was originally different.</source><translation>可能資訊遺失是提示，不能證明替換字元原本一定是其他內容。</translation></message>
+        <message><source>Ambiguity remains: equivalent encodings, different sources or candidate scores within 5 points.</source><translation>仍有歧義：等效編碼、來源差異或候選分數相差不超過 5 分。</translation></message>
+        <message><source>Scores are not probabilities. Reversibility does not prove the original meaning.</source><translation>評分不是正確率。可逆性不能證明原意。</translation></message>
+        <message><source>No diagnostic report is available.</source><translation>沒有可匯出的診斷報告。</translation></message>
+        <message><source>Choose a new report filename; existing files are never overwritten.</source><translation>請使用新的報告檔名，不會覆寫既有檔案。</translation></message>
+        <message><source>Could not write the complete report.</source><translation>無法完整寫入報告。</translation></message>
+    </context>
+    <context>
+        <name>DiagnosticReportWidget</name>
+        <message><source>Export diagnostic report</source><translation>匯出診斷報告</translation></message>
+        <message><source>JSON report (*.json)</source><translation>JSON 報告 (*.json)</translation></message>
+        <message><source>Report saved: %1</source><translation>報告已儲存：%1</translation></message>
+        <message><source>Export diagnostic report…</source><translation>匯出診斷報告…</translation></message>
+        <message><source>JSON contains evidence, scores and paths/names when applicable; no text body, AI reply or API settings. Export is local and does not run analysis.</source><translation>JSON 包含證據、評分及適用的路徑或名稱；不含正文、AI 回覆和 API 設定。匯出在本機執行，不會啟動分析。</translation></message>
+    </context>
 </TS>

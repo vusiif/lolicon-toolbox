@@ -9,6 +9,7 @@ class ElaComboBox;
 class ElaCheckBox;
 class QLabel;
 class QButtonGroup;
+class DiagnosticReportWidget;
 class TextFileRecoveryPage : public QWidget {
     Q_OBJECT
 public:
@@ -31,6 +32,7 @@ private:
     ElaPlainTextEdit *m_preview, *m_details;
     std::array<ElaPushButton*, 5> m_buttons;
     QButtonGroup* m_candidates;
+    DiagnosticReportWidget* m_report;
     QFutureWatcher<mojibake::FileResult> m_analysis;
     QFutureWatcher<mojibake::SaveResult> m_export;
     mojibake::Cancellation m_cancelToken;

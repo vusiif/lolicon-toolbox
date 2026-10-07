@@ -209,6 +209,30 @@ original meaning.
 
 See [manual clipboard checks](docs/Clipboard-Testing.md).
 
+### Diagnostic reports
+
+All four sources share a diagnostic summary and **Export diagnostic report**
+action. Reports distinguish original-byte evidence from Unicode text/names,
+verified inverses from unverified/manual choices, blocked plans from usable
+results, and possible loss from confirmed facts. Close candidate scores (within
+five points), equivalent encoding aliases and differing clipboard representations
+are ambiguity signals, not calibrated confidence estimates. A clipboard-source
+report explicitly states that repair analysis has not run yet.
+
+Export creates a new local JSON file using schema version 1. It records source
+kind, assessment, metrics, evidence, candidate scores/paths and the selected
+candidate. File reports include the source path and SHA-256; name-plan reports
+include the source root, original/proposed names, parent indices, validation
+errors and file hashes. They represent the analyzed snapshot, not a fresh scan
+or proof that a later export succeeded. File bodies, pasted/clipboard text,
+AI replies and API configuration are excluded. Report export does not run
+analysis, call AI or overwrite an existing file.
+
+Reports update after candidate/name/source selection. Editing text, clearing a
+clipboard snapshot or starting a new analysis invalidates the old report.
+See [manual diagnostic checks](docs/Diagnostic-Testing.md) for field meanings
+and acceptance steps.
+
 ### Optional AI assistance
 
 In **Settings → AI API**, enter your provider's HTTPS base URL (normally ending

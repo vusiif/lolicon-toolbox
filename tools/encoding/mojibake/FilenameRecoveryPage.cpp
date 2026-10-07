@@ -1,4 +1,5 @@
 #include "FilenameRecoveryPage.h"
+#include "DiagnosticReportWidget.h"
 #include "UiTheme.h"
 #include <ElaScrollArea.h>
 #include <ElaPushButton.h>
@@ -50,9 +51,10 @@ FilenameRecoveryPage::FilenameRecoveryPage(QWidget* parent) : QWidget(parent) {
     m_apply = button("filenameApplyName"); m_original = button("filenameOriginalName");
     auto* nameRow = new QHBoxLayout; nameRow->addWidget(m_nameLabel); nameRow->addWidget(m_name, 1); nameRow->addWidget(m_apply); nameRow->addWidget(m_original);
     m_details = new ElaPlainTextEdit(content); m_details->setReadOnly(true); m_details->setMinimumHeight(130); m_details->setObjectName("filenameDetails");
+    m_report = new DiagnosticReportWidget(content); m_report->setObjectName("nameDiagnosticReport");
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addLayout(actions); layout->addWidget(m_path);
     layout->addWidget(m_status); layout->addWidget(m_tree); layout->addLayout(candidatesRow); layout->addLayout(nameRow);
-    layout->addWidget(m_details); layout->addWidget(m_export, 0, Qt::AlignLeft); layout->addStretch();
+    layout->addWidget(m_report); layout->addWidget(m_details); layout->addWidget(m_export, 0, Qt::AlignLeft); layout->addStretch();
     connect(m_open, &ElaPushButton::clicked, this, [this] {
         const auto path = QFileDialog::getExistingDirectory(this, tr("Choose the source directory"));
         if (!path.isEmpty()) scanDirectory(path);
@@ -134,6 +136,7 @@ void FilenameRecoveryPage::selectEntry(int index) {
 }
 void FilenameRecoveryPage::refresh() {
     const bool working = busy(); const auto validation = FilenameRecovery::validate(m_plan);
+    m_report->setReport(working ? DiagnosticReport{} : DiagnosticReport::names(m_plan));
     m_open->setEnabled(!working); m_rescan->setEnabled(!working && !m_directory.isEmpty()); m_tree->setEnabled(!working);
     m_cancel->setVisible(working); m_export->setEnabled(!working && !m_plan.root.isEmpty() && m_plan.error.isEmpty() && !m_plan.cancelled && validation.valid());
     const bool selected = m_selected >= 0 && m_selected < m_plan.entries.size();

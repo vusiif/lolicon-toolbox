@@ -1,4 +1,5 @@
 #include "TextFileRecoveryPage.h"
+#include "DiagnosticReportWidget.h"
 #include "UiTheme.h"
 #include <ElaScrollArea.h>
 #include <ElaPushButton.h>
@@ -55,10 +56,11 @@ TextFileRecoveryPage::TextFileRecoveryPage(QWidget* parent) : QWidget(parent) {
     }
     m_preview = new ElaPlainTextEdit(content); m_preview->setObjectName("fileRecoveryPreview"); m_preview->setReadOnly(true); m_preview->setMinimumHeight(160);
     m_details = new ElaPlainTextEdit(content); m_details->setObjectName("fileRecoveryDetails"); m_details->setReadOnly(true); m_details->setMinimumHeight(130);
+    m_report = new DiagnosticReportWidget(content); m_report->setObjectName("fileDiagnosticReport");
     auto* outputForm = new QFormLayout; outputForm->addRow(m_outputLabel, m_output); outputForm->addRow(m_newlineLabel, m_newlines); outputForm->addRow(m_bom);
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addLayout(actions); layout->addWidget(m_pathLabel);
     layout->addLayout(sourceRow); layout->addWidget(m_status); layout->addLayout(candidatesRow);
-    layout->addWidget(m_preview); layout->addWidget(m_details); layout->addLayout(outputForm); layout->addWidget(m_save, 0, Qt::AlignLeft); layout->addStretch();
+    layout->addWidget(m_preview); layout->addWidget(m_report); layout->addWidget(m_details); layout->addLayout(outputForm); layout->addWidget(m_save, 0, Qt::AlignLeft); layout->addStretch();
     connect(m_open, &ElaPushButton::clicked, this, [this] {
         const auto path = QFileDialog::getOpenFileName(this, tr("Open a text file"), {}, tr("Text files (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;All files (*)"));
         if (!path.isEmpty()) openFile(path);
@@ -117,6 +119,7 @@ void TextFileRecoveryPage::exportCopy(const QString& destination) {
 }
 void TextFileRecoveryPage::refresh() {
     const bool busy = m_analysis.isRunning() || m_export.isRunning();
+    m_report->setReport(busy ? DiagnosticReport{} : DiagnosticReport::file(m_result, m_selected));
     m_open->setEnabled(!busy); m_source->setEnabled(!busy); m_analyze->setEnabled(!busy && !m_path.isEmpty());
     m_save->setEnabled(!busy && m_selected >= 0); m_output->setEnabled(!busy); m_newlines->setEnabled(!busy);
     m_cancel->setVisible(m_analysis.isRunning());

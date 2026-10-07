@@ -98,16 +98,17 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
             if (wide(e) && !wideEvidence(payload, e)) score -= 25;
             else if (e != Encoding::Utf8 && !wide(e)) score -= 6;
         }
-        append({*decoded, e, {e}, {}, std::clamp(score, 0.0, 100.0), true});
-        if (CandidateScorer::anomalies(*decoded) == 0) continue;
+        const auto anomalies = CandidateScorer::anomalies(*decoded);
+        append({*decoded, e, {e}, {}, std::clamp(score, 0.0, 100.0), true, anomalies});
+        if (anomalies == 0) continue;
         if (decoded->size() > MojibakeAnalyzer::MaxInputBytes || decoded->toUtf8().size() > MojibakeAnalyzer::MaxInputBytes) {
             result.inverseRepairSkipped = true; continue;
         }
         const auto repaired = MojibakeAnalyzer::analyze(*decoded, cancel);
         if (!repaired.likelyMojibake) continue;
         for (const auto& candidate : repaired.candidates) {
-            if (candidate.path.isEmpty() || candidate.anomalies >= CandidateScorer::anomalies(*decoded)) continue;
-            append({candidate.text, e, {e}, candidate.path, candidate.score, candidate.reversible});
+            if (candidate.path.isEmpty() || candidate.anomalies >= anomalies) continue;
+            append({candidate.text, e, {e}, candidate.path, candidate.score, candidate.reversible, candidate.anomalies});
         }
     }
     if (cancelled(cancel)) { result.cancelled = true; result.candidates.clear(); return result; }

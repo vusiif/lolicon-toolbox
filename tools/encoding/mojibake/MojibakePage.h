@@ -12,6 +12,7 @@ class ElaPlainTextEdit;
 class ElaPushButton;
 class QButtonGroup;
 class QLabel;
+class DiagnosticReportWidget;
 class MojibakePage : public ToolPage {
     Q_OBJECT
 public:
@@ -36,6 +37,7 @@ private:
     QButtonGroup* m_candidates;
     int m_selectedCandidate = -1;
     QLabel *m_title, *m_description, *m_inputLabel, *m_outputLabel, *m_status;
+    DiagnosticReportWidget* m_report;
     QFutureWatcher<mojibake::Result> m_watcher;
     mojibake::Cancellation m_cancellation;
     mojibake::Result m_result;

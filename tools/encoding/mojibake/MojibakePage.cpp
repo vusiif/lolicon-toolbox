@@ -3,6 +3,7 @@
 #include "TextFileRecoveryPage.h"
 #include "FilenameRecoveryPage.h"
 #include "ClipboardSourcePage.h"
+#include "DiagnosticReportWidget.h"
 #include <QStackedWidget>
 #include "UiTheme.h"
 #include "services/AppSettings.h"
@@ -74,6 +75,7 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     });
     m_output = editor("mojibakeOutput", true);
     m_process = editor("mojibakeProcess", true);
+    m_report = new DiagnosticReportWidget(content); m_report->setObjectName("textDiagnosticReport");
     m_process->hide();
     auto button = [content](const char* name) {
         auto* b = new ElaPushButton(content);
@@ -108,7 +110,7 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addWidget(m_inputLabel);
     layout->addWidget(m_input, 1); layout->addLayout(actions); layout->addWidget(m_status);
     layout->addWidget(m_outputLabel); layout->addLayout(candidateRow); layout->addWidget(m_output, 1);
-    layout->addLayout(resultActions); layout->addWidget(m_process);
+    layout->addLayout(resultActions); layout->addWidget(m_report); layout->addWidget(m_process);
     m_aiTitle = ui::label({}, 13, ui::Tone::Primary, content);
     m_aiHint = ui::label({}, 10, ui::Tone::Secondary, content);
     m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, content); m_aiStatus->setObjectName("mojibakeAiStatus");
@@ -192,6 +194,7 @@ void MojibakePage::invalidate() {
     m_stale = true; m_copied = false;
     if (m_cancellation) m_cancellation->store(true);
     m_result = {}; m_output->clear(); m_process->clear();
+    m_report->setReport({});
     m_selectedCandidate = -1;
     m_candidates->setExclusive(false);
     for (auto* b : m_candidateButtons) { b->setChecked(false); b->setEnabled(false); }
@@ -217,6 +220,7 @@ void MojibakePage::analyze() {
 }
 void MojibakePage::showResult() {
     m_selectedCandidate = m_result.candidates.isEmpty() ? -1 : qBound(0, m_selectedCandidate, int(m_result.candidates.size()) - 1);
+    m_report->setReport(m_watcher.isRunning() ? DiagnosticReport{} : DiagnosticReport::text(m_result, m_selectedCandidate));
     m_candidates->setExclusive(false);
     for (int i = 0; i < 5; ++i) {
         auto* b = m_candidateButtons[i];

@@ -27,6 +27,8 @@
 #include "ByteEncodingAnalyzer.h"
 #include "FilenameRecoveryPage.h"
 #include "ClipboardSourcePage.h"
+#include "DiagnosticReportWidget.h"
+#include <QJsonDocument>
 #include <QMimeData>
 #include <QTextDocument>
 #include <QStackedWidget>
@@ -52,6 +54,7 @@ private slots:
     void fileRecoveryWorkflow();
     void filenameRecoveryWorkflow();
     void clipboardSourceWorkflow();
+    void diagnosticReportWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -472,6 +475,41 @@ void TestUi::clipboardSourceWorkflow()
     page.resize(640, 480); QCoreApplication::processEvents(); QVERIFY(page.grab().save("clipboard-source-small.png"));
     // A worker only owns captured values; destroying a page during extraction is safe.
     auto* closing = new ClipboardSourcePage(); mime.setHtml("<p>" + QString(200 * 1024, 'x') + "</p>"); closing->inspect(mime); delete closing;
+}
+void TestUi::diagnosticReportWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("report-ui.ini")); QVERIFY(settings.setLocale("zh_CN"));
+    MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1000, 1100); page.show();
+    auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput"); auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze");
+    auto* report = page.findChild<DiagnosticReportWidget*>("textDiagnosticReport"); QVERIFY(report);
+    auto* exportButton = report->findChild<ElaPushButton*>("diagnosticExport"); QVERIFY(!exportButton->isEnabled());
+    input->setPlainText("浣犲ソ"); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    QVERIFY(exportButton->isEnabled()); QVERIFY(report->findChild<QLabel*>("diagnosticSummary")->text().contains("Unicode 文本"));
+    const auto destination = dir.filePath("diagnostic.json"); QVERIFY(report->exportReport(destination));
+    QVERIFY(report->findChild<QLabel*>("diagnosticExportStatus")->isVisible());
+    { QFile file(destination); QVERIFY(file.open(QIODevice::ReadOnly)); const auto bytes = file.readAll(); QVERIFY(!bytes.contains(QString("浣犲ソ").toUtf8())); QCOMPARE(QJsonDocument::fromJson(bytes).object()["selected_candidate"].toInt(), 1); }
+    page.findChild<ElaPushButton*>("mojibakeCandidate2")->click(); QVERIFY(report->exportReport(dir.filePath("alternative.json")));
+    { QFile file(dir.filePath("alternative.json")); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(QJsonDocument::fromJson(file.readAll()).object()["selected_candidate"].toInt(), 2); }
+    QVERIFY(!report->exportReport(destination)); input->setPlainText("changed"); QVERIFY(!exportButton->isEnabled());
+    const auto source = dir.filePath("utf8.txt"); { QFile file(source); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(QString("正常文字").toUtf8()); }
+    page.findChild<ElaPushButton*>("mojibakeFileMode")->click(); page.findChild<TextFileRecoveryPage*>()->openFile(source);
+    QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("fileRecoveryAnalyze")->isEnabled(), 5000);
+    auto* fileReport = page.findChild<DiagnosticReportWidget*>("fileDiagnosticReport"); QVERIFY(fileReport->findChild<QLabel*>("diagnosticSummary")->text().contains("原始文件字节"));
+    QVERIFY(!fileReport->exportReport(source));
+    page.findChild<ElaPushButton*>("mojibakeClipboardMode")->click(); QMimeData mime; mime.setText("normal");
+    page.findChild<ClipboardSourcePage*>()->inspect(mime); QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("clipboardRead")->isEnabled(), 5000);
+    auto* clipboardReport = page.findChild<DiagnosticReportWidget*>("clipboardDiagnosticReport");
+    QVERIFY(clipboardReport->findChild<QLabel*>("diagnosticSummary")->text().contains("尚未运行"));
+    page.findChild<ElaPushButton*>("clipboardClear")->click(); QVERIFY(!clipboardReport->findChild<ElaPushButton*>("diagnosticExport")->isEnabled());
+    page.findChild<ElaPushButton*>("mojibakeNameMode")->click(); const auto root = dir.filePath("names"); QVERIFY(QDir().mkdir(root));
+    { QFile file(root + "/浣犲ソ.txt"); QVERIFY(file.open(QIODevice::WriteOnly)); file.write("body"); }
+    page.findChild<FilenameRecoveryPage*>()->scanDirectory(root); QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("filenameRescan")->isEnabled(), 5000);
+    auto* nameReport = page.findChild<DiagnosticReportWidget*>("nameDiagnosticReport"); QVERIFY(nameReport->exportReport(dir.filePath("names.json")));
+    auto* field = page.findChild<ElaLineEdit*>("filenameProposedName"); field->setText("CON.txt"); page.findChild<ElaPushButton*>("filenameApplyName")->click();
+    QVERIFY(nameReport->findChild<QLabel*>("diagnosticSummary")->text().contains("操作受阻"));
+    QVERIFY(page.grab().save("diagnostic-report-preview.png"));
+    QVERIFY(settings.setLocale("en")); QCoreApplication::processEvents(); QCOMPARE(nameReport->findChild<ElaPushButton*>("diagnosticExport")->text(), QString("Export diagnostic report…"));
+    QVERIFY(nameReport->findChild<QLabel*>("diagnosticSummary")->text().contains("Blocked"));
 }
 void TestUi::windowWorkflow()
 {
