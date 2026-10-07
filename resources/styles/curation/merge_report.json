@@ -1,0 +1,33 @@
+{
+  "style_id": "mars_classic",
+  "style_version": "2.0.0",
+  "reference_pairs": 7135,
+  "identity_reference_pairs_excluded": 1785,
+  "character_rules": 4791,
+  "phrase_rules": 38,
+  "rules": 4829,
+  "candidates": 5452,
+  "multi_candidate_rules": 614,
+  "max_candidates_per_rule": 4,
+  "reverse_targets": 4375,
+  "ambiguous_reverse_targets": 701,
+  "origin_counts": {
+    "niefee_simplified": {
+      "input_pairs": 3753,
+      "identity_pairs": 1284
+    },
+    "niefee_traditional": {
+      "input_pairs": 3753,
+      "identity_pairs": 1286
+    },
+    "martian_text": {
+      "input_pairs": 3500,
+      "identity_pairs": 1107
+    },
+    "marspeak": {
+      "input_pairs": 3523,
+      "identity_pairs": 0
+    }
+  },
+  "style_sha256": "afd1417bc285e590025f611e035ef05c7ae38113b7acfa1e5b4c5ef7f92f7b04"
+}

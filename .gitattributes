@@ -1,0 +1,4 @@
+# Rule fingerprints and deterministic generated data require identical bytes on Windows.
+resources/styles/**/*.json text eol=lf
+resources/styles/*.json text eol=lf
+tests/data/style-*.json text eol=lf

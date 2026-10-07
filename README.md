@@ -19,7 +19,9 @@ navigation, theme and controls.
   decorations, reproducible numeric or case-insensitive ASCII alphanumeric seeds
   with a compact seed row. Convert uses the displayed seed; Random convert changes
   the seed and converts in one click; the dice only changes the seed.
-  The curated pack contains 98 character and 38 phrase rules (20 with alternatives).
+  The attributed merged pack contains 4,791 character and 38 phrase rules
+  (614 with alternatives), combining three reference dictionaries and the original
+  curation. Data license status is mixed; see the source records and packaged notices.
   Unknown Unicode graphemes remain intact; only line endings are normalized.
   Input is limited to 256 KiB UTF-8 and output to 2 MiB; tasks run in the background
   with cancellation. Text and seeds are not persisted.

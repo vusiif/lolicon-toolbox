@@ -2,9 +2,10 @@ MIT License
 
 Copyright (c) 2026 Toolbox contributors
 
-This license applies only to the newly curated mapping data in
-resources/styles/mars_classic.json. It does not relicense other project files
-or third-party components.
+This license applies only to the original Toolbox mapping data preserved in
+resources/styles/curation/mars_classic_base.json. The compiled 2.0.0 pack also
+contains attributed external references; this license does NOT relicense them.
+See DATA-NOTICES.txt and licenses/marspeak-LICENSE.txt for their recorded status.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

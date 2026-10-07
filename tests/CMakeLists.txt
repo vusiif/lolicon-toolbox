@@ -30,6 +30,7 @@ target_compile_definitions(TestTextStyle PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_
 add_test(NAME TestTextStyle COMMAND TestTextStyle -o text-style-results.txt,txt)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME TestStyleJsonValidation COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Check-Style-Json.py" --self-test)
+add_test(NAME TestMartianDictionaryMerge COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Merge-Martian-Dictionaries.py" --self-test)
 set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"

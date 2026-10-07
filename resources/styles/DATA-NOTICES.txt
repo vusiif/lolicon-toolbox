@@ -1,0 +1,27 @@
+Toolbox Classic Martian 2.0.0 - data provenance notices
+
+This is a merged, normalized reference compilation, not a claim of original
+authorship or a new license for the upstream data. Deduplication, JSON conversion,
+candidate weights and attribution do not change upstream rights.
+
+Original Toolbox curation: MIT, Copyright (c) 2026 Toolbox contributors.
+The original data is preserved in curation/mars_classic_base.json; see LICENSE.txt.
+
+Natane0808/marspeak: MIT, Copyright (c) 2026 Natane.
+https://github.com/Natane0808/marspeak
+Revision 25899658398d799b33dbc924e69038db21a4ac88, lib/data/marspeak.tsv.
+The complete upstream license is included as licenses/marspeak-LICENSE.txt.
+
+Niefee Gist: NOASSERTION - no explicit license found.
+https://gist.github.com/Niefee/43e9cf243cd5571bfd8bbf06b3651cc3
+Revision 78c0d85508b3fb9d323d3b76eb261e4c750d0801.
+SimplifiedCharacters, TraditionalCharacters and MarsCharacters alignment.
+
+pilipala233/MartianText: NOASSERTION - no explicit license found.
+https://github.com/pilipala233/MartianText
+Revision 522daaf9689bb9e700b1a15842c2f124590ff91a, index.js character alignment.
+
+NOASSERTION is not a permission grant or a public-domain declaration.
+Reference pair origins, upstream revisions and file hashes are recorded in
+curation/dictionary_references.json. This compilation must not be advertised as
+entirely original, entirely MIT-licensed or universally reversible.

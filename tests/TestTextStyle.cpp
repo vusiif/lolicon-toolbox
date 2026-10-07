@@ -154,7 +154,12 @@ void TestTextStyle::resourceAndPerformance() {
     QElapsedTimer clock; clock.start(); const auto loaded = Loader::builtin(); QVERIFY2(loaded.style,qPrintable(loaded.detail)); qInfo()<<"style cold load ms"<<clock.elapsed()<<"Qt"<<qVersion();
     int characters = 0, phrases = 0, multi = 0;
     for (const auto& rule : loaded.style->rules) { QTextBoundaryFinder boundaries(QTextBoundaryFinder::Grapheme,rule.source); int count = 0; while(boundaries.toNextBoundary()>=0) ++count; characters+=count==1; phrases+=count>1; multi+=rule.choices.size()>1; }
-    QVERIFY(characters>=60); QVERIFY(phrases>=15); QVERIFY(multi>=10); qInfo()<<"rules"<<loaded.style->rules.size()<<"characters"<<characters<<"phrases"<<phrases<<"multi"<<multi;
+    QCOMPARE(loaded.style->version, QString("2.0.0")); QCOMPARE(characters,4791); QCOMPARE(phrases,38); QCOMPARE(multi,614);
+    qInfo()<<"rules"<<loaded.style->rules.size()<<"characters"<<characters<<"phrases"<<phrases<<"multi"<<multi;
+    auto candidates = [&](const QString& source) { QStringList texts; for (const auto& r : loaded.style->rules) if (r.source == source) for (const auto& c : r.choices) texts.append(c.text); return texts; };
+    QVERIFY(candidates("你").contains("沵")); QVERIFY(candidates("你").contains("妳"));
+    QVERIFY(candidates("一").contains("①")); QVERIFY(candidates("又").contains("叒")); QVERIFY(candidates("双").contains("叒"));
+    QCOMPARE(Engine::transform("妑",loaded.style,"medium",42).output,QString("妑"));
     const QString chunk = "你好，我喜欢你。谢谢朋友，加油！ABC123 👍🏽 é\n";
     for (int target : {10*1024,256*1024}) {
         QString text; const auto bytes = chunk.toUtf8().size(); text = chunk.repeated(target/bytes); text += QString(target-text.toUtf8().size(),'x');
