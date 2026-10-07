@@ -495,4 +495,55 @@ Unavailable</source><translation>候选 %1
         <message><source>AI running: %1 s / 90 s, %2 characters received (%3).</source><translation>AI 正在响应：%1 秒／90 秒，已接收 %2 个字符（%3）。</translation></message>
         <message><source>Local restoration: %1 matches, %2 ambiguous spans, %3 wrapper pairs. Candidates are possibilities, not verified originals.</source><translation>本地还原：命中 %1 处，歧义 %2 处，行装饰 %3 对。候选仅为可能结果，未验证原文。</translation></message>
     </context>
+    <context>
+        <name>VoiceDesignerPage</name>
+        <message><source>Voice Designer</source><translation>音色设计</translation></message>
+        <message><source>Describe a voice, then generate a reading of your preview text. This uses an online API and may incur charges. Repeating a description does not guarantee the same voice.</source><translation>描述一个声音，再生成试听文案的朗读。此功能调用在线 API，可能产生费用；相同描述不保证相同音色。</translation></message>
+        <message><source>Voice description</source><translation>声音描述</translation></message>
+        <message><source>Preview text</source><translation>试听文本</translation></message>
+        <message><source>For example: a warm, low adult voice, calm and clear, with an unhurried pace.</source><translation>例如：温暖、低沉的成年声音，沉稳清晰，语速舒缓。</translation></message>
+        <message><source>Enter the text you want this voice to read. It will be submitted without automatic rewriting.</source><translation>填写希望朗读的文本，将原样提交，不自动改写。</translation></message>
+        <message><source>Generate preview</source><translation>生成试听</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Clear</source><translation>清空</translation></message>
+        <message><source>API host: %1 · Model: %2
+Uses the saved API address and key in Settings; the text model selection is ignored.</source><translation>API 主机：%1 · 模型：%2
+使用设置中保存的 API 地址和密钥，不使用文本模型选项。</translation></message>
+        <message><source>Not configured</source><translation>未配置</translation></message>
+        <message><source>Generating preview… %1 s elapsed. You can cancel; editing either text also cancels this request.</source><translation>正在生成试听… 已等待 %1 秒。可以取消；修改任一文本也会取消请求。</translation></message>
+        <message><source>Generation cancelled.</source><translation>已取消生成。</translation></message>
+        <message><source>WAV received and validated (%1 KiB). Playback and saving will be added in the next stage.</source><translation>已收到并校验 WAV（%1 KiB）。播放和保存将在下一阶段接入。</translation></message>
+        <message><source>Inputs or API settings changed. The previous audio is out of date; generate a new preview.</source><translation>输入或 API 设置已变化，上一轮音频已过期，请重新生成试听。</translation></message>
+        <message><source>Enter a voice description and the exact text to read aloud.</source><translation>填写声音描述和希望朗读的具体文本。</translation></message>
+        <message><source>Ready. Only Generate preview sends these two texts to the configured API.</source><translation>准备就绪。仅点击生成试听时，才将这两段文本发送到配置的 API。</translation></message>
+    </context>
+    <context>
+        <name>speech::MiMoTtsService</name>
+        <message><source>Use an HTTPS API address. HTTP is allowed only for localhost. Credentials, query strings and fragments are not allowed in the address.</source><translation>请使用 HTTPS API 地址；HTTP 仅允许本机回环地址。地址不得含账号信息、查询参数或片段。</translation></message>
+        <message><source>Enter a valid API key in Settings.</source><translation>请在设置中填写有效的 API 密钥。</translation></message>
+        <message><source>Voice description exceeds the 8 KiB UTF-8 limit.</source><translation>声音描述超过 8 KiB UTF-8 限制。</translation></message>
+        <message><source>Preview text exceeds the 16 KiB UTF-8 limit.</source><translation>试听文本超过 16 KiB UTF-8 限制。</translation></message>
+        <message><source>Enter both a voice description and preview text.</source><translation>请填写声音描述和试听文本。</translation></message>
+        <message><source>Voice design request is too large.</source><translation>音色设计请求过大。</translation></message>
+        <message><source>Voice design response exceeded the 34 MiB limit.</source><translation>音色设计响应超过 34 MiB 限制。</translation></message>
+        <message><source>Voice design request timed out.</source><translation>音色设计请求超时。</translation></message>
+        <message><source>API authorization failed. Check the API key and voice model permissions.</source><translation>API 认证失败，请检查密钥和音色模型权限。</translation></message>
+        <message><source>API rate limit or quota exceeded.</source><translation>API 请求频率或额度已超限。</translation></message>
+        <message><source>Voice design service returned HTTP %1.</source><translation>音色设计服务返回 HTTP %1。</translation></message>
+        <message><source>Could not connect to the voice design service.</source><translation>无法连接音色设计服务。</translation></message>
+        <message><source>Voice design connection failed or the response was incomplete.</source><translation>音色设计连接中断或响应不完整。</translation></message>
+        <message><source>The service returned invalid audio. Expected a complete PCM or float WAV response.</source><translation>服务返回无效音频，需要完整的 PCM 或浮点 WAV 响应。</translation></message>
+    </context>
+    <context>
+        <name>SettingsPage</name>
+        <message><source>Online tools send requests only when you click their AI or Generate button. The API key is encrypted for your Windows account. Voice Designer uses this address and key with its fixed MiMo model.</source><translation>在线工具仅在点击 AI 或生成按钮时发起请求。密钥使用当前 Windows 账户加密保存；音色设计使用此地址和密钥，模型固定为 MiMo 音色设计模型。</translation></message>
+    </context>
+    <context>
+        <name>Tools</name>
+        <message><source>Voice Designer</source><translation>音色设计</translation></message>
+    </context>
+    <context>
+        <name>Navigation</name>
+        <message><source>Audio and Speech</source><translation>音频与语音</translation></message>
+    </context>
 </TS>

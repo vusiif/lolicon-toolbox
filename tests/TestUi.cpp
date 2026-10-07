@@ -17,6 +17,7 @@
 #include <QSettings>
 #include <QLocale>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QTreeView>
 #include "MainWindow.h"
 #include "LazyToolPage.h"
@@ -30,6 +31,7 @@
 #include "ClipboardSourcePage.h"
 #include "DiagnosticReportWidget.h"
 #include "TextStylePage.h"
+#include "VoiceDesignerPage.h"
 #include <QSemaphore>
 #include <QCryptographicHash>
 #include <QJsonDocument>
@@ -61,6 +63,7 @@ private slots:
     void diagnosticReportWorkflow();
     void textStyleWorkflow();
     void textStyleRestoreAiWorkflow();
+    void voiceDesignerWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -590,6 +593,63 @@ void TestUi::textStyleWorkflow()
     settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty());
     QVERIFY(!fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
     QCOMPARE(fresh.findChild<ElaComboBox*>("textStylePreset")->currentData().toString(),QString("heavy"));
+}
+void TestUi::voiceDesignerWorkflow()
+{
+    QTemporaryDir dir; TestHttpServer server; AppSettings settings(dir.filePath("voice.ini"));
+    QVERIFY(settings.setLocale("en")); QVERIFY(settings.setAiConfiguration({server.url(), "text-model", "test-only-key"}));
+    ToolRegistry tools; ToolDescriptor descriptor;
+    descriptor.id = "speech.voice_designer"; descriptor.name = "Voice Designer";
+    int loads = 0;
+    descriptor.factory = [&loads, &settings](QWidget* parent) { ++loads; return new VoiceDesignerPage(parent, &settings); };
+    QVERIFY(tools.registerTool(descriptor));
+    LazyToolPage lazy(descriptor); lazy.setAttribute(Qt::WA_DontShowOnScreen); lazy.resize(1050, 750);
+    QCOMPARE(loads, 0); lazy.show(); QTRY_COMPARE(loads, 1);
+    auto* page = qobject_cast<VoiceDesignerPage*>(lazy.page()); QVERIFY(page);
+    auto* description = page->findChild<ElaPlainTextEdit*>("voiceDescription");
+    auto* preview = page->findChild<ElaPlainTextEdit*>("voicePreviewText");
+    auto* generate = page->findChild<ElaPushButton*>("voiceGenerate");
+    auto* cancel = page->findChild<ElaPushButton*>("voiceCancel");
+    auto* clear = page->findChild<ElaPushButton*>("voiceClear");
+    auto* status = page->findChild<QLabel*>("voiceStatus");
+    QVERIFY(description && preview && generate && cancel && clear && status);
+    QVERIFY(!generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QCOMPARE(server.requests, 0);
+    description->setPlainText(QStringLiteral("温暖、沉稳的成年声音。")); preview->setPlainText(QStringLiteral("你好\nHello\u00a0world!"));
+    QVERIFY(generate->isEnabled()); QCOMPARE(server.requests, 0);
+    const QByteArray audio = QByteArray::fromHex("524946460402000057415645666d74201000000001000100c05d000080bb00000200100064617461e0010000") + QByteArray(480, '\0');
+    QVERIFY(speech::MiMoTtsService::validWav(audio));
+    server.response = QJsonDocument(QJsonObject{{"choices", QJsonArray{QJsonObject{{"message", QJsonObject{
+        {"audio", QJsonObject{{"data", QString::fromLatin1(audio.toBase64())}}}}}, {"finish_reason", "stop"}}}}}).toJson();
+    generate->click(); QTRY_VERIFY_WITH_TIMEOUT(page->resultIsCurrent(), 3000);
+    QCOMPARE(page->result()->audioData, audio); QCOMPARE(server.requests, 1);
+    QCOMPARE(page->result()->snapshot.previewText, QStringLiteral("你好\nHello\u00a0world!"));
+    QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), speech::MiMoTtsService::modelId());
+    QVERIFY(status->text().contains("validated"));
+    settings.setThemeMode(ElaThemeType::Dark); eTheme->setThemeMode(ElaThemeType::Dark);
+    QVERIFY(page->resultIsCurrent()); QVERIFY(page->grab().save("voice-designer-dark.png"));
+    QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents();
+    QCOMPARE(generate->text(), QStringLiteral("生成试听")); QVERIFY(page->resultIsCurrent());
+    QVERIFY(status->text().contains(QStringLiteral("校验")));
+    QVERIFY(settings.setLocale("zh_TW")); QCoreApplication::processEvents(); QCOMPARE(generate->text(), QStringLiteral("產生試聽"));
+    QVERIFY(settings.setLocale("en"));
+    description->setPlainText("new description"); QVERIFY(!page->resultIsCurrent()); QVERIFY(status->text().contains("out of date"));
+    server.hold = true; generate->click(); QTRY_COMPARE(server.requests, 2); QVERIFY(cancel->isEnabled()); QVERIFY(!generate->isEnabled());
+    preview->appendPlainText("edit during request"); QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QVERIFY(!page->resultIsCurrent());
+    generate->click(); QTRY_COMPARE(server.requests, 3); cancel->click(); QTRY_VERIFY(generate->isEnabled()); QVERIFY(status->text().contains("cancelled"));
+    generate->click(); QTRY_COMPARE(server.requests, 4);
+    QVERIFY(settings.setAiConfiguration({server.url(), "another-text-model", "other-test-key"}));
+    QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QCOMPARE(server.requests, 4);
+    generate->click(); QTRY_COMPARE(server.requests, 5); lazy.hide(); QTRY_VERIFY(!cancel->isEnabled());
+    lazy.show(); QCOMPARE(loads, 1); QCOMPARE(server.requests, 5);
+    server.hold = false; server.status = 400; server.response = "private text and secret";
+    generate->click(); QTRY_VERIFY_WITH_TIMEOUT(status->text().contains("400"), 3000);
+    QVERIFY(!status->text().contains("private")); QVERIFY(generate->isEnabled());
+    clear->click(); QVERIFY(description->toPlainText().isEmpty()); QVERIFY(preview->toPlainText().isEmpty());
+    QVERIFY(!page->result()); QVERIFY(!generate->isEnabled());
+    lazy.resize(540, 720); description->setPlainText("small window"); preview->setPlainText("hello");
+    QTRY_VERIFY(preview->mapTo(page, QPoint()).y() > description->mapTo(page, QPoint(0, description->height())).y());
+    QTest::qWait(100); QVERIFY(page->grab().save("voice-designer-small.png"));
+    QVERIFY(!page->findChild<QScrollArea*>()->horizontalScrollBar()->isVisible());
 }
 void TestUi::textStyleRestoreAiWorkflow()
 {

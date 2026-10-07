@@ -131,7 +131,7 @@ void SettingsPage::retranslate()
     m_languageLabel->setText(tr("Display Language"));
     m_language->setItemText(0, tr("Follow system"));
     m_aiTitle->setText(tr("AI API (OpenAI compatible)"));
-    m_aiInfo->setText(tr("AI runs only when you click AI analysis. The API key is encrypted for your Windows account. Leave the key empty only if your service requires no authentication."));
+    m_aiInfo->setText(tr("Online tools send requests only when you click their AI or Generate button. The API key is encrypted for your Windows account. Voice Designer uses this address and key with its fixed MiMo model."));
     m_apiUrlLabel->setText(tr("API base URL")); m_apiModelLabel->setText(tr("Model ID")); m_apiKeyLabel->setText(tr("API key"));
     m_apiUrl->setPlaceholderText("https://api.example.com/v1"); m_apiModel->lineEdit()->setPlaceholderText(tr("Fetch models or enter the provider's model ID"));
     m_apiModel->setToolTip(tr("Use the exact model ID, not the provider's product name."));

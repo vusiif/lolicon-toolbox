@@ -40,10 +40,12 @@ for the new page remains manual because SogouCloud held the clipboard during tes
 
 ## Build
 
-Voice Designer development has started with a dedicated MiMo VoiceDesign service
-and local mock HTTP tests. It is not yet exposed as a tool page. See
-[implementation progress](docs/Voice-Designer-Implementation.md) for the staged
-plan, limits and the later Qt Multimedia dependency.
+Voice Designer is available under Audio and Speech as a minimal online tool:
+describe a voice, enter preview text, generate/cancel and validate the returned WAV.
+It uses the saved API address/key and a fixed MiMo VoiceDesign model. Playback,
+audio saving, prompt building and A/B comparison are planned next. See
+[implementation progress](docs/Voice-Designer-Implementation.md) and
+[manual acceptance steps](docs/Voice-Designer-Testing.md).
 
 Requirements: Windows, Qt 6.11.2 MSVC 2022 64-bit including Widgets private headers,
 MSVC Build Tools, CMake, Ninja and Python 3 (build-time JSON validation only). Initialize the MSVC x64 environment before

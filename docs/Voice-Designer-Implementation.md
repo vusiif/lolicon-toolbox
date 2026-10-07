@@ -1,7 +1,8 @@
 # 音色设计：实施进度与验证
 
 2026-10-07。用户选择先开发 MiMo 音色设计；字符画等待确切 Maple 字体资源。
-依据根目录两份 Agent Plan 调查后，本轮交付 Voice Designer Stage 0 / Stage 1，尚未注册页面。
+依据根目录两份 Agent Plan 调查后，已完成 Voice Designer Stage 0 / Stage 1 / Stage 2。
+最小页面已加入「音频与语音」分组；播放、保存、Builder 与 A/B 尚未实现。
 
 ## 已核对的环境
 
@@ -58,10 +59,11 @@ ctest --preset release --output-on-failure
 
 ## 下一阶段
 
-1. Stage 2：接入音频与语音分组及最小页面，描述、试听文案、生成/取消、状态；输入或 API 配置变更取消旧请求，页面 revision 防止旧结果覆盖新输入。
-2. Stage 3：提供真实 MiMo 手工验证步骤，确认账户权限、响应 WAV 和时间；不在自动测试使用真实密钥。
-3. Stage 4：Qt Multimedia 播放/停止与用户显式保存 WAV，并检查发布包依赖。
-4. 随后按计划逐步加入描述辅助构建、会话内 A/B、设计参数 JSON 导出与三语言整理。
+1. Stage 3：按照 `Voice-Designer-Testing.md` 由用户验证真实 MiMo 账户权限、响应 WAV 和时间；不在自动测试使用真实密钥。
+2. Stage 4：Qt Multimedia 播放/停止与用户显式保存 WAV，并检查发布包依赖。
+3. 随后按计划逐步加入描述辅助构建、会话内 A/B、设计参数 JSON 导出与三语言整理。
+
+Stage 2 的页面自动测试覆盖懒加载、空输入、显式生成、生成结果快照、NBSP / LF 文案、输入变更、配置变更、取消、离开页面、HTTP 错误、清空、中英简繁切换、主题切换与窄窗口布局。编辑描述不会自动生成，主题和语言切换不会改变音频。
 
 同样的描述不保证相同音色；本工具保存设计配方和代表样本，不生成永久 Voice ID。VoiceClone 留在后续独立实验。
 
