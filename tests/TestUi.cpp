@@ -25,6 +25,8 @@
 #include "MojibakePage.h"
 #include "TextFileRecoveryPage.h"
 #include "ByteEncodingAnalyzer.h"
+#include "FilenameRecoveryPage.h"
+#include <QDir>
 #include <QFile>
 #include "services/AppSettings.h"
 #include "tool/ToolRegistry.h"
@@ -44,6 +46,7 @@ private slots:
     void aiWorkflow();
     void modelListingWorkflow();
     void fileRecoveryWorkflow();
+    void filenameRecoveryWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -376,6 +379,52 @@ void TestUi::fileRecoveryWorkflow()
     QVERIFY(preview->toPlainText().size() <= 32768); QVERIFY(details->toPlainText().contains(QString::fromUtf8("完整候选")));
     filePage->exportCopy(largeCopy); QTRY_VERIFY_WITH_TIMEOUT(save->isEnabled(), 5000);
     { QFile file(largeCopy); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), bytes); }
+}
+void TestUi::filenameRecoveryWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("names-ui.ini")); QVERIFY(settings.setLocale("zh_CN"));
+    const auto root = dir.filePath("source"), output = dir.filePath("repaired");
+    QVERIFY(QDir().mkpath(root + "/浣犲ソ"));
+    { QFile f(root + "/浣犲ソ/浣犲ソ.txt"); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("bytes stay unchanged\r\n"); }
+    { QFile f(root + "/浣犲ソ/other.txt"); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("other"); }
+    MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1000, 1000); page.show();
+    auto* mode = page.findChild<ElaPushButton*>("mojibakeNameMode"); QCOMPARE(mode->text(), QString("文件与文件夹名")); mode->click();
+    auto* names = page.findChild<FilenameRecoveryPage*>(); QVERIFY(names);
+    auto* rescan = page.findChild<ElaPushButton*>("filenameRescan");
+    auto* exportButton = page.findChild<ElaPushButton*>("filenameExport");
+    auto* tree = page.findChild<QTreeView*>("filenameTree");
+    auto* details = page.findChild<ElaPlainTextEdit*>("filenameDetails");
+    auto* field = page.findChild<ElaLineEdit*>("filenameProposedName");
+    auto* status = page.findChild<QLabel*>("filenameStatus");
+    names->scanDirectory(root); QTRY_VERIFY_WITH_TIMEOUT(rescan->isEnabled(), 5000); QVERIFY(exportButton->isEnabled());
+    const auto folder = tree->model()->index(0, 0); QCOMPARE(folder.data().toString(), QString("浣犲ソ"));
+    auto choose = [&page](const QString& name) {
+        for (int i = 1; i <= 5; ++i) {
+            auto* b = page.findChild<ElaPushButton*>(QString("filenameCandidate%1").arg(i));
+            if (b->isEnabled() && b->toolTip() == name) { b->click(); return true; }
+        }
+        return false;
+    };
+    tree->setCurrentIndex(folder); QVERIFY(choose("你好"));
+    QModelIndex file;
+    for (int i = 0; i < tree->model()->rowCount(folder); ++i) {
+        const auto index = tree->model()->index(i, 0, folder);
+        if (index.data().toString() == "浣犲ソ.txt") file = index;
+    }
+    QVERIFY(file.isValid()); tree->setCurrentIndex(file); QVERIFY(choose("你好.txt"));
+    QVERIFY(details->toPlainText().contains("你好/你好.txt"));
+    field->setText("other.txt"); page.findChild<ElaPushButton*>("filenameApplyName")->click();
+    QVERIFY(!exportButton->isEnabled()); QVERIFY(details->toPlainText().contains("名称冲突"));
+    field->setText("../escape"); page.findChild<ElaPushButton*>("filenameApplyName")->click(); QVERIFY(!exportButton->isEnabled());
+    QVERIFY(choose("你好.txt")); QVERIFY(exportButton->isEnabled());
+    QVERIFY(page.grab().save("filename-recovery-preview.png"));
+    names->exportCopy(output); QTRY_VERIFY_WITH_TIMEOUT(rescan->isEnabled(), 5000);
+    QVERIFY2(status->text().contains("已创建目录副本"), qPrintable(status->text()));
+    { QFile f(output + "/你好/你好.txt"); QVERIFY(f.open(QIODevice::ReadOnly)); QCOMPARE(f.readAll(), QByteArray("bytes stay unchanged\r\n")); }
+    QVERIFY(QFileInfo::exists(root + "/浣犲ソ/浣犲ソ.txt")); QVERIFY(!QFileInfo::exists(root + "/你好"));
+    names->exportCopy(output); QTRY_VERIFY_WITH_TIMEOUT(rescan->isEnabled(), 5000); QVERIFY(status->text().contains("输出已存在"));
+    QVERIFY(settings.setLocale("en")); QCoreApplication::processEvents(); QCOMPARE(mode->text(), QString("File and folder names"));
+    QCOMPARE(tree->model()->headerData(1, Qt::Horizontal).toString(), QString("Proposed name"));
 }
 void TestUi::windowWorkflow()
 {

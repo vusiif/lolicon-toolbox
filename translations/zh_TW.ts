@@ -281,4 +281,81 @@ Unavailable</source><translation>候選 %1
         <message><source>Cannot create the copy. Choose a new filename; existing files are never overwritten.</source><translation>無法建立副本，請使用新檔案名稱。不會覆寫已有檔案。</translation></message>
         <message><source>Could not write the complete copy.</source><translation>無法寫入完整副本。</translation></message>
     </context>
+    <context>
+        <name>FilenameRecovery</name>
+        <message><source>Choose a regular directory, not a link or junction.</source><translation>請選擇一般目錄，不支援連結或目錄接合點。</translation></message>
+        <message><source>The source directory is not accessible.</source><translation>來源目錄無法存取。</translation></message>
+        <message><source>A source directory changed or cannot be read.</source><translation>來源目錄發生變化或無法讀取。</translation></message>
+        <message><source>Scan limit reached: 1,000 entries, 32 levels or 256 MiB. Choose a smaller directory.</source><translation>已達到掃描上限：1,000 個項目、32 層或 256 MiB。請選擇較小的目錄。</translation></message>
+        <message><source>Links, junctions and special files are not supported. Choose a directory without them.</source><translation>不支援連結、目錄接合點和特殊檔案。請選擇不含這些項目的目錄。</translation></message>
+        <message><source>A source file cannot be read.</source><translation>來源檔案無法讀取。</translation></message>
+        <message><source>Empty, invalid or overly long name.</source><translation>名稱為空、無效或過長。</translation></message>
+        <message><source>Windows names cannot end in a space or dot.</source><translation>Windows 名稱不能以空格或句點結尾。</translation></message>
+        <message><source>The name contains a Windows-forbidden character.</source><translation>名稱含有 Windows 禁用字元。</translation></message>
+        <message><source>Reserved Windows device name.</source><translation>Windows 保留裝置名稱。</translation></message>
+        <message><source>Invalid directory hierarchy.</source><translation>目錄階層無效。</translation></message>
+        <message><source>Name conflict in the same directory (case-insensitive).</source><translation>同一目錄下名稱衝突（不區分大小寫）。</translation></message>
+        <message><source>The plan contains errors. Fix them or scan again.</source><translation>計畫含有錯誤，請修正或重新掃描。</translation></message>
+        <message><source>Choose a new output directory inside an existing parent directory.</source><translation>請在既有父目錄中指定新的輸出目錄。</translation></message>
+        <message><source>The output must be outside the source directory and cannot contain it.</source><translation>輸出目錄必須在來源目錄之外，也不能包含來源目錄。</translation></message>
+        <message><source>The output already exists. Choose a new directory; nothing is overwritten.</source><translation>輸出已存在，請使用新目錄。不會覆寫任何既有內容。</translation></message>
+        <message><source>Copy cancelled.</source><translation>複製已取消。</translation></message>
+        <message><source>The source tree changed or is unreadable. Scan again before copying.</source><translation>來源目錄樹已變化或無法讀取，請重新掃描後複製。</translation></message>
+        <message><source>An output path is too long. Choose a shorter destination or name.</source><translation>輸出路徑過長，請縮短目標路徑或名稱。</translation></message>
+        <message><source>Cannot create the output directory. Nothing is overwritten.</source><translation>無法建立輸出目錄，不會覆寫既有內容。</translation></message>
+        <message><source>Could not create a copied directory.</source><translation>無法建立副本中的目錄。</translation></message>
+        <message><source>Could not read a source file or exclusively create its copy.</source><translation>無法讀取來源檔案或獨占建立副本檔案。</translation></message>
+        <message><source>Could not write the complete directory copy.</source><translation>無法完整寫入目錄副本。</translation></message>
+        <message><source>The source tree changed during copying. The output is incomplete; scan again.</source><translation>複製過程中來源目錄樹發生變化。輸出不完整，請重新掃描。</translation></message>
+    </context>
+    <context>
+        <name>FilenameRecoveryPage</name>
+        <message><source>Choose the source directory</source><translation>選擇來源目錄</translation></message>
+        <message><source>Create a directory copy with these names</source><translation>依計畫名稱建立目錄副本</translation></message>
+        <message><source>Folder</source><translation>資料夾</translation></message>
+        <message><source>File</source><translation>檔案</translation></message>
+        <message><source>Name will change</source><translation>名稱將變更</translation></message>
+        <message><source>Keep original</source><translation>保留原名</translation></message>
+        <message><source>No directory selected.</source><translation>未選擇目錄。</translation></message>
+        <message><source>Scanning names and hashing file bytes locally: %1 entries, %2 MiB…</source><translation>正在本機掃描名稱並計算檔案雜湊：%1 個項目，%2 MiB…</translation></message>
+        <message><source>Verifying and copying: %1 / %2 entries, %3 MiB written…</source><translation>正在驗證並複製：%1 / %2 個項目，已寫入 %3 MiB…</translation></message>
+        <message><source> Partial output remains at %1; it is not a completed recovery. Choose a new destination for another attempt.</source><translation> 不完整的輸出保留在 %1，不能視為修復完成。再次嘗試時請選擇新目標。</translation></message>
+        <message><source>Created directory copy: %1. Source names and file bytes were preserved.</source><translation>已建立目錄副本：%1。來源名稱與檔案位元組保持不變。</translation></message>
+        <message><source>Scan cancelled; no complete plan is available.</source><translation>掃描已取消，沒有可執行的完整計畫。</translation></message>
+        <message><source>%1 entries, %2 MiB; %3 name changes, %4 errors. Review the plan before creating a copy.</source><translation>共 %1 個項目，%2 MiB；變更 %3 個名稱，%4 個錯誤。建立副本前請檢查計畫。</translation></message>
+        <message><source>Choose a small directory. All entries will be copied; only names selected in the plan change.</source><translation>請選擇較小的目錄。將複製全部項目，僅變更計畫中選定的名稱。</translation></message>
+        <message><source>Candidate %1
+Unavailable</source><translation>候選 %1
+無法使用</translation></message>
+        <message><source>Original relative path: %1</source><translation>原相對路徑：%1</translation></message>
+        <message><source>Planned relative path: %1</source><translation>計畫相對路徑：%1</translation></message>
+        <message><source>Candidate %1: %2 — %3</source><translation>候選 %1：%2 — %3</translation></message>
+        <message><source>Exact inverse verified</source><translation>已驗證精確逆向轉換</translation></message>
+        <message><source>Partial recovery; not reversible</source><translation>部分恢復，無法逆向驗證</translation></message>
+        <message><source>Encode as %1, then decode as %2.</source><translation>以 %1 編碼，再以 %2 解碼。</translation></message>
+        <message><source>Scores rank possibilities, not probabilities. Extensions are preserved in generated file-name candidates. No names or contents are sent to AI.</source><translation>評分用於排序，不是正確率。產生檔名候選時保留副檔名。名稱和檔案內容不會傳送給 AI。</translation></message>
+        <message><source>File and folder name recovery</source><translation>檔名與資料夾名稱修復</translation></message>
+        <message><source>Scan a directory, select name candidates and review the complete plan. Create a new directory copy; file contents stay unchanged. Limits: 1,000 entries, 32 levels, 256 MiB. Links are not followed.</source><translation>掃描目錄、選擇名稱候選並檢查完整計畫。建立新目錄副本，檔案內容保持不變。上限：1,000 個項目、32 層、256 MiB。不跟隨連結。</translation></message>
+        <message><source>Choose directory</source><translation>選擇目錄</translation></message>
+        <message><source>Scan again</source><translation>重新掃描</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Create directory copy…</source><translation>建立目錄副本…</translation></message>
+        <message><source>Proposed name</source><translation>計畫名稱</translation></message>
+        <message><source>Apply to plan</source><translation>套用至計畫</translation></message>
+        <message><source>Original name</source><translation>原名稱</translation></message>
+        <message><source>Plan status</source><translation>計畫狀態</translation></message>
+        <message><source>Type</source><translation>類型</translation></message>
+    </context>
+    <context>
+        <name>MojibakePage</name>
+        <message><source>File and folder names</source><translation>檔名與資料夾名稱</translation></message>
+    </context>
+    <context>
+        <name>FilenameRecovery</name>
+        <message><source>The output directory changed during copying. Stop and choose a new destination.</source><translation>複製過程中輸出目錄發生變化。請停止操作並選擇新目標。</translation></message>
+    </context>
+    <context>
+        <name>FilenameRecoveryPage</name>
+        <message><source>Possible missing information: replacement characters do not identify the original name.</source><translation>可能存在資訊遺失：替換字元無法確定原名稱。</translation></message>
+    </context>
 </TS>

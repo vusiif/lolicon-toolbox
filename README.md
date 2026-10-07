@@ -145,10 +145,39 @@ are UTF-8, the source BOM's presence and preserved newlines. Unrepresentable
 output characters cause an error instead of substitution. Saving requires a new
 destination: existing files, including the source, are never overwritten. The
 source's SHA-256 is checked again before export; changed sources require another
-analysis. Filename repair and folder batches remain deferred.
+analysis. File-content batch conversion remains deferred.
 
 See [manual file-recovery checks](docs/File-Recovery-Testing.md) for reproducible
 fixtures and acceptance steps.
+
+### File and folder names
+
+Switch to **File and folder names** and choose a source directory. The app scans
+the complete tree, hashes file bytes and generates name candidates locally.
+Original names remain selected until you choose a candidate or apply a manual
+name. Generated file-name candidates preserve the final extension. The tree
+shows original names, proposed names and errors; changing a folder name updates
+its descendants' planned output paths. Five candidate buttons and inverse paths
+help compare alternatives. Unicode names offer less evidence than original
+encoding bytes; even reversible suggestions can have the wrong meaning.
+
+Windows-forbidden characters, device names, trailing spaces/dots and sibling
+conflicts (case-insensitive, including file/folder conflicts) block export.
+Review the plan, then choose **Create directory copy** and specify a new path
+outside the source tree. Every scanned entry is copied, including unchanged
+names, hidden entries and empty directories; file contents are not converted.
+The output must not exist. The source tree is verified before and after copying,
+and each copied file is checked against its scanned hash. File timestamps,
+permissions and other filesystem metadata are not preserved by this feature.
+
+Scanning and copying run in the background with cancellation and progress.
+This stage limits a tree to 1,000 entries, 32 levels and 256 MiB of file contents;
+links, junctions and special files cause the scan to stop rather than skip entries
+silently. No names or contents are uploaded. Cancellation or errors after output
+creation leave a clearly reported partial copy; another attempt requires a new
+destination. Original entries are never renamed or deleted.
+
+See [manual name-recovery checks](docs/Filename-Recovery-Testing.md).
 
 ### Optional AI assistance
 

@@ -32,6 +32,7 @@ try {
     $packageDocs = Join-Path $package 'docs'
     New-Item -ItemType Directory -Path $packageDocs | Out-Null
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/File-Recovery-Testing.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Filename-Recovery-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/ElaWidgetTools-main/LICENSE') -Destination (Join-Path $package 'ElaWidgetTools-LICENSE.txt')
     Compress-Archive -LiteralPath $package -DestinationPath "$package.zip"
     Get-FileHash -LiteralPath "$package.zip" -Algorithm SHA256 |
