@@ -29,6 +29,9 @@ public:
     void sync();
     ai::Configuration aiConfiguration() const;
     bool setAiConfiguration(const ai::Configuration& config);
+    QString textStylePreset() const;
+    bool textStyleAdvanced() const;
+    void setTextStylePreferences(const QString& preset, bool advanced);
 signals:
     void themeChanged(ElaThemeType::ThemeMode mode);
     void localeChanged();

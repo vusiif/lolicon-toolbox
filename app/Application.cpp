@@ -5,6 +5,7 @@
 #include "navigation/NavigationManager.h"
 #include "Base64Page.h"
 #include "MojibakePage.h"
+#include "TextStylePage.h"
 #include "UiTheme.h"
 #include <ElaApplication.h>
 #include <ElaTheme.h>
@@ -29,10 +30,15 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     mojibake.icon = ElaIconType::Language;
     mojibake.factory = [this](QWidget* parent) { return new MojibakePage(parent, m_settings.get()); };
     m_tools->registerTool(mojibake);
+    ToolDescriptor textStyle;
+    textStyle.id = "text.style_converter"; textStyle.name = "Text Style Converter"; textStyle.icon = ElaIconType::Language;
+    textStyle.factory = [this](QWidget* parent) { return new TextStylePage(parent, m_settings.get()); };
+    m_tools->registerTool(textStyle);
     NavigationManager navigation;
     navigation.addGroup({"encoding", QT_TRANSLATE_NOOP("Navigation", "Text and Encoding"), 10});
     navigation.addItem({"encoding.base64", "encoding", 10, true});
     navigation.addItem({"encoding.mojibake", "encoding", 20, true});
+    navigation.addItem({"text.style_converter", "encoding", 30, true});
     m_window = std::make_unique<MainWindow>(*m_settings, *m_tools, navigation);
     m_window->show();
 }

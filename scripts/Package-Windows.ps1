@@ -35,6 +35,10 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Filename-Recovery-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Clipboard-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Diagnostic-Testing.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Converter.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Testing.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Style-Data-Sources.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/LICENSE.txt') -Destination (Join-Path $package 'Text-Style-Data-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/ElaWidgetTools-main/LICENSE') -Destination (Join-Path $package 'ElaWidgetTools-LICENSE.txt')
     Compress-Archive -LiteralPath $package -DestinationPath "$package.zip"
     Get-FileHash -LiteralPath "$package.zip" -Algorithm SHA256 |

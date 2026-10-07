@@ -42,6 +42,15 @@ AppSettings::AppSettings(const QString& path, QObject* parent) : QObject(parent)
     qApp->installEventFilter(this);
 }
 AppSettings::~AppSettings() { if (qApp && m_translator) qApp->removeTranslator(m_translator.get()); }
+QString AppSettings::textStylePreset() const {
+    const auto value = m_store->value("TextStyle/preset", "medium").toString();
+    return value == "light" || value == "heavy" ? value : "medium";
+}
+bool AppSettings::textStyleAdvanced() const { return m_store->value("TextStyle/advanced", false).toString() == "true"; }
+void AppSettings::setTextStylePreferences(const QString& preset, bool advanced) {
+    if (preset != "light" && preset != "medium" && preset != "heavy") return;
+    m_store->setValue("TextStyle/style", "mars_classic"); m_store->setValue("TextStyle/preset", preset); m_store->setValue("TextStyle/advanced", advanced);
+}
 ElaThemeType::ThemeMode AppSettings::themeMode() const { return m_themeMode; }
 bool AppSettings::followsSystemTheme() const
 {

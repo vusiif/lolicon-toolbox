@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "id": "mars_classic",
+    "version": "1.0.0",
+    "name": {
+      "zh_CN": "经典火星文",
+      "zh_TW": "經典火星文",
+      "en": "Classic Martian"
+    },
+    "description": {
+      "zh_CN": "常见字形替换与少量词组转换；重度增加行首尾装饰。",
+      "zh_TW": "常見字形替換與少量詞組轉換；重度增加行首尾裝飾。",
+      "en": "Character and phrase substitutions with optional line wrappers."
+    },
+    "license": "MIT",
+    "sources": [
+      {
+        "label": "Toolbox 人工整理示例，正式交付前核对归属",
+        "url": "",
+        "license": "MIT",
+        "notes": "本例不代表已取得任何外部字典的使用许可。"
+      }
+    ]
+  },
+  "rule_groups": [
+    "core",
+    "extended",
+    "expressive"
+  ],
+  "presets": {
+    "light": {
+      "rule_groups": [
+        "core"
+      ],
+      "replacement_rate_bp": 4500,
+      "decorator_rate_bp": 0,
+      "decorator_ids": []
+    },
+    "medium": {
+      "rule_groups": [
+        "core",
+        "extended"
+      ],
+      "replacement_rate_bp": 10000,
+      "decorator_rate_bp": 0,
+      "decorator_ids": []
+    },
+    "heavy": {
+      "rule_groups": [
+        "core",
+        "extended",
+        "expressive"
+      ],
+      "replacement_rate_bp": 10000,
+      "decorator_rate_bp": 10000,
+      "decorator_ids": [
+        "star",
+        "sparkle"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "char_ni",
+      "kind": "character",
+      "group": "core",
+      "source": "你",
+      "candidates": [
+        {
+          "text": "伱",
+          "weight": 80
+        },
+        {
+          "text": "鉨",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "char_wo",
+      "kind": "character",
+      "group": "core",
+      "source": "我",
+      "candidates": [
+        {
+          "text": "莪",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "char_hao",
+      "kind": "character",
+      "group": "extended",
+      "source": "好",
+      "candidates": [
+        {
+          "text": "恏",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "phrase_xihuan",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "喜欢",
+      "candidates": [
+        {
+          "text": "囍歡",
+          "weight": 80
+        },
+        {
+          "text": "稀飯",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "phrase_weishenme",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "为什么",
+      "candidates": [
+        {
+          "text": "為蝦米",
+          "weight": 100
+        }
+      ]
+    }
+  ],
+  "decorators": [
+    {
+      "id": "star",
+      "prefix": "☆",
+      "suffix": "☆",
+      "weight": 70
+    },
+    {
+      "id": "sparkle",
+      "prefix": "★·°",
+      "suffix": "°·★",
+      "weight": 30
+    }
+  ]
+}

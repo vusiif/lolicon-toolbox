@@ -15,11 +15,22 @@ navigation, theme and controls.
 - Base64 encoding/decoding with validation, clear and clipboard actions
 - Local Mojibake Repair with ranked candidates, reversible paths, background
   analysis, cancellation and a maximum input size of 1 MiB
+- Local Text Style Converter: Classic Martian, three intensities, paired line
+  decorations, reproducible 64-bit seeds and metadata-only generation parameters.
+  The curated pack contains 98 character and 38 phrase rules (20 with alternatives).
+  Unknown Unicode graphemes remain intact; only line endings are normalized.
+  Input is limited to 256 KiB UTF-8 and output to 2 MiB; tasks run in the background
+  with cancellation. Text and seeds are not persisted.
+
+Text Style Converter documentation: [contract](docs/Text-Style-Converter.md),
+[manual testing](docs/Text-Style-Testing.md), [data sources](docs/Style-Data-Sources.md).
+Core and hidden native UI regressions are automated; real clipboard acceptance
+for the new page remains manual because SogouCloud held the clipboard during testing.
 
 ## Build
 
 Requirements: Windows, Qt 6.11.2 MSVC 2022 64-bit including Widgets private headers,
-MSVC Build Tools, CMake and Ninja. Initialize the MSVC x64 environment before
+MSVC Build Tools, CMake, Ninja and Python 3 (build-time JSON validation only). Initialize the MSVC x64 environment before
 running CMake from PowerShell 7 (`pwsh`). The preset contains the local Qt path.
 
 ```powershell
@@ -44,7 +55,7 @@ included `vc_redist.x64.exe` before running Toolbox. This is a portable developm
 package, not an installer.
 
 In CLion, open the project root and select the `default` or `release` CMake preset
-with an MSVC x64 toolchain. Build/run the `Toolbox` target; the two test targets
+with an MSVC x64 toolchain. Build/run the `Toolbox` target; the test targets
 are also available. The preset's Qt path is local and can be overridden.
 
 ## Structure
@@ -56,6 +67,8 @@ core/navigation/ Group/item configuration, validation and ordering
 core/services/   AppSettings: validated settings and translation installation
 ui/              LazyToolPage, SettingsPage and small Ela palette helpers
 tools/encoding/  Base64 page and unchanged Base64Codec
+tools/text/style/ Text style page, strict rule loader and deterministic engine
+resources/styles/ Built-in style data and scoped data license
 translations/    Chinese translation sources
 tests/           Codec tests and native Windows UI regression tests
 third_party/     base64.hpp and vendored ElaWidgetTools

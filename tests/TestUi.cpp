@@ -28,6 +28,9 @@
 #include "FilenameRecoveryPage.h"
 #include "ClipboardSourcePage.h"
 #include "DiagnosticReportWidget.h"
+#include "TextStylePage.h"
+#include <QSemaphore>
+#include <QCryptographicHash>
 #include <QJsonDocument>
 #include <QMimeData>
 #include <QTextDocument>
@@ -55,6 +58,7 @@ private slots:
     void filenameRecoveryWorkflow();
     void clipboardSourceWorkflow();
     void diagnosticReportWorkflow();
+    void textStyleWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -510,6 +514,63 @@ void TestUi::diagnosticReportWorkflow()
     QVERIFY(page.grab().save("diagnostic-report-preview.png"));
     QVERIFY(settings.setLocale("en")); QCoreApplication::processEvents(); QCOMPARE(nameReport->findChild<ElaPushButton*>("diagnosticExport")->text(), QString("Export diagnostic report…"));
     QVERIFY(nameReport->findChild<QLabel*>("diagnosticSummary")->text().contains("Blocked"));
+}
+void TestUi::textStyleWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("style-ui.ini")); QVERIFY(settings.setLocale("en"));
+    ToolRegistry tools; ToolDescriptor descriptor; descriptor.id = "text.style_converter"; descriptor.name = "Text Style Converter";
+    int loads = 0; descriptor.factory = [&](QWidget* parent) { ++loads; return new TextStylePage(parent, &settings); }; QVERIFY(tools.registerTool(descriptor));
+    NavigationManager navigation; QVERIFY(navigation.addGroup({"encoding", "Text and Encoding", 10})); QVERIFY(navigation.addItem({descriptor.id, "encoding", 30}));
+    MainWindow window(settings,tools,navigation); window.setAttribute(Qt::WA_DontShowOnScreen); window.resize(1100,900); window.show();
+    auto* page = window.findChild<TextStylePage*>(); QVERIFY(page); QCOMPARE(loads,1);
+    QString copiedPayload; page->setClipboardWriter([&](const QString& value) { copiedPayload = value; return true; });
+    auto* input = page->findChild<ElaPlainTextEdit*>("textStyleInput"); auto* output = page->findChild<ElaPlainTextEdit*>("textStyleOutput");
+    auto* convert = page->findChild<ElaPushButton*>("textStyleConvert"); auto* regenerate = page->findChild<ElaPushButton*>("textStyleRegenerate");
+    auto* seed = page->findChild<ElaLineEdit*>("textStyleSeed"); auto* presets = page->findChild<ElaComboBox*>("textStylePreset");
+    auto* copy = page->findChild<ElaPushButton*>("textStyleCopy"); auto* parameters = page->findChild<ElaPushButton*>("textStyleCopyParameters");
+    QVERIFY(!convert->isEnabled()); QVERIFY(output->isReadOnly()); QVERIFY(seed->text().isEmpty());
+    input->setPlainText("你好，我喜欢你。ABC 😀"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000);
+    QVERIFY(!seed->text().isEmpty()); const auto originalSeed = seed->text(); const auto first = output->document()->toRawText(); QVERIFY(copy->isEnabled());
+    convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(output->document()->toRawText(),first); QCOMPARE(seed->text(),originalSeed);
+    regenerate->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(seed->text()!=originalSeed);
+    seed->setText("18446744073709551615"); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!parameters->isEnabled()); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000);
+    parameters->click(); const auto metadata = QJsonDocument::fromJson(copiedPayload.toUtf8()).object();
+    QCOMPARE(metadata["seed"].toString(),QString("18446744073709551615")); QVERIFY(!metadata.contains("input")); QVERIFY(!metadata.contains("output"));
+    QCOMPARE(metadata["input_sha256"].toString(),QString::fromLatin1(QCryptographicHash::hash(textstyle::Engine::normalize(input->document()->toRawText()).toUtf8(),QCryptographicHash::Sha256).toHex()));
+    copy->click(); QCOMPARE(copiedPayload,output->document()->toRawText()); const auto retainedOutput = output->document()->toRawText();
+    page->setClipboardWriter([](const QString&) { return false; }); copy->click(); QVERIFY(page->findChild<QLabel*>("textStyleStatus")->text().contains("retry copying"));
+    page->setClipboardWriter([&](const QString& value) { copiedPayload = value; return true; });
+    page->findChild<ElaPushButton*>("textStyleAdvanced")->click();
+    copy->click();
+    QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents(); QCOMPARE(convert->text(),QString("转换")); QCOMPARE(output->document()->toRawText(),retainedOutput);
+    QCOMPARE(window.getNavigationNodeTitle(window.pageKey(descriptor.id)),QString("文本风格转换"));
+    eTheme->setThemeMode(ElaThemeType::Dark); QTest::qWait(250); QCOMPARE(output->document()->toRawText(),retainedOutput); QVERIFY(window.grab().save("text-style-dark.png"));
+    QVERIFY(settings.setLocale("zh_TW")); QCoreApplication::processEvents(); QCOMPARE(convert->text(),QString("轉換")); QCOMPARE(output->document()->toRawText(),retainedOutput);
+    eTheme->setThemeMode(ElaThemeType::Light); QTest::qWait(250); QVERIFY(window.grab().save("text-style-light.png"));
+    window.resize(640,480); QCoreApplication::processEvents(); QVERIFY(window.grab().save("text-style-small.png"));
+    seed->setText("18446744073709551616"); regenerate->click(); QVERIFY(output->toPlainText().isEmpty()); QCOMPARE(seed->text(),QString("18446744073709551616")); QVERIFY(!copy->isEnabled());
+    seed->setText("00042"); presets->setCurrentIndex(presets->findData("heavy")); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(seed->text(),QString("42"));
+    page->findChild<ElaPushButton*>("textStyleClear")->click(); QVERIFY(input->toPlainText().isEmpty()); QCOMPARE(seed->text(),QString("42")); QCOMPARE(presets->currentData().toString(),QString("heavy"));
+    QVERIFY(!convert->isEnabled()); QVERIFY(!copy->isEnabled());
+    input->setPlainText(" \t\n"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(output->toPlainText(),QString(" \t\n"));
+    input->setPlainText("<script>&ABC🙂</script>"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().contains("<script>&ABC🙂</script>"));
+    input->setPlainText(QString(100*1024,'x')); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); copy->click(); QCOMPARE(copiedPayload,output->document()->toRawText()); QVERIFY(copiedPayload.size()>=100*1024);
+    auto entered = std::make_shared<QSemaphore>(), release = std::make_shared<QSemaphore>();
+    page->setRunner([entered,release](const QString& text, auto style, const QString& preset, uint64_t s, const textstyle::Control&) {
+        entered->release(); release->acquire(); return textstyle::Engine::transform(text,style,preset,s);
+    });
+    input->setPlainText("late old input"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); input->setPlainText("new current input");
+    release->release(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().isEmpty()); QCOMPARE(input->toPlainText(),QString("new current input"));
+    convert->click(); QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); page->findChild<ElaPushButton*>("textStyleCancel")->click(); release->release();
+    QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!parameters->isEnabled());
+    auto ended = std::make_shared<QSemaphore>(); auto* closing = new TextStylePage();
+    closing->setRunner([entered,release,ended](const QString& text, auto style, const QString& preset, uint64_t s, const textstyle::Control& control) {
+        entered->release(); release->acquire(); auto result = textstyle::Engine::transform(text,style,preset,s,control); ended->release(); return result;
+    });
+    closing->findChild<ElaPlainTextEdit*>("textStyleInput")->setPlainText("close while running"); closing->findChild<ElaPushButton*>("textStyleConvert")->click();
+    QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); delete closing; release->release(); QTRY_VERIFY_WITH_TIMEOUT(ended->available()>0,5000);
+    settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty()); QVERIFY(fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
+    QCOMPARE(fresh.findChild<ElaComboBox*>("textStylePreset")->currentData().toString(),QString("heavy"));
 }
 void TestUi::windowWorkflow()
 {

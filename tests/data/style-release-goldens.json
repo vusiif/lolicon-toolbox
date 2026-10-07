@@ -1,0 +1,34 @@
+{
+  "input": "你好，我喜欢你！ABC 123 😀\n谢谢朋友，晚安。",
+  "style_sha256": "f72b1ddad482a6f53a4c5433c6f7db20146e9649d369f566536b25089ff6b202",
+  "reference": "Independent Python integer-stream trace for this simple CJK/ASCII sample, not a general Unicode segmenter.",
+  "cases": [
+    {
+      "preset": "light",
+      "seed": "42",
+      "output": "你恏，我喜欢伱！ABC 123 😀\n谢谢朋友，晚安。",
+      "matched": 4,
+      "replaced": 2,
+      "decorated": 0,
+      "random_calls": 6
+    },
+    {
+      "preset": "medium",
+      "seed": "42",
+      "output": "伱恏，峩囍歡伱！ABC 123 😀\n謝謝倗叐，晩咹。",
+      "matched": 6,
+      "replaced": 6,
+      "decorated": 0,
+      "random_calls": 4
+    },
+    {
+      "preset": "heavy",
+      "seed": "42",
+      "output": "☆伱恏，峩囍歡伱！ABC 123 😀☆\n☆謝謝倗叐，晩咹。☆",
+      "matched": 6,
+      "replaced": 6,
+      "decorated": 2,
+      "random_calls": 6
+    }
+  ]
+}

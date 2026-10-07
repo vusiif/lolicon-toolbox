@@ -3,7 +3,7 @@ add_executable(TestBase64Codec TestBase64Codec.cpp)
 target_link_libraries(TestBase64Codec PRIVATE Qt6::Test ToolBase64)
 add_test(NAME TestBase64Codec COMMAND TestBase64Codec)
 add_executable(TestUi TestUi.cpp)
-target_link_libraries(TestUi PRIVATE Qt6::Test ToolboxShell ToolBase64 ToolMojibake)
+target_link_libraries(TestUi PRIVATE Qt6::Test ToolboxShell ToolBase64 ToolMojibake ToolTextStyle)
 add_test(NAME TestUi COMMAND TestUi -o ui-results.txt,txt)
 add_executable(TestMojibake TestMojibake.cpp)
 target_link_libraries(TestMojibake PRIVATE Qt6::Test MojibakeLogic)
@@ -24,7 +24,13 @@ add_test(NAME TestClipboardSource COMMAND TestClipboardSource -o clipboard-sourc
 add_executable(TestDiagnosticReport TestDiagnosticReport.cpp)
 target_link_libraries(TestDiagnosticReport PRIVATE Qt6::Test RecoveryReporting)
 add_test(NAME TestDiagnosticReport COMMAND TestDiagnosticReport -o diagnostic-report-results.txt,txt)
-set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport PROPERTIES
+add_executable(TestTextStyle TestTextStyle.cpp)
+target_link_libraries(TestTextStyle PRIVATE Qt6::Test TextStyleLogic)
+target_compile_definitions(TestTextStyle PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+add_test(NAME TestTextStyle COMMAND TestTextStyle -o text-style-results.txt,txt)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME TestStyleJsonValidation COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Check-Style-Json.py" --self-test)
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"
@@ -32,3 +38,4 @@ set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery
 set_tests_properties(TestMojibake PROPERTIES TIMEOUT 90)
 set_tests_properties(TestFileRecovery PROPERTIES TIMEOUT 90)
 set_tests_properties(TestFilenameRecovery PROPERTIES TIMEOUT 90)
+set_tests_properties(TestTextStyle PROPERTIES TIMEOUT 90)

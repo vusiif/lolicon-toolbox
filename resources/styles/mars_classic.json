@@ -1,0 +1,1791 @@
+{
+  "schema_version": 1,
+  "metadata": {
+    "id": "mars_classic",
+    "version": "1.0.0",
+    "name": {
+      "zh_CN": "经典火星文",
+      "zh_TW": "經典火星文",
+      "en": "Classic Martian"
+    },
+    "description": {
+      "en": "Curated glyph and chat-phrase substitutions; heavy adds playful phrases and paired line wrappers.",
+      "zh_CN": "常见字形与聊天词组替换；重度加入趣味词组和成对行装饰。",
+      "zh_TW": "常見字形與聊天詞組替換；重度加入趣味詞組和成對行裝飾。"
+    },
+    "license": "MIT",
+    "sources": [
+      {
+        "label": "Toolbox locally curated glyph and chat-phrase mappings",
+        "url": "",
+        "license": "MIT",
+        "notes": "New mapping data prepared for this tool; no external dictionary imported. Expressive mappings are playful approximations, not semantic rewriting."
+      }
+    ]
+  },
+  "rule_groups": [
+    "core",
+    "extended",
+    "expressive"
+  ],
+  "presets": {
+    "light": {
+      "rule_groups": [
+        "core"
+      ],
+      "replacement_rate_bp": 4500,
+      "decorator_rate_bp": 0,
+      "decorator_ids": []
+    },
+    "medium": {
+      "rule_groups": [
+        "core",
+        "extended"
+      ],
+      "replacement_rate_bp": 10000,
+      "decorator_rate_bp": 0,
+      "decorator_ids": []
+    },
+    "heavy": {
+      "rule_groups": [
+        "core",
+        "extended",
+        "expressive"
+      ],
+      "replacement_rate_bp": 10000,
+      "decorator_rate_bp": 10000,
+      "decorator_ids": [
+        "star",
+        "sparkle"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "core_character_000",
+      "kind": "character",
+      "group": "core",
+      "source": "你",
+      "candidates": [
+        {
+          "text": "伱",
+          "weight": 80
+        },
+        {
+          "text": "鉨",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_001",
+      "kind": "character",
+      "group": "core",
+      "source": "我",
+      "candidates": [
+        {
+          "text": "莪",
+          "weight": 80
+        },
+        {
+          "text": "峩",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_002",
+      "kind": "character",
+      "group": "core",
+      "source": "他",
+      "candidates": [
+        {
+          "text": "彵",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_003",
+      "kind": "character",
+      "group": "core",
+      "source": "们",
+      "candidates": [
+        {
+          "text": "們",
+          "weight": 80
+        },
+        {
+          "text": "扪",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_004",
+      "kind": "character",
+      "group": "core",
+      "source": "的",
+      "candidates": [
+        {
+          "text": "啲",
+          "weight": 80
+        },
+        {
+          "text": "嘚",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_005",
+      "kind": "character",
+      "group": "core",
+      "source": "是",
+      "candidates": [
+        {
+          "text": "昰",
+          "weight": 80
+        },
+        {
+          "text": "媞",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_006",
+      "kind": "character",
+      "group": "core",
+      "source": "不",
+      "candidates": [
+        {
+          "text": "卟",
+          "weight": 80
+        },
+        {
+          "text": "吥",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_007",
+      "kind": "character",
+      "group": "core",
+      "source": "好",
+      "candidates": [
+        {
+          "text": "恏",
+          "weight": 80
+        },
+        {
+          "text": "ぬ",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_008",
+      "kind": "character",
+      "group": "core",
+      "source": "爱",
+      "candidates": [
+        {
+          "text": "愛",
+          "weight": 80
+        },
+        {
+          "text": "嗳",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_009",
+      "kind": "character",
+      "group": "core",
+      "source": "心",
+      "candidates": [
+        {
+          "text": "惢",
+          "weight": 80
+        },
+        {
+          "text": "芯",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_010",
+      "kind": "character",
+      "group": "core",
+      "source": "说",
+      "candidates": [
+        {
+          "text": "說",
+          "weight": 80
+        },
+        {
+          "text": "説",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_011",
+      "kind": "character",
+      "group": "core",
+      "source": "想",
+      "candidates": [
+        {
+          "text": "葙",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_012",
+      "kind": "character",
+      "group": "core",
+      "source": "在",
+      "candidates": [
+        {
+          "text": "茬",
+          "weight": 80
+        },
+        {
+          "text": "洅",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_013",
+      "kind": "character",
+      "group": "core",
+      "source": "有",
+      "candidates": [
+        {
+          "text": "囿",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_014",
+      "kind": "character",
+      "group": "core",
+      "source": "了",
+      "candidates": [
+        {
+          "text": "孒",
+          "weight": 80
+        },
+        {
+          "text": "叻",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_015",
+      "kind": "character",
+      "group": "core",
+      "source": "也",
+      "candidates": [
+        {
+          "text": "乜",
+          "weight": 80
+        },
+        {
+          "text": "吔",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "core_character_016",
+      "kind": "character",
+      "group": "core",
+      "source": "来",
+      "candidates": [
+        {
+          "text": "來",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_017",
+      "kind": "character",
+      "group": "core",
+      "source": "去",
+      "candidates": [
+        {
+          "text": "呿",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_018",
+      "kind": "character",
+      "group": "core",
+      "source": "人",
+      "candidates": [
+        {
+          "text": "亽",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_019",
+      "kind": "character",
+      "group": "core",
+      "source": "天",
+      "candidates": [
+        {
+          "text": "兲",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_020",
+      "kind": "character",
+      "group": "core",
+      "source": "大",
+      "candidates": [
+        {
+          "text": "夶",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_021",
+      "kind": "character",
+      "group": "core",
+      "source": "小",
+      "candidates": [
+        {
+          "text": "尐",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_022",
+      "kind": "character",
+      "group": "core",
+      "source": "多",
+      "candidates": [
+        {
+          "text": "哆",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_023",
+      "kind": "character",
+      "group": "core",
+      "source": "少",
+      "candidates": [
+        {
+          "text": "尐",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_024",
+      "kind": "character",
+      "group": "core",
+      "source": "很",
+      "candidates": [
+        {
+          "text": "狠",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_025",
+      "kind": "character",
+      "group": "core",
+      "source": "可",
+      "candidates": [
+        {
+          "text": "岢",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_026",
+      "kind": "character",
+      "group": "core",
+      "source": "看",
+      "candidates": [
+        {
+          "text": "観",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_027",
+      "kind": "character",
+      "group": "core",
+      "source": "听",
+      "candidates": [
+        {
+          "text": "聽",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_028",
+      "kind": "character",
+      "group": "core",
+      "source": "笑",
+      "candidates": [
+        {
+          "text": "笶",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_029",
+      "kind": "character",
+      "group": "core",
+      "source": "哭",
+      "candidates": [
+        {
+          "text": "泣",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_030",
+      "kind": "character",
+      "group": "core",
+      "source": "没",
+      "candidates": [
+        {
+          "text": "沒",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_031",
+      "kind": "character",
+      "group": "core",
+      "source": "会",
+      "candidates": [
+        {
+          "text": "會",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_032",
+      "kind": "character",
+      "group": "core",
+      "source": "吗",
+      "candidates": [
+        {
+          "text": "嗎",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_033",
+      "kind": "character",
+      "group": "core",
+      "source": "吧",
+      "candidates": [
+        {
+          "text": "妑",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_034",
+      "kind": "character",
+      "group": "core",
+      "source": "呀",
+      "candidates": [
+        {
+          "text": "吖",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_035",
+      "kind": "character",
+      "group": "core",
+      "source": "啊",
+      "candidates": [
+        {
+          "text": "吖",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_036",
+      "kind": "character",
+      "group": "core",
+      "source": "呢",
+      "candidates": [
+        {
+          "text": "迡",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_037",
+      "kind": "character",
+      "group": "core",
+      "source": "哦",
+      "candidates": [
+        {
+          "text": "噢",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_038",
+      "kind": "character",
+      "group": "core",
+      "source": "都",
+      "candidates": [
+        {
+          "text": "嘟",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_039",
+      "kind": "character",
+      "group": "core",
+      "source": "对",
+      "candidates": [
+        {
+          "text": "對",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_040",
+      "kind": "character",
+      "group": "core",
+      "source": "这",
+      "candidates": [
+        {
+          "text": "這",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_041",
+      "kind": "character",
+      "group": "core",
+      "source": "那",
+      "candidates": [
+        {
+          "text": "哪",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_042",
+      "kind": "character",
+      "group": "core",
+      "source": "就",
+      "candidates": [
+        {
+          "text": "僦",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_043",
+      "kind": "character",
+      "group": "core",
+      "source": "还",
+      "candidates": [
+        {
+          "text": "還",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_044",
+      "kind": "character",
+      "group": "core",
+      "source": "真",
+      "candidates": [
+        {
+          "text": "眞",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_045",
+      "kind": "character",
+      "group": "core",
+      "source": "太",
+      "candidates": [
+        {
+          "text": "冭",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_046",
+      "kind": "character",
+      "group": "core",
+      "source": "为",
+      "candidates": [
+        {
+          "text": "為",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "core_character_047",
+      "kind": "character",
+      "group": "core",
+      "source": "和",
+      "candidates": [
+        {
+          "text": "啝",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_000",
+      "kind": "character",
+      "group": "extended",
+      "source": "喜",
+      "candidates": [
+        {
+          "text": "囍",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_001",
+      "kind": "character",
+      "group": "extended",
+      "source": "欢",
+      "candidates": [
+        {
+          "text": "歡",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_002",
+      "kind": "character",
+      "group": "extended",
+      "source": "朋",
+      "candidates": [
+        {
+          "text": "倗",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_003",
+      "kind": "character",
+      "group": "extended",
+      "source": "友",
+      "candidates": [
+        {
+          "text": "叐",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_004",
+      "kind": "character",
+      "group": "extended",
+      "source": "学",
+      "candidates": [
+        {
+          "text": "學",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_005",
+      "kind": "character",
+      "group": "extended",
+      "source": "习",
+      "candidates": [
+        {
+          "text": "習",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_006",
+      "kind": "character",
+      "group": "extended",
+      "source": "生",
+      "candidates": [
+        {
+          "text": "甡",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_007",
+      "kind": "character",
+      "group": "extended",
+      "source": "活",
+      "candidates": [
+        {
+          "text": "萿",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_008",
+      "kind": "character",
+      "group": "extended",
+      "source": "快",
+      "candidates": [
+        {
+          "text": "筷",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_009",
+      "kind": "character",
+      "group": "extended",
+      "source": "乐",
+      "candidates": [
+        {
+          "text": "樂",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_010",
+      "kind": "character",
+      "group": "extended",
+      "source": "开",
+      "candidates": [
+        {
+          "text": "開",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_011",
+      "kind": "character",
+      "group": "extended",
+      "source": "关",
+      "candidates": [
+        {
+          "text": "關",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_012",
+      "kind": "character",
+      "group": "extended",
+      "source": "吃",
+      "candidates": [
+        {
+          "text": "喫",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_013",
+      "kind": "character",
+      "group": "extended",
+      "source": "喝",
+      "candidates": [
+        {
+          "text": "嚯",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_014",
+      "kind": "character",
+      "group": "extended",
+      "source": "睡",
+      "candidates": [
+        {
+          "text": "睏",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_015",
+      "kind": "character",
+      "group": "extended",
+      "source": "晚",
+      "candidates": [
+        {
+          "text": "晩",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_017",
+      "kind": "character",
+      "group": "extended",
+      "source": "今",
+      "candidates": [
+        {
+          "text": "衿",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_018",
+      "kind": "character",
+      "group": "extended",
+      "source": "见",
+      "candidates": [
+        {
+          "text": "見",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_019",
+      "kind": "character",
+      "group": "extended",
+      "source": "再",
+      "candidates": [
+        {
+          "text": "洅",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_020",
+      "kind": "character",
+      "group": "extended",
+      "source": "谢",
+      "candidates": [
+        {
+          "text": "謝",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_021",
+      "kind": "character",
+      "group": "extended",
+      "source": "请",
+      "candidates": [
+        {
+          "text": "請",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_022",
+      "kind": "character",
+      "group": "extended",
+      "source": "问",
+      "candidates": [
+        {
+          "text": "問",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_023",
+      "kind": "character",
+      "group": "extended",
+      "source": "忙",
+      "candidates": [
+        {
+          "text": "茫",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_024",
+      "kind": "character",
+      "group": "extended",
+      "source": "累",
+      "candidates": [
+        {
+          "text": "蔂",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_026",
+      "kind": "character",
+      "group": "extended",
+      "source": "走",
+      "candidates": [
+        {
+          "text": "赱",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_027",
+      "kind": "character",
+      "group": "extended",
+      "source": "玩",
+      "candidates": [
+        {
+          "text": "翫",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_028",
+      "kind": "character",
+      "group": "extended",
+      "source": "发",
+      "candidates": [
+        {
+          "text": "發",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_029",
+      "kind": "character",
+      "group": "extended",
+      "source": "回",
+      "candidates": [
+        {
+          "text": "囘",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_030",
+      "kind": "character",
+      "group": "extended",
+      "source": "家",
+      "candidates": [
+        {
+          "text": "傢",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_031",
+      "kind": "character",
+      "group": "extended",
+      "source": "美",
+      "candidates": [
+        {
+          "text": "媄",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_032",
+      "kind": "character",
+      "group": "extended",
+      "source": "丽",
+      "candidates": [
+        {
+          "text": "麗",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_033",
+      "kind": "character",
+      "group": "extended",
+      "source": "时",
+      "candidates": [
+        {
+          "text": "時",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_034",
+      "kind": "character",
+      "group": "extended",
+      "source": "间",
+      "candidates": [
+        {
+          "text": "間",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_035",
+      "kind": "character",
+      "group": "extended",
+      "source": "梦",
+      "candidates": [
+        {
+          "text": "夢",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_036",
+      "kind": "character",
+      "group": "extended",
+      "source": "星",
+      "candidates": [
+        {
+          "text": "煋",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_037",
+      "kind": "character",
+      "group": "extended",
+      "source": "月",
+      "candidates": [
+        {
+          "text": "玥",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_038",
+      "kind": "character",
+      "group": "extended",
+      "source": "日",
+      "candidates": [
+        {
+          "text": "ㄖ",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_039",
+      "kind": "character",
+      "group": "extended",
+      "source": "风",
+      "candidates": [
+        {
+          "text": "風",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_041",
+      "kind": "character",
+      "group": "extended",
+      "source": "花",
+      "candidates": [
+        {
+          "text": "埖",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_042",
+      "kind": "character",
+      "group": "extended",
+      "source": "声",
+      "candidates": [
+        {
+          "text": "聲",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_043",
+      "kind": "character",
+      "group": "extended",
+      "source": "长",
+      "candidates": [
+        {
+          "text": "長",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_044",
+      "kind": "character",
+      "group": "extended",
+      "source": "远",
+      "candidates": [
+        {
+          "text": "遠",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_045",
+      "kind": "character",
+      "group": "extended",
+      "source": "情",
+      "candidates": [
+        {
+          "text": "綪",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_046",
+      "kind": "character",
+      "group": "extended",
+      "source": "意",
+      "candidates": [
+        {
+          "text": "噫",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_047",
+      "kind": "character",
+      "group": "extended",
+      "source": "知",
+      "candidates": [
+        {
+          "text": "倁",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_048",
+      "kind": "character",
+      "group": "extended",
+      "source": "道",
+      "candidates": [
+        {
+          "text": "噵",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_049",
+      "kind": "character",
+      "group": "extended",
+      "source": "能",
+      "candidates": [
+        {
+          "text": "螚",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_050",
+      "kind": "character",
+      "group": "extended",
+      "source": "要",
+      "candidates": [
+        {
+          "text": "葽",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_051",
+      "kind": "character",
+      "group": "extended",
+      "source": "点",
+      "candidates": [
+        {
+          "text": "點",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_character_052",
+      "kind": "character",
+      "group": "extended",
+      "source": "现",
+      "candidates": [
+        {
+          "text": "現",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_000",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "你好",
+      "candidates": [
+        {
+          "text": "伱恏",
+          "weight": 80
+        },
+        {
+          "text": "鉨恏",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_001",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "喜欢",
+      "candidates": [
+        {
+          "text": "囍歡",
+          "weight": 80
+        },
+        {
+          "text": "稀飯",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_002",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "喜欢你",
+      "candidates": [
+        {
+          "text": "囍歡伱",
+          "weight": 80
+        },
+        {
+          "text": "稀飯伱",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_003",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "谢谢",
+      "candidates": [
+        {
+          "text": "謝謝",
+          "weight": 80
+        },
+        {
+          "text": "3Q",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_004",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "再见",
+      "candidates": [
+        {
+          "text": "洅見",
+          "weight": 80
+        },
+        {
+          "text": "掰掰",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_005",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "晚安",
+      "candidates": [
+        {
+          "text": "晩咹",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_006",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "早安",
+      "candidates": [
+        {
+          "text": "早咹",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_007",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "朋友",
+      "candidates": [
+        {
+          "text": "倗叐",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_008",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "开心",
+      "candidates": [
+        {
+          "text": "開惢",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_009",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "快乐",
+      "candidates": [
+        {
+          "text": "筷樂",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_010",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "加油",
+      "candidates": [
+        {
+          "text": "加ㄡ",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_011",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "可爱",
+      "candidates": [
+        {
+          "text": "岢嗳",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_012",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "心情",
+      "candidates": [
+        {
+          "text": "惢綪",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_013",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "爱你",
+      "candidates": [
+        {
+          "text": "嗳伱",
+          "weight": 80
+        },
+        {
+          "text": "愛鉨",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_014",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "想你",
+      "candidates": [
+        {
+          "text": "葙伱",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_015",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "我们",
+      "candidates": [
+        {
+          "text": "莪們",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_016",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "你们",
+      "candidates": [
+        {
+          "text": "伱們",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_017",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "没事",
+      "candidates": [
+        {
+          "text": "沒亊",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_018",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "一起",
+      "candidates": [
+        {
+          "text": "①起",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_019",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "生日快乐",
+      "candidates": [
+        {
+          "text": "甡ㄖ筷樂",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "extended_phrase_020",
+      "kind": "phrase",
+      "group": "extended",
+      "source": "我爱你",
+      "candidates": [
+        {
+          "text": "莪嗳伱",
+          "weight": 80
+        },
+        {
+          "text": "峩愛鉨",
+          "weight": 20
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_000",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "为什么",
+      "candidates": [
+        {
+          "text": "為蝦米",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_001",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "怎么",
+      "candidates": [
+        {
+          "text": "腫麼",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_002",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "什么",
+      "candidates": [
+        {
+          "text": "蝦米",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_003",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "不知道",
+      "candidates": [
+        {
+          "text": "卟倁噵",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_004",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "不好意思",
+      "candidates": [
+        {
+          "text": "卟恏噫思",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_005",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "真的",
+      "candidates": [
+        {
+          "text": "眞啲",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_006",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "哈哈",
+      "candidates": [
+        {
+          "text": "哈哈~",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_007",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "好吧",
+      "candidates": [
+        {
+          "text": "恏妑",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_008",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "睡觉",
+      "candidates": [
+        {
+          "text": "睏覺",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_009",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "工作",
+      "candidates": [
+        {
+          "text": "工莋",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_010",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "上班",
+      "candidates": [
+        {
+          "text": "丄班",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_011",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "下班",
+      "candidates": [
+        {
+          "text": "丅班",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_012",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "喜欢嗎",
+      "candidates": [
+        {
+          "text": "囍歡嗎",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_013",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "喜歡",
+      "candidates": [
+        {
+          "text": "稀飯",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_014",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "謝謝",
+      "candidates": [
+        {
+          "text": "3Q",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_015",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "愛你",
+      "candidates": [
+        {
+          "text": "嗳伱",
+          "weight": 100
+        }
+      ]
+    },
+    {
+      "id": "expressive_phrase_016",
+      "kind": "phrase",
+      "group": "expressive",
+      "source": "晚安啦",
+      "candidates": [
+        {
+          "text": "晩咹啦~",
+          "weight": 100
+        }
+      ]
+    }
+  ],
+  "decorators": [
+    {
+      "id": "star",
+      "prefix": "☆",
+      "suffix": "☆",
+      "weight": 70
+    },
+    {
+      "id": "sparkle",
+      "prefix": "★·°",
+      "suffix": "°·★",
+      "weight": 30
+    }
+  ]
+}

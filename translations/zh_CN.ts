@@ -423,4 +423,49 @@ Unavailable</source><translation>候选 %1
         <message><source>Export diagnostic report…</source><translation>导出诊断报告…</translation></message>
         <message><source>JSON contains evidence, scores and paths/names when applicable; no text body, AI reply or API settings. Export is local and does not run analysis.</source><translation>JSON 包含证据、评分以及适用的路径或名称；不含正文、AI 回复和 API 设置。导出在本地执行，不会启动分析。</translation></message>
     </context>
+    <context>
+        <name>TextStylePage</name>
+        <message><source>Style unavailable: %1</source><translation>风格不可用：%1</translation></message>
+        <message><source>Converting locally… Editing input or options cancels this snapshot.</source><translation>正在本地转换… 编辑输入或选项会取消本次快照。</translation></message>
+        <message><source>Invalid seed. Enter ASCII decimal digits from 0 to 18446744073709551615, or leave it empty.</source><translation>种子无效。请输入 0 到 18446744073709551615 的 ASCII 十进制数字，或留空。</translation></message>
+        <message><source>Conversion cancelled.</source><translation>转换已取消。</translation></message>
+        <message><source>Input exceeds 256 KiB after newline normalization or the UTF-16 limit.</source><translation>换行统一后的输入超过 256 KiB，或超过 UTF-16 长度上限。</translation></message>
+        <message><source>Output exceeds 2 MiB. Use a shorter input or a lighter preset.</source><translation>输出超过 2 MiB，请缩短输入或降低强度。</translation></message>
+        <message><source>Input contains invalid Unicode surrogate sequences.</source><translation>输入含有无效的 Unicode 代理项。</translation></message>
+        <message><source>Conversion exceeded the 5-second budget. Use a smaller input.</source><translation>转换超过 5 秒预算，请缩短输入。</translation></message>
+        <message><source>Conversion failed (%1). Check the style and options.</source><translation>转换失败（%1），请检查风格和选项。</translation></message>
+        <message><source>Seed %1 · matched %2 · replaced %3 · decorated lines %4 · output %5 bytes.</source><translation>种子 %1 · 命中 %2 · 替换 %3 · 装饰行 %4 · 输出 %5 字节。</translation></message>
+        <message><source>No rules matched; only newline normalization was applied.</source><translation>未命中规则，仅进行了换行统一。</translation></message>
+        <message><source>Copied.</source><translation>已复制。</translation></message>
+        <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>请输入要转换的文本。文本和种子不会跨会话保存。</translation></message>
+        <message><source>Ready. Convert reuses the seed; regenerate chooses a new seed, but text may still be identical.</source><translation>准备就绪。转换沿用种子，重新生成选择新种子，但文字可能仍相同。</translation></message>
+        <message><source>Keep the original input and matching rule/runtime versions to reproduce a result. Copied parameters contain hashes, not the original text.</source><translation>复现需保留原输入及匹配的规则和运行环境版本。复制的参数包含哈希，不含原文。</translation></message>
+        <message><source>Text Style Converter</source><translation>文本风格转换</translation></message>
+        <message><source>Local, reproducible text styling. Rules are data-driven; unknown characters stay intact and newlines become LF. No AI or reverse restoration.</source><translation>本地、可复现的文本风格转换。规则由数据定义，未知字符保留，换行统一为 LF。不调用 AI，不进行反向还原。</translation></message>
+        <message><source>Style</source><translation>风格</translation></message>
+        <message><source>Intensity</source><translation>强度</translation></message>
+        <message><source>Original text</source><translation>原始文本</translation></message>
+        <message><source>Styled text</source><translation>风格文本</translation></message>
+        <message><source>Light</source><translation>轻度</translation></message>
+        <message><source>Medium</source><translation>中度</translation></message>
+        <message><source>Heavy</source><translation>重度</translation></message>
+        <message><source>Convert</source><translation>转换</translation></message>
+        <message><source>Regenerate</source><translation>重新生成</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Clear</source><translation>清空</translation></message>
+        <message><source>Copy output</source><translation>复制输出</translation></message>
+        <message><source>Seed and reproduction options</source><translation>种子与复现选项</translation></message>
+        <message><source>Seed</source><translation>种子</translation></message>
+        <message><source>Empty: select a seed on successful conversion</source><translation>留空：成功转换后固定一个种子</translation></message>
+        <message><source>Copy seed</source><translation>复制种子</translation></message>
+        <message><source>Copy generation parameters</source><translation>复制生成参数</translation></message>
+    </context>
+    <context>
+        <name>Tools</name>
+        <message><source>Text Style Converter</source><translation>文本风格转换</translation></message>
+    </context>
+    <context>
+        <name>TextStylePage</name>
+        <message><source>Clipboard ownership was not obtained. Another application may be using it; retry copying.</source><translation>未取得剪贴板所有权，其他应用可能正在占用，请重试复制。</translation></message>
+    </context>
 </TS>
