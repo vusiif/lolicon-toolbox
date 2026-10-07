@@ -5,6 +5,10 @@
 #include <QImageReader>
 #include <QPainter>
 #include <QElapsedTimer>
+#include <QFontDatabase>
+#include <QTextBoundaryFinder>
+#include <QTextLayout>
+#include <QSet>
 #include <algorithm>
 #include <cmath>
 
@@ -26,6 +30,11 @@ Maple loadMaple(const QString& resource) {
     if (!maple.font.isValid() || maple.font.familyName() != "Maple Mono NL NFMono CN") {
         maple.error = QStringLiteral("The bundled Maple font could not be loaded. No fallback font is used."); return maple;
     }
+    // The same application resource is used for shaping full grapheme clusters.
+    static const int fontId=QFontDatabase::addApplicationFont(":/characterart/MapleMonoNL-NFMono-CN-Regular.ttf");
+    if(fontId<0) { maple.error="The bundled Maple font could not be loaded. No fallback font is used."; return maple; }
+    maple.shapingFont=QFont("Maple Mono NL NFMono CN"); maple.shapingFont.setPixelSize(20);
+    maple.shapingFont.setHintingPreference(QFont::PreferNoHinting); maple.shapingFont.setStyleStrategy(QFont::NoFontMerging);
     const auto advance = maple.font.advancesForGlyphIndexes(maple.font.glyphIndexesForString("M"));
     if (advance.isEmpty()) { maple.error = "Invalid Maple font metrics."; return maple; }
     maple.cell = QSize(int(std::ceil(advance.first().x())), int(std::ceil(maple.font.ascent() + maple.font.descent() + maple.font.leading())));
@@ -50,6 +59,54 @@ Maple loadMaple(const QString& resource) {
         maple.palettes.append(palette);
     }
     return maple;
+}
+CustomPalette calibrateCustom(const Maple& base, const QString& input, bool includeSpace) {
+    CustomPalette result; result.maple=base; result.palette.id="custom";
+    if(!base.valid()) { result.error=base.error; return result; }
+    if(input.size()>2048) { result.error="Custom characters exceed the 2048 UTF-16 unit limit."; return result; }
+    if(QString::fromUtf8(input.toUtf8())!=input) { result.error="Invalid Unicode in custom characters."; return result; }
+    QList<QString> tokens; QSet<QString> seen;
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme,input); finder.toStart(); int start=0;
+    for(int end=finder.toNextBoundary();end>=0;end=finder.toNextBoundary()) {
+        const auto token=input.mid(start,end-start); start=end;
+        if(seen.contains(token)) continue;
+        seen.insert(token); tokens.append(token);
+    }
+    if(includeSpace && !seen.contains(" ")) tokens.append(" ");
+    if(tokens.size()<2 || tokens.size()>128) { result.error="Use 2 to 128 distinct grapheme clusters, including the optional space."; return result; }
+    QList<double> advances; double maxAdvance=base.cell.width();
+    for(const auto& token:tokens) {
+        bool supported=token.size()<=32;
+        for(const auto codepoint:token.toUcs4()) {
+            if(QChar::isSpace(codepoint) && codepoint!=' ') supported=false;
+            if(!base.font.supportsCharacter(codepoint)) supported=false;
+        }
+        QTextLayout layout(token,base.shapingFont); layout.beginLayout(); const auto line=layout.createLine(); layout.endLayout();
+        if(!line.isValid()) supported=false;
+        const double advance=line.isValid() ? line.horizontalAdvance() : 0;
+        for(const auto& run:layout.glyphRuns()) {
+            if(run.rawFont().fontTable("head")!=base.font.fontTable("head")) supported=false;
+            for(const auto glyph:run.glyphIndexes()) if(!glyph) supported=false;
+        }
+        if(advance<=0 || std::abs(advance/base.cell.width()-std::round(advance/base.cell.width()))>.05) supported=false;
+        if(!supported) result.unsupported.append(token);
+        advances.append(advance); maxAdvance=std::max(maxAdvance,advance);
+    }
+    if(!result.unsupported.isEmpty()) return result;
+    result.maple.cell.setWidth(int(std::ceil(maxAdvance/base.cell.width()))*base.cell.width());
+    result.maple.tiles.clear();
+    for(qsizetype i=0;i<tokens.size();++i) {
+        QImage image(result.maple.cell,QImage::Format_RGB32); image.fill(Qt::white);
+        QTextLayout layout(tokens[i],base.shapingFont); layout.beginLayout(); const auto line=layout.createLine(); layout.endLayout();
+        { QPainter painter(&image); painter.setPen(Qt::black); painter.setRenderHint(QPainter::TextAntialiasing); layout.draw(&painter,QPointF(0,base.baseline-line.ascent())); }
+        double ink=0;
+        for(int y=0;y<image.height();++y) for(int x=0;x<image.width();++x) ink+=1-qGray(image.pixel(x,y))/255.0;
+        const int spaces=std::max(0,int(std::lround((result.maple.cell.width()-advances[i])/base.cell.width())));
+        result.palette.tokens.append({tokens[i],ink/(image.width()*image.height()),QString(spaces,' ')});
+        result.maple.tiles.insert(tokens[i],image);
+    }
+    std::stable_sort(result.palette.tokens.begin(),result.palette.tokens.end(),[](const Token& a,const Token& b) { return a.density==b.density ? a.text<b.text : a.density<b.density; });
+    return result;
 }
 LoadedImage loadImage(const QString& path) {
     const QFileInfo info(path);
@@ -106,8 +163,8 @@ Result generate(const QImage& image, const Options& options, const Palette& pale
         if (y) result.text += '\n';
         for (int x = 0; x < options.columns; ++x) {
             const auto index = qsizetype(std::lround((1 - adjustedLuminance(sampled.pixel(x, y), options)) * (palette.tokens.size() - 1)));
-            const auto& token = palette.tokens[index].text;
-            result.cells.append(token); result.text += token;
+            const auto& token = palette.tokens[index];
+            result.cells.append(token.text); result.text += token.text + token.padding;
         }
     }
     return result;

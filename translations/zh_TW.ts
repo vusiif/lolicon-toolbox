@@ -607,4 +607,16 @@ Uses the saved API address and key in Settings; the text model selection is igno
         <name>Navigation</name>
         <message><source>Image Tools</source><translation>圖片工具</translation></message>
     </context>
+<context><name>CharacterArtPage</name>
+<message><source>Custom</source><translation>自訂</translation></message>
+<message><source>Custom characters</source><translation>自訂字元</translation></message>
+<message><source>Include blank space</source><translation>加入空格</translation></message>
+<message><source>Maple cannot render these grapheme clusters in the fixed grid: %1</source><translation>Maple 無法在固定字元格內繪製這些字素：%1</translation></message>
+<message><source>Up to 128 distinct grapheme clusters. Density is calibrated automatically; narrow glyphs are padded in TXT to match the fixed grid.</source><translation>最多 128 個不同字素，自動校準密度；TXT 給窄字元補空格以對齊網格。</translation></message>
+</context>
+<context><name>CharacterArtErrors</name>
+<message><source>Custom characters exceed the 2048 UTF-16 unit limit.</source><translation>自訂字元超過 2048 個 UTF-16 單元限制。</translation></message>
+<message><source>Use 2 to 128 distinct grapheme clusters, including the optional space.</source><translation>請使用 2 至 128 個不同字素，可計入選用空格。</translation></message>
+</context>
+<context><name>CharacterArtErrors</name><message><source>Invalid Unicode in custom characters.</source><translation>自訂字元包含無效 Unicode。</translation></message></context>
 </TS>

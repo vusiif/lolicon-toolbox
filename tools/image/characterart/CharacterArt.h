@@ -1,6 +1,7 @@
 #pragma once
 #include <QImage>
 #include <QRawFont>
+#include <QFont>
 #include <QString>
 #include <QVector>
 #include <QHash>
@@ -14,10 +15,11 @@ inline constexpr int MaxDimension = 8192;
 inline constexpr int MaxColumns = 240;
 inline constexpr int MaxRows = 300;
 inline constexpr int Padding = 8;
-struct Token { QString text; double density = 0; };
+struct Token { QString text; double density = 0; QString padding; };
 struct Palette { QString id; QList<Token> tokens; };
 struct Maple {
     QRawFont font;
+    QFont shapingFont;
     QSize cell;
     int baseline = 0;
     QList<Palette> palettes;
@@ -35,6 +37,8 @@ struct Result {
 struct LoadedImage { QImage image; QString error; bool success() const { return error.isEmpty() && !image.isNull(); } };
 // Must be created on the GUI thread. The raw font prevents system fallback.
 Maple loadMaple(const QString& resource = QStringLiteral(":/characterart/MapleMonoNL-NFMono-CN-Regular.ttf"));
+struct CustomPalette { Maple maple; Palette palette; QString error; QStringList unsupported; bool success() const { return error.isEmpty() && unsupported.isEmpty() && !palette.tokens.isEmpty(); } };
+CustomPalette calibrateCustom(const Maple&, const QString& input, bool includeSpace);
 LoadedImage loadImage(const QString& path);
 int rowCount(QSize image, int columns, QSize cell);
 double adjustedLuminance(QRgb pixel, const Options& options);

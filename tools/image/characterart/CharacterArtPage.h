@@ -8,6 +8,7 @@ class ElaPushButton;
 class ElaSpinBox;
 class ElaDoubleSpinBox;
 class ElaComboBox;
+class ElaLineEdit;
 class QCheckBox;
 class ArtCanvas;
 class CharacterArtPage : public ToolPage {
@@ -30,6 +31,13 @@ private:
     void refresh();
     void retranslate();
     characterart::Maple m_maple;
+    characterart::Maple m_resultMaple;
+    ElaLineEdit* m_custom;
+    QCheckBox* m_includeSpace;
+    QLabel* m_customLabel;
+    QString m_customError;
+    QStringList m_customUnsupported;
+    void updateCustom();
     QImage m_source, m_rendered;
     characterart::Result m_result;
     QFutureWatcher<Work> m_worker;

@@ -44,6 +44,8 @@ Character Art Generator is available under Image Tools. It converts local PNG/JP
 images into calibrated Maple character art, with column count, palette, brightness,
 contrast and inversion controls. Copy plain text, save UTF-8 TXT, or export a PNG
 matching the bundled font preview. See [usage and tests](docs/Character-Art-Testing.md).
+Custom character sets are also supported: Unicode grapheme segmentation, native
+Maple shaping/density calibration and fixed-width padding for mixed ASCII/CJK TXT.
 
 Voice Designer is available under Audio and Speech as a minimal online tool:
 describe a voice, enter preview text, generate/cancel and validate the returned WAV.
@@ -78,6 +80,8 @@ included `vc_redist.x64.exe` before running Toolbox. This is a portable developm
 package, not an installer.
 
 Packaging keeps the newest three local builds. Older ZIPs and checksum files are
+temporarily retained when that build's Toolbox executable is still running;
+close it before the next retention run to permit cleanup. Otherwise they are
 uploaded to the GitHub `dist-archive` prerelease; local directories/ZIPs/checksums
 are removed only after remote size and SHA-256 verification. GitHub CLI authentication
 is required; an upload failure preserves the affected local build. Inspect or run

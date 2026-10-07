@@ -125,6 +125,12 @@ foreach ($build in $verified) {
     if (Test-Path -LiteralPath $build.Directory) {
         $directory = Assert-LocalPath $build.Directory
         foreach ($entry in Get-ChildItem -LiteralPath $directory -Recurse -Force) { $null = Assert-LocalPath $entry.FullName }
+        # Do not partially prune a package whose executable is still in use.
+        foreach ($process in Get-Process -Name Toolbox -ErrorAction SilentlyContinue) {
+            if (-not $process.Path -or $process.Path.StartsWith($directory + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
+                throw "Archive uploaded and verified, but build is running (PID $($process.Id)); local files retained: $directory"
+            }
+        }
         Remove-Item -LiteralPath $directory -Recurse -Force
     }
     Remove-Item -LiteralPath $zip, $checksum -Force

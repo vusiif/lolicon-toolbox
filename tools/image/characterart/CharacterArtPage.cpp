@@ -4,6 +4,7 @@
 #include <ElaSpinBox.h>
 #include <ElaDoubleSpinBox.h>
 #include <ElaComboBox.h>
+#include <ElaLineEdit.h>
 #include <ElaScrollArea.h>
 #include <ElaTheme.h>
 #include <QApplication>
@@ -50,6 +51,10 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
     auto* actions=new QHBoxLayout; for(auto* b:{m_open,m_generate,m_stop,m_clear}) actions->addWidget(b); actions->addStretch();
     m_columns=new ElaSpinBox(content); m_columns->setObjectName("artColumns"); m_columns->setRange(10,MaxColumns); m_columns->setValue(80);
     m_palette=new ElaComboBox(content); m_palette->setObjectName("artPalette"); for(const auto& palette:m_maple.palettes) m_palette->addItem({},palette.id);
+    m_palette->addItem(QString(),QStringLiteral("custom"));
+    m_custom=new ElaLineEdit(content); m_custom->setObjectName("artCustomCharacters"); m_custom->setMaxLength(2048);
+    m_custom->setText(QStringLiteral("春夏秋冬山水风月")); m_customLabel=ui::label({},10,ui::Tone::Secondary,content);
+    m_includeSpace=new QCheckBox(content); m_includeSpace->setObjectName("artIncludeSpace"); m_includeSpace->setChecked(true);
     m_brightness=new ElaDoubleSpinBox(content); m_brightness->setObjectName("artBrightness"); m_brightness->setRange(-1,1); m_brightness->setSingleStep(.1);
     m_contrast=new ElaDoubleSpinBox(content); m_contrast->setObjectName("artContrast"); m_contrast->setRange(0,3); m_contrast->setSingleStep(.1); m_contrast->setValue(1);
     m_zoom=new ElaSpinBox(content); m_zoom->setObjectName("artZoom"); m_zoom->setRange(25,200); m_zoom->setSingleStep(25); m_zoom->setValue(100); m_zoom->setSuffix("%");
@@ -57,6 +62,7 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
     auto label=[content] { return ui::label({},10,ui::Tone::Secondary,content); };
     m_columnsLabel=label(); m_paletteLabel=label(); m_brightnessLabel=label(); m_contrastLabel=label(); m_zoomLabel=label();
     auto* form=new QFormLayout; form->addRow(m_columnsLabel,m_columns); form->addRow(m_paletteLabel,m_palette);
+    form->addRow(m_customLabel,m_custom); form->addRow(m_includeSpace);
     form->addRow(m_brightnessLabel,m_brightness); form->addRow(m_contrastLabel,m_contrast); form->addRow(m_zoomLabel,m_zoom); form->addRow(m_invert);
     m_sourcePreview=new QLabel(content); m_sourcePreview->setObjectName("artSourcePreview"); m_sourcePreview->setAlignment(Qt::AlignCenter); m_sourcePreview->setFixedSize(160,160);
     auto* options=new QHBoxLayout; options->addLayout(form,1); options->addWidget(m_sourcePreview);
@@ -69,7 +75,9 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
     connect(m_stop,&ElaPushButton::clicked,this,[this] { invalidate(); m_message=tr("Generation cancelled."); refresh(); });
     connect(m_clear,&ElaPushButton::clicked,this,[this] { invalidate(); m_source={}; m_path.clear(); m_sourcePreview->clear(); refresh(); });
     connect(m_columns,qOverload<int>(&QSpinBox::valueChanged),this,&CharacterArtPage::invalidate);
-    connect(m_palette,&QComboBox::currentIndexChanged,this,&CharacterArtPage::invalidate);
+    connect(m_palette,&QComboBox::currentIndexChanged,this,[this] { updateCustom(); });
+    connect(m_custom,&QLineEdit::textChanged,this,[this] { updateCustom(); });
+    connect(m_includeSpace,&QCheckBox::toggled,this,[this] { updateCustom(); });
     connect(m_brightness,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CharacterArtPage::invalidate);
     connect(m_contrast,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CharacterArtPage::invalidate);
     connect(m_invert,&QCheckBox::toggled,this,&CharacterArtPage::invalidate);
@@ -85,11 +93,24 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
             if(!m_source.isNull()) m_sourcePreview->setPixmap(QPixmap::fromImage(m_source.scaled(160,160,Qt::KeepAspectRatio,Qt::SmoothTransformation)));
         } else {
             m_result=work.result; m_message=m_result.error;
-            if(m_result.success()) { m_rendered=characterart::render(m_result,m_maple); if(m_rendered.isNull()) { m_result={}; m_message=tr("Could not render the character art."); } m_canvas->setImage(m_rendered); }
+            if(m_result.success()) { m_rendered=characterart::render(m_result,m_resultMaple); if(m_rendered.isNull()) { m_result={}; m_message=tr("Could not render the character art."); } m_canvas->setImage(m_rendered); }
         }
         refresh();
     });
-    retranslate(); refresh();
+    retranslate(); updateCustom();
+}
+void CharacterArtPage::updateCustom() {
+    invalidate(); m_customError.clear(); m_customUnsupported.clear();
+    const bool custom=m_palette->currentData().toString()=="custom";
+    m_custom->setVisible(custom); m_customLabel->setVisible(custom); m_includeSpace->setVisible(custom);
+    if(custom) {
+        const auto calibrated=calibrateCustom(m_maple,m_custom->text(),m_includeSpace->isChecked());
+        m_customUnsupported=calibrated.unsupported;
+        m_customError=calibrated.unsupported.isEmpty() ? calibrated.error : QStringLiteral("unsupported");
+        m_resultMaple=calibrated.maple;
+        if(calibrated.success()) { m_resultMaple.palettes={calibrated.palette}; }
+    } else m_resultMaple=m_maple;
+    refresh();
 }
 CharacterArtPage::~CharacterArtPage() { if(m_cancel) m_cancel->store(true); }
 void CharacterArtPage::onDeactivated() { if(m_worker.isRunning()) invalidate(); }
@@ -103,10 +124,11 @@ void CharacterArtPage::openImage(const QString& path) {
     m_worker.setFuture(QtConcurrent::run([path] { Work work; work.loading=true; work.loaded=loadImage(path); return work; })); refresh();
 }
 void CharacterArtPage::generate() {
-    if(m_source.isNull() || m_worker.isRunning() || !m_maple.valid()) return;
+    if(m_source.isNull() || m_worker.isRunning() || !m_maple.valid() || !m_customError.isEmpty()) return;
     invalidate(); m_submitted=m_revision; m_cancel=std::make_shared<std::atomic_bool>(false);
     const Options options{m_columns->value(),m_brightness->value(),m_contrast->value(),m_invert->isChecked()};
-    const auto source=m_source; const auto palette=m_maple.palettes[m_palette->currentIndex()]; const auto cell=m_maple.cell; const auto cancel=m_cancel;
+    const bool custom=m_palette->currentData().toString()=="custom";
+    const auto source=m_source; const auto palette=custom ? m_resultMaple.palettes.first() : m_maple.palettes[m_palette->currentIndex()]; const auto cell=m_resultMaple.cell; const auto cancel=m_cancel;
     m_worker.setFuture(QtConcurrent::run([source,options,palette,cell,cancel] { Work work; work.result=characterart::generate(source,options,palette,cell,cancel); return work; })); refresh();
 }
 bool CharacterArtPage::saveText(const QString& path) {
@@ -120,15 +142,18 @@ bool CharacterArtPage::savePng(const QString& path) {
     QString error; const bool ok=saveNewFile(path,bytes,error); m_message=ok ? tr("Saved a new file.") : error; refresh(); return ok;
 }
 void CharacterArtPage::refresh() {
-    const bool busy=m_worker.isRunning(); m_open->setEnabled(!busy && m_maple.valid()); m_generate->setEnabled(!busy && !m_source.isNull() && m_maple.valid()); m_stop->setEnabled(busy);
+    const bool busy=m_worker.isRunning(); m_open->setEnabled(!busy && m_maple.valid()); m_generate->setEnabled(!busy && !m_source.isNull() && m_maple.valid() && m_customError.isEmpty()); m_stop->setEnabled(busy);
     // Parameter edits must not invalidate a pending image load and lose the selection.
     const bool loading=busy && m_source.isNull();
     for(auto* field:{static_cast<QWidget*>(m_columns),static_cast<QWidget*>(m_palette),static_cast<QWidget*>(m_brightness),static_cast<QWidget*>(m_contrast),static_cast<QWidget*>(m_invert)}) field->setEnabled(!loading);
+    m_custom->setEnabled(!loading); m_includeSpace->setEnabled(!loading);
     for(auto* b:{m_copy,m_txt,m_png}) b->setEnabled(!busy && m_result.success());
     m_clear->setEnabled(busy || !m_path.isEmpty());
-    m_info->setText(m_source.isNull() ? tr("Select a PNG or JPEG image. Nothing is uploaded.") : tr("%1 · %2 × %3 pixels · Maple cell %4 × %5").arg(QFileInfo(m_path).fileName()).arg(m_source.width()).arg(m_source.height()).arg(m_maple.cell.width()).arg(m_maple.cell.height()));
+    m_info->setText(m_source.isNull() ? tr("Select a PNG or JPEG image. Nothing is uploaded.") : tr("%1 · %2 × %3 pixels · Maple cell %4 × %5").arg(QFileInfo(m_path).fileName()).arg(m_source.width()).arg(m_source.height()).arg(m_resultMaple.cell.width()).arg(m_resultMaple.cell.height()));
     QString message;
     if(!m_maple.valid()) message=m_maple.error;
+    else if(!m_customUnsupported.isEmpty()) message=tr("Maple cannot render these grapheme clusters in the fixed grid: %1").arg(m_customUnsupported.join(" "));
+    else if(!m_customError.isEmpty()) message=m_customError;
     else if(busy) message=tr("Working… You can cancel or clear.");
     else if(!m_message.isEmpty()) message=m_message;
     else if(m_result.success()) message=tr("Generated %1 columns × %2 rows. TXT uses UTF-8; PNG preserves the Maple layout.").arg(m_result.columns).arg(m_result.rows);
@@ -140,5 +165,8 @@ void CharacterArtPage::retranslate() {
     m_open->setText(tr("Open image")); m_generate->setText(tr("Generate")); m_stop->setText(tr("Cancel")); m_clear->setText(tr("Clear")); m_copy->setText(tr("Copy text")); m_txt->setText(tr("Save TXT")); m_png->setText(tr("Export PNG"));
     m_columnsLabel->setText(tr("Columns")); m_paletteLabel->setText(tr("Character set")); m_brightnessLabel->setText(tr("Brightness")); m_contrastLabel->setText(tr("Contrast")); m_zoomLabel->setText(tr("Preview zoom")); m_invert->setText(tr("Invert"));
     if(m_palette->count()>0) m_palette->setItemText(0,tr("Basic")); if(m_palette->count()>1) m_palette->setItemText(1,tr("Dense"));
+    if(m_palette->count()>2) m_palette->setItemText(2,tr("Custom"));
+    m_customLabel->setText(tr("Custom characters")); m_includeSpace->setText(tr("Include blank space"));
+    m_custom->setToolTip(tr("Up to 128 distinct grapheme clusters. Density is calibrated automatically; narrow glyphs are padded in TXT to match the fixed grid."));
 }
 void CharacterArtPage::changeEvent(QEvent* event) { ToolPage::changeEvent(event); if(event->type()==QEvent::LanguageChange) { retranslate(); refresh(); } }

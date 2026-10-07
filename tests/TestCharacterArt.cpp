@@ -7,6 +7,31 @@ using namespace characterart;
 class TestCharacterArt : public QObject {
     Q_OBJECT
 private slots:
+    void customGraphemes() {
+        const auto base=loadMaple(); const auto chinese=calibrateCustom(base,QStringLiteral("春夏秋冬春"),true);
+        QVERIFY2(chinese.success(),qPrintable(chinese.error+chinese.unsupported.join("|")));
+        QCOMPARE(chinese.palette.tokens.size(),5); QCOMPARE(chinese.maple.cell.width(),base.cell.width()*2);
+        QCOMPARE(chinese.palette.tokens.first().text," ");
+        const auto mixed=calibrateCustom(base,QStringLiteral("我爱Toolbox"),true);
+        QVERIFY2(mixed.success(),qPrintable(mixed.error+mixed.unsupported.join("|")));
+        bool padding=false; for(const auto& token:mixed.palette.tokens) if(token.text=="T") { QCOMPARE(token.padding,QString(" ")); padding=true; }
+        QVERIFY(padding);
+        const auto accent=calibrateCustom(base,QStringLiteral("e\u0301A"),true);
+        QVERIFY2(accent.success(),qPrintable(accent.error+accent.unsupported.join("|")));
+        QCOMPARE(accent.palette.tokens.size(),3); QVERIFY(accent.maple.tiles.contains(QStringLiteral("e\u0301")));
+        const auto invalid=calibrateCustom(base,QStringLiteral("A\U0010ffff"),true);
+        QVERIFY(!invalid.success()); QCOMPARE(invalid.unsupported,QStringList{QStringLiteral("\U0010ffff")});
+        QVERIFY(!calibrateCustom(base,"A",false).success()); QVERIFY(!calibrateCustom(base,QString(2049,'A'),true).success());
+        QVERIFY(!calibrateCustom(base,QString(QChar(0xd800)),true).success());
+        QString many; for(int i=0;i<129;++i) many+=QChar(0x4e00+i);
+        QVERIFY(!calibrateCustom(base,many,false).success());
+        QVERIFY(!calibrateCustom(base,"A\nB",true).success());
+        QImage image(100,100,QImage::Format_RGB32); image.fill(Qt::gray);
+        const auto result=generate(image,{},mixed.palette,mixed.maple.cell); QVERIFY(result.success());
+        QCOMPARE(result.rows,rowCount(image.size(),80,mixed.maple.cell)); QVERIFY(!render(result,mixed.maple).isNull());
+        const auto reordered=calibrateCustom(base,QStringLiteral("冬秋夏春"),true);
+        for(int i=0;i<chinese.palette.tokens.size();++i) { QCOMPARE(chinese.palette.tokens[i].text,reordered.palette.tokens[i].text); QCOMPARE(chinese.palette.tokens[i].density,reordered.palette.tokens[i].density); }
+    }
     void fontAndDensity() {
         QElapsedTimer timer; timer.start(); const auto maple = loadMaple();
         QVERIFY2(maple.valid(), qPrintable(maple.error));

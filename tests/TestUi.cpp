@@ -629,6 +629,13 @@ void TestUi::characterArtWorkflow()
     page->openImage(inputPath); QTRY_VERIFY(generate->isEnabled()); generate->click(); QTRY_VERIFY(copy->isEnabled());
     lazy.resize(560,850); QTest::qWait(100); QVERIFY(page->grab().save("character-art-small.png"));
     lazy.hide(); lazy.show(); QCOMPARE(loads,1); QVERIFY(page->result().success());
+    auto* palette=page->findChild<ElaComboBox*>("artPalette"); auto* custom=page->findChild<ElaLineEdit*>("artCustomCharacters");
+    QVERIFY(palette && custom); palette->setCurrentIndex(2); QVERIFY(custom->isVisible()); QVERIFY(!copy->isEnabled());
+    custom->setText(QStringLiteral("春夏秋冬")); QVERIFY(generate->isEnabled()); generate->click(); QTRY_VERIFY(copy->isEnabled());
+    QVERIFY(page->savePng(dir.filePath("custom.png"))); QVERIFY(page->grab().save("character-art-custom.png"));
+    custom->setText(QStringLiteral("A\U0010ffff")); QVERIFY(!generate->isEnabled()); QVERIFY(!copy->isEnabled());
+    QVERIFY(page->findChild<QLabel*>("artStatus")->text().contains(QStringLiteral("\U0010ffff")));
+    palette->setCurrentIndex(0); QVERIFY(generate->isEnabled()); QVERIFY(!custom->isVisible());
 }
 void TestUi::voiceDesignerWorkflow()
 {
