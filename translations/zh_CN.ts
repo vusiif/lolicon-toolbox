@@ -427,7 +427,7 @@ Unavailable</source><translation>候选 %1
         <name>TextStylePage</name>
         <message><source>Style unavailable: %1</source><translation>风格不可用：%1</translation></message>
         <message><source>Converting locally… Editing input or options cancels this snapshot.</source><translation>正在本地转换… 编辑输入或选项会取消本次快照。</translation></message>
-        <message><source>Invalid seed. Enter ASCII decimal digits from 0 to 18446744073709551615, or leave it empty.</source><translation>种子无效。请输入 0 到 18446744073709551615 的 ASCII 十进制数字，或留空。</translation></message>
+        <message><source>Enter a seed or use the dice button.</source><translation>请输入种子，或点击骰子随机选择。</translation></message>
         <message><source>Conversion cancelled.</source><translation>转换已取消。</translation></message>
         <message><source>Input exceeds 256 KiB after newline normalization or the UTF-16 limit.</source><translation>换行统一后的输入超过 256 KiB，或超过 UTF-16 长度上限。</translation></message>
         <message><source>Output exceeds 2 MiB. Use a shorter input or a lighter preset.</source><translation>输出超过 2 MiB，请缩短输入或降低强度。</translation></message>
@@ -438,7 +438,7 @@ Unavailable</source><translation>候选 %1
         <message><source>No rules matched; only newline normalization was applied.</source><translation>未命中规则，仅进行了换行统一。</translation></message>
         <message><source>Copied.</source><translation>已复制。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>请输入要转换的文本。文本和种子不会跨会话保存。</translation></message>
-        <message><source>Ready. Convert reuses the seed; regenerate chooses a new seed, but text may still be identical.</source><translation>准备就绪。转换沿用种子，重新生成选择新种子，但文字可能仍相同。</translation></message>
+        <message><source>Ready. Convert uses the displayed seed. Use the dice button to change it.</source><translation>准备就绪。转换使用框内种子，点击骰子可随机更换。</translation></message>
         <message><source>Keep the original input and matching rule/runtime versions to reproduce a result. Copied parameters contain hashes, not the original text.</source><translation>复现需保留原输入及匹配的规则和运行环境版本。复制的参数包含哈希，不含原文。</translation></message>
         <message><source>Text Style Converter</source><translation>文本风格转换</translation></message>
         <message><source>Local, reproducible text styling. Rules are data-driven; unknown characters stay intact and newlines become LF. No AI or reverse restoration.</source><translation>本地、可复现的文本风格转换。规则由数据定义，未知字符保留，换行统一为 LF。不调用 AI，不进行反向还原。</translation></message>
@@ -450,13 +450,15 @@ Unavailable</source><translation>候选 %1
         <message><source>Medium</source><translation>中度</translation></message>
         <message><source>Heavy</source><translation>重度</translation></message>
         <message><source>Convert</source><translation>转换</translation></message>
-        <message><source>Regenerate</source><translation>重新生成</translation></message>
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>复制输出</translation></message>
         <message><source>Reproduction details</source><translation>复现详情</translation></message>
         <message><source>Seed</source><translation>种子</translation></message>
-        <message><source>Empty: select a seed on successful conversion</source><translation>留空：成功转换后固定一个种子</translation></message>
+        <message><source>ASCII letters and digits; case-insensitive</source><translation>英文字母和数字，不区分大小写</translation></message>
+        <message><source>Up to 64 ASCII letters/digits. Numeric seeds keep their original value; letters are case-insensitive.</source><translation>最多 64 个 ASCII 字母或数字。纯数字种子保留原数值；字母不区分大小写。</translation></message>
+        <message><source>Randomize seed (does not convert)</source><translation>随机种子（不执行转换）</translation></message>
+        <message><source>Randomize seed</source><translation>随机种子</translation></message>
         <message><source>Copy seed</source><translation>复制种子</translation></message>
         <message><source>Copy generation parameters</source><translation>复制生成参数</translation></message>
     </context>

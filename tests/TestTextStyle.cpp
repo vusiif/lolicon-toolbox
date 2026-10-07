@@ -50,6 +50,14 @@ void TestTextStyle::seedAndSampling() {
     QVERIFY(Engine::seed("18446744073709551615", value)); QCOMPARE(value, UINT64_MAX);
     QVERIFY(Engine::seed("9007199254740993", value)); QCOMPARE(QString::number(value), QString("9007199254740993"));
     for (const auto& text : {QString(), QString("-1"), QString("+1"), QString("1e3"), QString("1.0"), QString("0xff"), QString("４２"), QString("18446744073709551616"), QString("\t42")}) QVERIFY(!Engine::seed(text, value));
+    UserSeed named;
+    QVERIFY(Engine::userSeed("CAT42", named)); QCOMPARE(named.text, QString("cat42"));
+    QCOMPARE(named.mapping, QString("ascii-alnum-sha256be64-v1")); QCOMPARE(named.value, UINT64_C(0x983f1e82483d66e9));
+    UserSeed lower; QVERIFY(Engine::userSeed("cat42", lower)); QCOMPARE(lower.value, named.value);
+    QVERIFY(Engine::userSeed("00042", named)); QCOMPARE(named.text, QString("42")); QCOMPARE(named.value, uint64_t(42)); QCOMPARE(named.mapping, QString("decimal-u64-v1"));
+    QVERIFY(Engine::userSeed("18446744073709551615", named)); QCOMPARE(named.value, UINT64_MAX);
+    QVERIFY(Engine::userSeed(QString(64, 'a'), named));
+    for (const auto& text : {QString(), QString("a_b"), QString("a b"), QString("中文"), QString("４２"), QString("é"), QString("-42"), QString("18446744073709551616"), QString(65,'a')}) QVERIFY(!Engine::userSeed(text, named));
     QList<uint64_t> raw{0,5,6}; int used = 0; QCOMPARE(Random::sample(10, [&] { return raw[used++]; }), uint64_t(6)); QCOMPARE(used, 3);
     Random random(0); QVERIFY(!random.gate(0)); QVERIFY(random.gate(10000)); QCOMPARE(random.choose({100}), 0); QCOMPARE(random.calls(), uint64_t(0));
     // First raw value for seed 0 gives 7535 modulo 10000.

@@ -8,6 +8,7 @@
 #include <ElaPlainTextEdit.h>
 #include <ElaPushButton.h>
 #include <ElaLineEdit.h>
+#include <ElaIconButton.h>
 #include "TestHttpServer.h"
 #include <QTemporaryDir>
 #include <QLabel>
@@ -525,14 +526,20 @@ void TestUi::textStyleWorkflow()
     auto* page = window.findChild<TextStylePage*>(); QVERIFY(page); QCOMPARE(loads,1);
     QString copiedPayload; page->setClipboardWriter([&](const QString& value) { copiedPayload = value; return true; });
     auto* input = page->findChild<ElaPlainTextEdit*>("textStyleInput"); auto* output = page->findChild<ElaPlainTextEdit*>("textStyleOutput");
-    auto* convert = page->findChild<ElaPushButton*>("textStyleConvert"); auto* regenerate = page->findChild<ElaPushButton*>("textStyleRegenerate");
+    auto* convert = page->findChild<ElaPushButton*>("textStyleConvert"); auto* dice = page->findChild<ElaIconButton*>("textStyleRandomSeed"); QVERIFY(dice);
+    QVERIFY(!page->findChild<ElaPushButton*>("textStyleRegenerate"));
     auto* seed = page->findChild<ElaLineEdit*>("textStyleSeed"); auto* presets = page->findChild<ElaComboBox*>("textStylePreset");
     auto* copy = page->findChild<ElaPushButton*>("textStyleCopy"); auto* parameters = page->findChild<ElaPushButton*>("textStyleCopyParameters");
-    QVERIFY(!convert->isEnabled()); QVERIFY(output->isReadOnly()); QVERIFY(seed->text().isEmpty());
+    QVERIFY(!convert->isEnabled()); QVERIFY(output->isReadOnly()); QVERIFY(!seed->text().isEmpty());
     input->setPlainText("你好，我喜欢你。ABC 😀"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000);
     QVERIFY(!seed->text().isEmpty()); const auto originalSeed = seed->text(); const auto first = output->document()->toRawText(); QVERIFY(copy->isEnabled());
     convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(output->document()->toRawText(),first); QCOMPARE(seed->text(),originalSeed);
-    regenerate->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(seed->text()!=originalSeed);
+    dice->click(); QVERIFY(seed->text()!=originalSeed); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!copy->isEnabled());
+    convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000);
+    QCoreApplication::processEvents();
+    auto* styles = page->findChild<ElaComboBox*>("textStyleStyle");
+    QCOMPARE(styles->mapTo(page, QPoint()).y(), presets->mapTo(page, QPoint()).y());
+    QCOMPARE(convert->mapTo(page, QPoint()).y(), copy->mapTo(page, QPoint()).y());
     seed->setText("18446744073709551615"); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!parameters->isEnabled()); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000);
     parameters->click(); const auto metadata = QJsonDocument::fromJson(copiedPayload.toUtf8()).object();
     QCOMPARE(metadata["seed"].toString(),QString("18446744073709551615")); QVERIFY(!metadata.contains("input")); QVERIFY(!metadata.contains("output"));
@@ -547,8 +554,21 @@ void TestUi::textStyleWorkflow()
     eTheme->setThemeMode(ElaThemeType::Dark); QTest::qWait(250); QCOMPARE(output->document()->toRawText(),retainedOutput); QVERIFY(window.grab().save("text-style-dark.png"));
     QVERIFY(settings.setLocale("zh_TW")); QCoreApplication::processEvents(); QCOMPARE(convert->text(),QString("轉換")); QCOMPARE(output->document()->toRawText(),retainedOutput);
     eTheme->setThemeMode(ElaThemeType::Light); QTest::qWait(250); QVERIFY(window.grab().save("text-style-light.png"));
-    window.resize(640,480); QCoreApplication::processEvents(); QVERIFY(window.grab().save("text-style-small.png"));
-    seed->setText("18446744073709551616"); regenerate->click(); QVERIFY(output->toPlainText().isEmpty()); QCOMPARE(seed->text(),QString("18446744073709551616")); QVERIFY(!copy->isEnabled());
+    window.resize(640,480);
+    QTRY_VERIFY(convert->mapTo(page, QPoint()).y() >= input->mapTo(page, QPoint()).y() + input->height());
+    QTRY_VERIFY(copy->mapTo(page, QPoint()).y() >= output->mapTo(page, QPoint()).y() + output->height());
+    QTest::qWait(100); QVERIFY(window.grab().save("text-style-small.png"));
+    seed->clear(); QVERIFY(!convert->isEnabled()); seed->insert("-1"); QVERIFY(seed->text().isEmpty());
+    seed->insert("中文"); QVERIFY(seed->text().isEmpty()); seed->insert("18446744073709551616"); QVERIFY(seed->text().isEmpty());
+    QTest::keyClicks(seed, "CAT42"); QCOMPARE(seed->text(), QString("cat42"));
+    convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); const auto namedOutput = output->document()->toRawText();
+    QCOMPARE(seed->text(), QString("cat42")); parameters->click(); const auto namedMetadata = QJsonDocument::fromJson(copiedPayload.toUtf8()).object();
+    QCOMPARE(namedMetadata["reproduction_schema_version"].toInt(), 2); QCOMPARE(namedMetadata["seed_text"].toString(), QString("cat42"));
+    QCOMPARE(namedMetadata["seed_mapping_id"].toString(), QString("ascii-alnum-sha256be64-v1"));
+    QCOMPARE(namedMetadata["seed"].toString(), QString::number(UINT64_C(0x983f1e82483d66e9)));
+    page->findChild<ElaPushButton*>("textStyleCopySeed")->click(); QCOMPARE(copiedPayload, QString("cat42"));
+    seed->setText("CaT42"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(output->document()->toRawText(), namedOutput);
+    seed->selectAll(); seed->insert("bad!"); QCOMPARE(seed->text(), QString("cat42"));
     seed->setText("00042"); presets->setCurrentIndex(presets->findData("heavy")); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QCOMPARE(seed->text(),QString("42"));
     page->findChild<ElaPushButton*>("textStyleClear")->click(); QVERIFY(input->toPlainText().isEmpty()); QCOMPARE(seed->text(),QString("42")); QCOMPARE(presets->currentData().toString(),QString("heavy"));
     QVERIFY(!convert->isEnabled()); QVERIFY(!copy->isEnabled());
@@ -569,7 +589,8 @@ void TestUi::textStyleWorkflow()
     });
     closing->findChild<ElaPlainTextEdit*>("textStyleInput")->setPlainText("close while running"); closing->findChild<ElaPushButton*>("textStyleConvert")->click();
     QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); delete closing; release->release(); QTRY_VERIFY_WITH_TIMEOUT(ended->available()>0,5000);
-    settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty()); QVERIFY(fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
+    settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty());
+    QVERIFY(!fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
     QCOMPARE(fresh.findChild<ElaComboBox*>("textStylePreset")->currentData().toString(),QString("heavy"));
 }
 void TestUi::windowWorkflow()

@@ -16,7 +16,9 @@ navigation, theme and controls.
 - Local Mojibake Repair with ranked candidates, reversible paths, background
   analysis, cancellation and a maximum input size of 1 MiB
 - Local Text Style Converter: Classic Martian, three intensities, paired line
-  decorations, reproducible 64-bit seeds and metadata-only generation parameters.
+  decorations, reproducible numeric or case-insensitive ASCII alphanumeric seeds
+  and generation parameters containing seeds, versions and hashes. One Convert
+  action uses the displayed seed; a dice button changes the seed without converting.
   The curated pack contains 98 character and 38 phrase rules (20 with alternatives).
   Unknown Unicode graphemes remain intact; only line endings are normalized.
   Input is limited to 256 KiB UTF-8 and output to 2 MiB; tasks run in the background

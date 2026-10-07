@@ -18,6 +18,26 @@ bool Engine::seed(const QString& input, uint64_t& value) {
     for (auto c : text) { if (c < '0' || c > '9') return false; const auto digit = uint64_t(c.unicode() - '0'); if (result > (UINT64_MAX - digit) / 10) return false; result = result * 10 + digit; }
     value = result; return true;
 }
+bool Engine::userSeed(const QString& input, UserSeed& result) {
+    if (input.isEmpty() || input.size() > 64) return false;
+    QString canonical; canonical.reserve(input.size()); bool letters = false;
+    for (auto c : input) {
+        if (c >= 'A' && c <= 'Z') c = QChar(c.unicode() + ('a' - 'A'));
+        if (c >= 'a' && c <= 'z') letters = true;
+        else if (c < '0' || c > '9') return false;
+        canonical.append(c);
+    }
+    UserSeed parsed;
+    if (!letters) {
+        if (!seed(canonical, parsed.value)) return false;
+        parsed.text = QString::number(parsed.value); parsed.mapping = "decimal-u64-v1";
+    } else {
+        const auto bytes = QCryptographicHash::hash(QByteArray("toolbox-text-style-seed-v1:") + canonical.toLatin1(), QCryptographicHash::Sha256);
+        for (int i = 0; i < 8; ++i) parsed.value = (parsed.value << 8) | static_cast<unsigned char>(bytes[i]);
+        parsed.text = canonical; parsed.mapping = "ascii-alnum-sha256be64-v1";
+    }
+    result = std::move(parsed); return true;
+}
 QString errorName(Error e) { switch(e) {
     case Error::None: return "None"; case Error::StyleUnavailable: return "StyleUnavailable"; case Error::InvalidStyle: return "InvalidStyle";
     case Error::UnsupportedSchema: return "UnsupportedSchema"; case Error::InvalidPreset: return "InvalidPreset"; case Error::InvalidSeed: return "InvalidSeed";

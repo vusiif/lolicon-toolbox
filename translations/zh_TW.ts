@@ -427,7 +427,7 @@ Unavailable</source><translation>候選 %1
         <name>TextStylePage</name>
         <message><source>Style unavailable: %1</source><translation>風格無法使用：%1</translation></message>
         <message><source>Converting locally… Editing input or options cancels this snapshot.</source><translation>正在本機轉換… 編輯輸入或選項會取消本次快照。</translation></message>
-        <message><source>Invalid seed. Enter ASCII decimal digits from 0 to 18446744073709551615, or leave it empty.</source><translation>種子無效。請輸入 0 到 18446744073709551615 的 ASCII 十進位數字，或留空。</translation></message>
+        <message><source>Enter a seed or use the dice button.</source><translation>請輸入種子，或點擊骰子隨機選擇。</translation></message>
         <message><source>Conversion cancelled.</source><translation>轉換已取消。</translation></message>
         <message><source>Input exceeds 256 KiB after newline normalization or the UTF-16 limit.</source><translation>換行統一後的輸入超過 256 KiB，或超過 UTF-16 長度上限。</translation></message>
         <message><source>Output exceeds 2 MiB. Use a shorter input or a lighter preset.</source><translation>輸出超過 2 MiB，請縮短輸入或降低強度。</translation></message>
@@ -438,7 +438,7 @@ Unavailable</source><translation>候選 %1
         <message><source>No rules matched; only newline normalization was applied.</source><translation>未命中規則，僅進行了換行統一。</translation></message>
         <message><source>Copied.</source><translation>已複製。</translation></message>
         <message><source>Enter text to convert. Text and seeds are not saved between sessions.</source><translation>請輸入要轉換的文字。文字和種子不會跨工作階段儲存。</translation></message>
-        <message><source>Ready. Convert reuses the seed; regenerate chooses a new seed, but text may still be identical.</source><translation>準備就緒。轉換沿用種子，重新產生選擇新種子，但文字可能仍相同。</translation></message>
+        <message><source>Ready. Convert uses the displayed seed. Use the dice button to change it.</source><translation>準備就緒。轉換使用框內種子，點擊骰子可隨機更換。</translation></message>
         <message><source>Keep the original input and matching rule/runtime versions to reproduce a result. Copied parameters contain hashes, not the original text.</source><translation>重現需保留原輸入及相符的規則和執行環境版本。複製的參數包含雜湊，不含原文。</translation></message>
         <message><source>Text Style Converter</source><translation>文字風格轉換</translation></message>
         <message><source>Local, reproducible text styling. Rules are data-driven; unknown characters stay intact and newlines become LF. No AI or reverse restoration.</source><translation>本機、可重現的文字風格轉換。規則由資料定義，未知字元保留，換行統一為 LF。不呼叫 AI，不進行反向還原。</translation></message>
@@ -450,13 +450,15 @@ Unavailable</source><translation>候選 %1
         <message><source>Medium</source><translation>中度</translation></message>
         <message><source>Heavy</source><translation>重度</translation></message>
         <message><source>Convert</source><translation>轉換</translation></message>
-        <message><source>Regenerate</source><translation>重新產生</translation></message>
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>Copy output</source><translation>複製輸出</translation></message>
         <message><source>Reproduction details</source><translation>重現詳情</translation></message>
         <message><source>Seed</source><translation>種子</translation></message>
-        <message><source>Empty: select a seed on successful conversion</source><translation>留空：成功轉換後固定一個種子</translation></message>
+        <message><source>ASCII letters and digits; case-insensitive</source><translation>英文字母和數字，不區分大小寫</translation></message>
+        <message><source>Up to 64 ASCII letters/digits. Numeric seeds keep their original value; letters are case-insensitive.</source><translation>最多 64 個 ASCII 字母或數字。純數字種子保留原數值；字母不區分大小寫。</translation></message>
+        <message><source>Randomize seed (does not convert)</source><translation>隨機種子（不執行轉換）</translation></message>
+        <message><source>Randomize seed</source><translation>隨機種子</translation></message>
         <message><source>Copy seed</source><translation>複製種子</translation></message>
         <message><source>Copy generation parameters</source><translation>複製產生參數</translation></message>
     </context>

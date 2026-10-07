@@ -22,6 +22,7 @@ struct Definition {
 };
 struct Loaded { std::shared_ptr<const Definition> style; Error error = Error::None; QString detail; };
 struct Stats { uint64_t matched = 0, replaced = 0, decorated = 0, inputBytes = 0, outputBytes = 0; };
+struct UserSeed { QString text, mapping; uint64_t value = 0; };
 struct Result { Error error = Error::None; QString output; Stats stats; QJsonObject metadata; uint64_t randomCalls = 0; bool success() const { return error == Error::None; } };
 struct Control {
     std::shared_ptr<std::atomic_bool> cancelled;
@@ -53,6 +54,7 @@ public:
     static constexpr qsizetype MaxOutputBytes = 2 * 1024 * 1024, MaxOutputUnits = 2097152;
     static QString normalize(QString text);
     static bool seed(const QString& text, uint64_t& value);
+    static bool userSeed(const QString& text, UserSeed& result);
     static Result transform(const QString& input, std::shared_ptr<const Definition> style, const QString& preset, uint64_t seed, const Control& control = {});
 };
 bool white(char32_t scalar);
