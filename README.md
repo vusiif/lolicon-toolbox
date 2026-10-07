@@ -40,6 +40,11 @@ for the new page remains manual because SogouCloud held the clipboard during tes
 
 ## Build
 
+Voice Designer development has started with a dedicated MiMo VoiceDesign service
+and local mock HTTP tests. It is not yet exposed as a tool page. See
+[implementation progress](docs/Voice-Designer-Implementation.md) for the staged
+plan, limits and the later Qt Multimedia dependency.
+
 Requirements: Windows, Qt 6.11.2 MSVC 2022 64-bit including Widgets private headers,
 MSVC Build Tools, CMake, Ninja and Python 3 (build-time JSON validation only). Initialize the MSVC x64 environment before
 running CMake from PowerShell 7 (`pwsh`). The preset contains the local Qt path.
