@@ -469,4 +469,30 @@ Unavailable</source><translation>候选 %1
         <name>TextStylePage</name>
         <message><source>Clipboard ownership was not obtained. Another application may be using it; retry copying.</source><translation>未取得剪贴板所有权，其他应用可能正在占用，请重试复制。</translation></message>
     </context>
+    <context>
+        <name>TextStylePage</name>
+        <message><source>AI request cancelled.</source><translation>AI 请求已取消。</translation></message>
+        <message><source>AI restoration</source><translation>AI 还原</translation></message>
+        <message><source>AI styling</source><translation>AI 转换</translation></message>
+        <message><source>AI suggestion</source><translation>AI 参考结果</translation></message>
+        <message><source>Cancel AI</source><translation>取消 AI</translation></message>
+        <message><source>Candidate %1</source><translation>候选 %1</translation></message>
+        <message><source>Input text</source><translation>输入文本</translation></message>
+        <message><source>Keep uncertain</source><translation>保留歧义</translation></message>
+        <message><source>Local result</source><translation>本地结果</translation></message>
+        <message><source>Original</source><translation>原始文本</translation></message>
+        <message><source>Restoration candidate</source><translation>还原候选</translation></message>
+        <message><source>Restore locally</source><translation>本地还原</translation></message>
+        <message><source>Restore text</source><translation>还原模式</translation></message>
+        <message><source>Style text</source><translation>转换模式</translation></message>
+        <message><source>Result</source><translation>结果</translation></message>
+        <message><source>reply</source><translation>回复</translation></message>
+        <message><source>thinking</source><translation>思考中</translation></message>
+        <message><source>Remove recognized paired line decorations</source><translation>移除识别到的成对行装饰</translation></message>
+        <message><source>Local styling and restoration candidates. AI assistance sends text only when you click its button.</source><translation>本地转换与还原候选。仅点击 AI 按钮时发送文本。</translation></message>
+        <message><source>Configure the AI address and model in Settings. Local operations stay offline.</source><translation>请在设置中配置 AI 地址和模型。本地操作不会发送文本。</translation></message>
+        <message><source>AI sends the input and available local candidates to %1 (model %2). Maximum input: 16 KiB. AI output is an inference and may vary.</source><translation>AI 会将输入与已有本地候选发送到 %1（模型 %2）。输入上限 16 KiB；AI 结果是推断，可能变化。</translation></message>
+        <message><source>AI running: %1 s / 90 s, %2 characters received (%3).</source><translation>AI 正在响应：%1 秒／90 秒，已接收 %2 个字符（%3）。</translation></message>
+        <message><source>Local restoration: %1 matches, %2 ambiguous spans, %3 wrapper pairs. Candidates are possibilities, not verified originals.</source><translation>本地还原：命中 %1 处，歧义 %2 处，行装饰 %3 对。候选仅为可能结果，未验证原文。</translation></message>
+    </context>
 </TS>

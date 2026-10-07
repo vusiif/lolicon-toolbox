@@ -5,7 +5,7 @@ add_custom_target(CheckStyleJson ALL
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Check-Style-Json.py" "${style_json}" "${PROJECT_SOURCE_DIR}/tests/data/style-demo.json"
     COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Merge-Martian-Dictionaries.py" --check
     VERBATIM)
-add_library(TextStyleLogic STATIC TextStyleEngine.h TextStyleEngine.cpp StyleLoader.cpp)
+add_library(TextStyleLogic STATIC TextStyleEngine.h TextStyleEngine.cpp StyleLoader.cpp TextStyleRestore.h TextStyleRestore.cpp)
 target_include_directories(TextStyleLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(TextStyleLogic PUBLIC Qt6::Core)
 add_dependencies(TextStyleLogic CheckStyleJson)

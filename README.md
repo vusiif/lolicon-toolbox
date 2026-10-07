@@ -25,9 +25,16 @@ navigation, theme and controls.
   Unknown Unicode graphemes remain intact; only line endings are normalized.
   Input is limited to 256 KiB UTF-8 and output to 2 MiB; tasks run in the background
   with cancellation. Text and seeds are not persisted.
+  Local restoration offers conservative and alternative dictionary candidates,
+  optional paired-decoration removal, and an unchanged original comparison.
+  Explicit AI styling/restoration uses the shared API settings, with separate
+  result views, progress and cancellation. AI input is limited to 16 KiB;
+  suggestions are contextual inferences rather than verified originals.
 
 Text Style Converter documentation: [contract](docs/Text-Style-Converter.md),
 [manual testing](docs/Text-Style-Testing.md), [data sources](docs/Style-Data-Sources.md).
+[Restoration and AI testing](docs/Text-Style-Restoration-AI-Testing.md) includes
+local ambiguity examples and real-service acceptance steps.
 Core and hidden native UI regressions are automated; real clipboard acceptance
 for the new page remains manual because SogouCloud held the clipboard during testing.
 

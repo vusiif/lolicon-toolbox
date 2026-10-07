@@ -60,6 +60,7 @@ private slots:
     void clipboardSourceWorkflow();
     void diagnosticReportWorkflow();
     void textStyleWorkflow();
+    void textStyleRestoreAiWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -589,6 +590,50 @@ void TestUi::textStyleWorkflow()
     settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty());
     QVERIFY(!fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
     QCOMPARE(fresh.findChild<ElaComboBox*>("textStylePreset")->currentData().toString(),QString("heavy"));
+}
+void TestUi::textStyleRestoreAiWorkflow()
+{
+    QTemporaryDir dir; TestHttpServer server; AppSettings settings(dir.filePath("style-ai.ini")); QVERIFY(settings.setLocale("en"));
+    QVERIFY(settings.setAiConfiguration({server.url(),"model","test-only-key"}));
+    TextStylePage page(nullptr,&settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1100,850); page.show();
+    auto* input=page.findChild<ElaPlainTextEdit*>("textStyleInput"); auto* output=page.findChild<ElaPlainTextEdit*>("textStyleOutput");
+    auto* run=page.findChild<ElaPushButton*>("textStyleConvert"); auto* aiRun=page.findChild<ElaPushButton*>("textStyleAiRun");
+    auto* local=page.findChild<ElaPushButton*>("textStyleLocalView"); auto* aiView=page.findChild<ElaPushButton*>("textStyleAiView");
+    auto* status=page.findChild<QLabel*>("textStyleAiStatus");
+    QString clipboard; page.setClipboardWriter([&](const QString& text) { clipboard=text; return true; });
+    QCOMPARE(server.requests,0); page.findChild<ElaPushButton*>("textStyleRestoreMode")->click();
+    QVERIFY(page.findChild<ElaLineEdit*>("textStyleSeed")->isHidden() || !page.findChild<ElaLineEdit*>("textStyleSeed")->isVisible());
+    input->setPlainText("☆莪愛沵☆\n妑"); run->click(); QTRY_VERIFY_WITH_TIMEOUT(run->isEnabled(),5000);
+    QVERIFY(!output->toPlainText().contains("☆")); QVERIFY(output->toPlainText().contains("妑")); const auto conservative=output->toPlainText();
+    auto* choice=page.findChild<ElaPushButton*>("textStyleRestoreCandidate1"); QVERIFY(choice->isEnabled()); choice->click(); QVERIFY(output->toPlainText()!=conservative);
+    page.findChild<ElaPushButton*>("textStyleRestoreCandidate0")->click(); QCOMPARE(output->toPlainText(),conservative);
+    QCOMPARE(server.requests,0); server.response=TestHttpServer::success("我爱你\n把"); aiRun->click();
+    QTRY_VERIFY_WITH_TIMEOUT(aiView->isEnabled(),5000); QCOMPARE(output->toPlainText(),QString("我爱你\n把"));
+    QCOMPARE(server.requests,1); const auto body=QJsonDocument::fromJson(server.lastBody).object();
+    const auto messages=body["messages"].toArray(); const auto payload=QJsonDocument::fromJson(messages.last().toObject()["content"].toString().toUtf8()).object();
+    QCOMPARE(payload["task"].toString(),QString("text_style_restore")); QCOMPARE(payload["original_text"].toString(),QString("☆莪愛沵☆\n妑")); QVERIFY(!payload["ambiguities"].toArray().isEmpty());
+    local->click(); QCOMPARE(output->toPlainText(),conservative); aiView->click();
+    page.findChild<ElaPushButton*>("textStyleCopy")->click(); QCOMPARE(clipboard,QString("我爱你\n把"));
+    input->setPlainText("new input"); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiView->isEnabled());
+    server.hold=true; aiRun->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests,2,3000); input->setPlainText("changed during AI");
+    QTRY_VERIFY_WITH_TIMEOUT(aiRun->isEnabled(),3000); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiView->isEnabled());
+    aiRun->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests,3,3000); page.findChild<ElaPushButton*>("textStyleAiCancel")->click();
+    QTRY_VERIFY_WITH_TIMEOUT(aiRun->isEnabled(),3000); QVERIFY(status->text().contains("cancelled"));
+    server.hold=false; server.response=TestHttpServer::success("styled AI"); page.findChild<ElaPushButton*>("textStyleEncodeMode")->click();
+    input->setPlainText("你好"); aiRun->click(); QTRY_VERIFY_WITH_TIMEOUT(aiView->isEnabled(),5000);
+    const auto encodeBody=QJsonDocument::fromJson(server.lastBody).object(); const auto encodeMessages=encodeBody["messages"].toArray();
+    QCOMPARE(QJsonDocument::fromJson(encodeMessages.last().toObject()["content"].toString().toUtf8()).object()["task"].toString(),QString("text_style_encode"));
+    QVERIFY(!local->isEnabled());
+    input->setPlainText(QString(16*1024+1,'x')); QVERIFY(!aiRun->isEnabled());
+    input->setPlainText("莪愛沵"); page.findChild<ElaPushButton*>("textStyleRestoreMode")->click(); run->click(); QTRY_VERIFY_WITH_TIMEOUT(run->isEnabled(),5000);
+    server.status=400; aiRun->click(); QTRY_VERIFY_WITH_TIMEOUT(status->text().contains("HTTP 400"),3000); QVERIFY(local->isEnabled()); QVERIFY(!output->toPlainText().isEmpty());
+    QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents(); QCOMPARE(run->text(),QString("本地还原")); QCOMPARE(aiRun->text(),QString("AI 还原"));
+    QVERIFY(page.grab().save("text-style-restore.png"));
+    page.resize(400,650);
+    QTRY_VERIFY(output->mapTo(&page,QPoint()).y()>=run->mapTo(&page,QPoint()).y()+run->height());
+    QTRY_VERIFY(page.findChild<ElaPushButton*>("textStyleRestoreCandidate2")->mapTo(&page,QPoint()).y()>page.findChild<ElaPushButton*>("textStyleRestoreCandidate0")->mapTo(&page,QPoint()).y());
+    QTest::qWait(100);
+    QVERIFY(page.grab().save("text-style-restore-small.png"));
 }
 void TestUi::windowWorkflow()
 {

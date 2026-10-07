@@ -37,6 +37,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Diagnostic-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Converter.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Testing.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Restoration-AI-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Style-Data-Sources.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/LICENSE.txt') -Destination (Join-Path $package 'Text-Style-Data-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/DATA-NOTICES.txt') -Destination (Join-Path $package 'Text-Style-Data-NOTICES.txt')

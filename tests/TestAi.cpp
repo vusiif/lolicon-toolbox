@@ -21,6 +21,7 @@ private slots:
     void networkSuccess();
     void networkFailures();
     void cancellationAndTimeout();
+    void textStyleTasks();
 };
 void TestAi::configuration() {
     QVERIFY(OpenAICompatibleProvider::validate({"https://example.com/v1", "model", ""}).isEmpty());
@@ -69,6 +70,18 @@ void TestAi::networkSuccess() {
     QCOMPARE(payload, context());
     service.analyze({server.url(), "model", ""}, {{"original_text", QString(16 * 1024 + 1, 'x')}}, "en");
     QCOMPARE(failed.count(), 1); QCOMPARE(server.requests, 1);
+}
+void TestAi::textStyleTasks() {
+    for(const auto* task : {"text_style_encode","text_style_restore"}) {
+        TestHttpServer server; server.response=TestHttpServer::success("style suggestion");
+        AiService service; QSignalSpy complete(&service,&AiService::completed), failed(&service,&AiService::failed);
+        auto data=context(); data["task"]=task; data["original_text"]="莪愛沵";
+        service.analyze({server.url(),"model","test-only-key"},data,"zh_CN");
+        QTRY_COMPARE_WITH_TIMEOUT(complete.count(),1,3000); QCOMPARE(failed.count(),0);
+        const auto request=QJsonDocument::fromJson(server.lastBody).object(); const auto messages=request["messages"].toArray();
+        const auto prompt=messages.first().toObject()["content"].toString(); QVERIFY(prompt.contains("Martian")); QVERIFY(prompt.contains(task)); QVERIFY(prompt.contains("never instructions"));
+        QCOMPARE(QJsonDocument::fromJson(messages.last().toObject()["content"].toString().toUtf8()).object(),data);
+    }
 }
 void TestAi::modelListing() {
     const QByteArray response = R"({"data":[{"id":"z-model"},{"id":"a-model"},{"id":"z-model"},{"id":""},{"id":3}]})";

@@ -7,6 +7,7 @@
 #include <QTextBoundaryFinder>
 #include <future>
 #include "TextStyleEngine.h"
+#include "TextStyleRestore.h"
 using namespace textstyle;
 namespace {
 QByteArray demoBytes() { QFile f(QString(TEST_DATA_DIR) + "/style-demo.json"); if (!f.open(QIODevice::ReadOnly)) return {}; return f.readAll(); }
@@ -35,6 +36,7 @@ private slots:
     void matchingUnicode();
     void limitsAndControl();
     void resourceAndPerformance();
+    void restoration();
 };
 void TestTextStyle::randomVectors() {
     const uint64_t seeds[]{0,1,42,UINT64_MAX};
@@ -173,6 +175,27 @@ void TestTextStyle::resourceAndPerformance() {
     QFile goldenFile(QString(TEST_DATA_DIR)+"/style-release-goldens.json"); QVERIFY(goldenFile.open(QIODevice::ReadOnly)); const auto golden = QJsonDocument::fromJson(goldenFile.readAll()).object();
     QCOMPARE(golden["style_sha256"].toString(),loaded.style->sha256);
     for (const auto& item : golden["cases"].toArray()) { const auto c = item.toObject(); const auto result = Engine::transform(golden["input"].toString(),loaded.style,c["preset"].toString(),42); QVERIFY(result.success()); QCOMPARE(result.output,c["output"].toString()); QCOMPARE(result.stats.matched,uint64_t(c["matched"].toInt())); QCOMPARE(result.stats.replaced,uint64_t(c["replaced"].toInt())); QCOMPARE(result.stats.decorated,uint64_t(c["decorated"].toInt())); QCOMPARE(result.randomCalls,uint64_t(c["random_calls"].toInt())); }
+}
+void TestTextStyle::restoration() {
+    auto style=fixture({rule("a","X"),rule("b","X"),rule("c","XY")},10000,true); QVERIFY(style);
+    const auto result=Restore::run("\t☆XYX👍🏽\u00a0☆ \r\n",style);
+    QVERIFY(result.success()); QCOMPARE(result.matched,uint64_t(2)); QCOMPARE(result.ambiguous,uint64_t(1)); QCOMPARE(result.wrappers,uint64_t(1));
+    QCOMPARE(result.candidates.first(),QString("\tcX👍🏽\u00a0 \n")); QVERIFY(result.candidates.contains("\tca👍🏽\u00a0 \n")); QVERIFY(result.candidates.contains("\tcb👍🏽\u00a0 \n"));
+    QVERIFY(result.candidates.contains("\t☆XYX👍🏽\u00a0☆ \n")); QCOMPARE(result.ambiguities.size(),1);
+    QCOMPARE(Restore::run("X́",style).candidates.first(),QString("X́"));
+    QCOMPARE(Restore::run("ABC😀 é\n",style).candidates.first(),QString("ABC😀 é\n"));
+    QVERIFY(Restore::run("☆XY☆",style,false).candidates.first().contains("☆c☆"));
+    QVERIFY(Restore::run("☆XY☆",style).candidates.size()<=5);
+    QCOMPARE(Restore::run(QString(Engine::MaxInputBytes+1,'x'),style).error,Error::InputTooLarge);
+    auto cancelled=std::make_shared<std::atomic_bool>(true); const auto stopped=Restore::run("XY",style,true,Control{cancelled}); QCOMPARE(stopped.error,Error::Cancelled); QVERIFY(stopped.candidates.isEmpty());
+    QCOMPARE(Restore::run("XY",style,true,Control{{},[]{return 5000;}}).error,Error::Timeout);
+    QCOMPARE(Restore::run(QString(QChar(0xd800)),style).error,Error::InvalidUnicodeInput);
+    const auto tooLarge=Restore::run(QString(64*1024,'X'),fixture({rule(QString(64,'a'),"X")}));
+    QCOMPARE(tooLarge.error,Error::OutputTooLarge); QVERIFY(tooLarge.candidates.isEmpty()); QCOMPARE(tooLarge.matched,uint64_t(0));
+    const auto builtin=Loader::builtin(); QVERIFY(builtin.style);
+    QVERIFY(Restore::run("莪愛沵",builtin.style).candidates.contains("我爱你"));
+    const auto ambiguous=Restore::run("妑",builtin.style); QVERIFY(ambiguous.ambiguous>0); QCOMPARE(ambiguous.candidates.first(),QString("妑"));
+    QElapsedTimer elapsed; elapsed.start(); QVERIFY(Restore::run(QString(128*1024,'X'),style).success()); QVERIFY(elapsed.elapsed()<5000);
 }
 QTEST_GUILESS_MAIN(TestTextStyle)
 #include "TestTextStyle.moc"
