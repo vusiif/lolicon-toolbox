@@ -7,6 +7,7 @@
 #include "MojibakePage.h"
 #include "TextStylePage.h"
 #include "VoiceDesignerPage.h"
+#include "CharacterArtPage.h"
 #include "UiTheme.h"
 #include <ElaApplication.h>
 #include <ElaTheme.h>
@@ -39,6 +40,10 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     voice.id = "speech.voice_designer"; voice.name = "Voice Designer"; voice.icon = ElaIconType::Microphone;
     voice.factory = [this](QWidget* parent) { return new VoiceDesignerPage(parent, m_settings.get()); };
     m_tools->registerTool(voice);
+    ToolDescriptor art;
+    art.id = "image.character_art"; art.name = "Character Art Generator"; art.icon = ElaIconType::Image;
+    art.factory = [](QWidget* parent) { return new CharacterArtPage(parent); };
+    m_tools->registerTool(art);
     NavigationManager navigation;
     navigation.addGroup({"encoding", QT_TRANSLATE_NOOP("Navigation", "Text and Encoding"), 10});
     navigation.addItem({"encoding.base64", "encoding", 10, true});
@@ -46,6 +51,8 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     navigation.addItem({"text.style_converter", "encoding", 30, true});
     navigation.addGroup({"speech", QT_TRANSLATE_NOOP("Navigation", "Audio and Speech"), 20});
     navigation.addItem({"speech.voice_designer", "speech", 10, true});
+    navigation.addGroup({"image", QT_TRANSLATE_NOOP("Navigation", "Image Tools"), 30});
+    navigation.addItem({"image.character_art", "image", 10, true});
     m_window = std::make_unique<MainWindow>(*m_settings, *m_tools, navigation);
     m_window->show();
 }

@@ -3,7 +3,7 @@ add_executable(TestBase64Codec TestBase64Codec.cpp)
 target_link_libraries(TestBase64Codec PRIVATE Qt6::Test ToolBase64)
 add_test(NAME TestBase64Codec COMMAND TestBase64Codec)
 add_executable(TestUi TestUi.cpp)
-target_link_libraries(TestUi PRIVATE Qt6::Test ToolboxShell ToolBase64 ToolMojibake ToolTextStyle ToolVoiceDesigner)
+target_link_libraries(TestUi PRIVATE Qt6::Test ToolboxShell ToolBase64 ToolMojibake ToolTextStyle ToolVoiceDesigner ToolCharacterArt)
 add_test(NAME TestUi COMMAND TestUi -o ui-results.txt,txt)
 add_executable(TestMojibake TestMojibake.cpp)
 target_link_libraries(TestMojibake PRIVATE Qt6::Test MojibakeLogic)
@@ -31,10 +31,13 @@ add_test(NAME TestTextStyle COMMAND TestTextStyle -o text-style-results.txt,txt)
 add_executable(TestVoiceDesign TestVoiceDesign.cpp TestHttpServer.h)
 target_link_libraries(TestVoiceDesign PRIVATE Qt6::Test VoiceDesignLogic)
 add_test(NAME TestVoiceDesign COMMAND TestVoiceDesign -o voice-design-results.txt,txt)
+add_executable(TestCharacterArt TestCharacterArt.cpp)
+target_link_libraries(TestCharacterArt PRIVATE Qt6::Test CharacterArtLogic)
+add_test(NAME TestCharacterArt COMMAND TestCharacterArt -o character-art-results.txt,txt)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME TestStyleJsonValidation COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Check-Style-Json.py" --self-test)
 add_test(NAME TestMartianDictionaryMerge COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Merge-Martian-Dictionaries.py" --self-test)
-set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle TestVoiceDesign PROPERTIES
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle TestVoiceDesign TestCharacterArt PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"

@@ -40,6 +40,9 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Text-Style-Restoration-AI-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Voice-Designer-Testing.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Voice-Designer-Implementation.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Character-Art-Testing.md') -Destination $packageDocs
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/MapleMonoNL-NF-CN-unhinted/OFL.txt') -Destination (Join-Path $package 'Maple-OFL.txt')
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/MapleMonoNL-NF-CN-unhinted/FONT-NOTICE.md') -Destination (Join-Path $package 'Maple-FONT-NOTICE.md')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/Style-Data-Sources.md') -Destination $packageDocs
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/LICENSE.txt') -Destination (Join-Path $package 'Text-Style-Data-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/DATA-NOTICES.txt') -Destination (Join-Path $package 'Text-Style-Data-NOTICES.txt')

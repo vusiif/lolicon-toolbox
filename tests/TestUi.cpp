@@ -18,6 +18,7 @@
 #include <QLocale>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QPainter>
 #include <QTreeView>
 #include "MainWindow.h"
 #include "LazyToolPage.h"
@@ -32,6 +33,8 @@
 #include "DiagnosticReportWidget.h"
 #include "TextStylePage.h"
 #include "VoiceDesignerPage.h"
+#include "CharacterArtPage.h"
+#include <ElaSpinBox.h>
 #include <QSemaphore>
 #include <QCryptographicHash>
 #include <QJsonDocument>
@@ -64,6 +67,7 @@ private slots:
     void textStyleWorkflow();
     void textStyleRestoreAiWorkflow();
     void voiceDesignerWorkflow();
+    void characterArtWorkflow();
     void windowWorkflow();
 };
 void TestUi::systemDefaults()
@@ -593,6 +597,38 @@ void TestUi::textStyleWorkflow()
     settings.sync(); TextStylePage fresh(nullptr,&settings); QVERIFY(fresh.findChild<ElaPlainTextEdit*>("textStyleInput")->toPlainText().isEmpty());
     QVERIFY(!fresh.findChild<ElaLineEdit*>("textStyleSeed")->text().isEmpty());
     QCOMPARE(fresh.findChild<ElaComboBox*>("textStylePreset")->currentData().toString(),QString("heavy"));
+}
+void TestUi::characterArtWorkflow()
+{
+    QTemporaryDir dir; AppSettings settings(dir.filePath("art.ini")); QVERIFY(settings.setLocale("en"));
+    ToolDescriptor descriptor; descriptor.id="image.character_art"; descriptor.name="Character Art Generator";
+    int loads=0; descriptor.factory=[&loads](QWidget* parent) { ++loads; return new CharacterArtPage(parent); };
+    LazyToolPage lazy(descriptor); lazy.setAttribute(Qt::WA_DontShowOnScreen); lazy.resize(1050,900);
+    QCOMPARE(loads,0); lazy.show(); QTRY_COMPARE(loads,1);
+    auto* page=qobject_cast<CharacterArtPage*>(lazy.page()); QVERIFY(page);
+    auto* generate=page->findChild<ElaPushButton*>("artGenerate"); auto* copy=page->findChild<ElaPushButton*>("artCopy");
+    auto* columns=page->findChild<ElaSpinBox*>("artColumns"); auto* zoom=page->findChild<ElaSpinBox*>("artZoom");
+    QVERIFY(generate && copy && columns && zoom); QVERIFY(!generate->isEnabled()); QVERIFY(!copy->isEnabled());
+    QImage source(400,300,QImage::Format_RGB32); source.fill(Qt::white);
+    { QPainter painter(&source); painter.setBrush(Qt::black); painter.drawEllipse(100,50,200,200); }
+    const auto inputPath=dir.filePath("circle.png"); QVERIFY(source.save(inputPath)); page->openImage(inputPath);
+    QTRY_VERIFY_WITH_TIMEOUT(generate->isEnabled(),3000); generate->click(); QTRY_VERIFY_WITH_TIMEOUT(copy->isEnabled(),3000);
+    QVERIFY(page->result().success()); QCOMPARE(page->result().columns,80); const auto text=page->result().text;
+    QString copied; page->setClipboardWriter([&copied](const QString& value) { copied=value; return true; }); copy->click(); QCOMPARE(copied,text);
+    QVERIFY(page->saveText(dir.filePath("result.txt"))); QVERIFY(page->savePng(dir.filePath("result.png")));
+    QFile file(dir.filePath("result.txt")); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(),text.toUtf8());
+    QVERIFY(!page->saveText(dir.filePath("result.txt"))); QVERIFY(!QImage(dir.filePath("result.png")).isNull());
+    zoom->setValue(50); QCOMPARE(page->result().text,text);
+    eTheme->setThemeMode(ElaThemeType::Dark); QCOMPARE(page->result().text,text); QVERIFY(page->grab().save("character-art-dark.png"));
+    QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents(); QCOMPARE(generate->text(),QStringLiteral("生成")); QCOMPARE(page->result().text,text);
+    QVERIFY(settings.setLocale("zh_TW")); QCoreApplication::processEvents(); QCOMPARE(generate->text(),QStringLiteral("產生"));
+    QVERIFY(settings.setLocale("en")); columns->setValue(100); QVERIFY(!page->result().success()); QVERIFY(!copy->isEnabled());
+    generate->click(); page->findChild<ElaPushButton*>("artCancel")->click(); QTRY_VERIFY(generate->isEnabled()); QVERIFY(!page->result().success());
+    generate->click(); QTRY_VERIFY(copy->isEnabled()); page->findChild<ElaPushButton*>("artClear")->click(); QVERIFY(!generate->isEnabled()); QVERIFY(!copy->isEnabled());
+    page->openImage(dir.filePath("missing.png")); QTRY_VERIFY(page->findChild<ElaPushButton*>("artOpen")->isEnabled()); QVERIFY(!generate->isEnabled());
+    page->openImage(inputPath); QTRY_VERIFY(generate->isEnabled()); generate->click(); QTRY_VERIFY(copy->isEnabled());
+    lazy.resize(560,850); QTest::qWait(100); QVERIFY(page->grab().save("character-art-small.png"));
+    lazy.hide(); lazy.show(); QCOMPARE(loads,1); QVERIFY(page->result().success());
 }
 void TestUi::voiceDesignerWorkflow()
 {

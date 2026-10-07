@@ -40,6 +40,11 @@ for the new page remains manual because SogouCloud held the clipboard during tes
 
 ## Build
 
+Character Art Generator is available under Image Tools. It converts local PNG/JPEG
+images into calibrated Maple character art, with column count, palette, brightness,
+contrast and inversion controls. Copy plain text, save UTF-8 TXT, or export a PNG
+matching the bundled font preview. See [usage and tests](docs/Character-Art-Testing.md).
+
 Voice Designer is available under Audio and Speech as a minimal online tool:
 describe a voice, enter preview text, generate/cancel and validate the returned WAV.
 It uses the saved API address/key and a fixed MiMo VoiceDesign model. Playback,

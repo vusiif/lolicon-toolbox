@@ -1,6 +1,6 @@
 # 音色设计：实施进度与验证
 
-2026-10-07。用户选择先开发 MiMo 音色设计；字符画等待确切 Maple 字体资源。
+2026-10-07。用户先开发 MiMo 音色设计，随后提供 Maple 字体并转做字符画；真实 MiMo 验收待用户有空时进行。
 依据根目录两份 Agent Plan 调查后，已完成 Voice Designer Stage 0 / Stage 1 / Stage 2。
 最小页面已加入「音频与语音」分组；播放、保存、Builder 与 A/B 尚未实现。
 
@@ -10,7 +10,7 @@
 - ToolRegistry 注册工具，NavigationManager 配置分组，页面由现有 LazyToolPage 创建。
 - AppSettings 已提供 API 配置、变更信号与当前用户 DPAPI 密钥加密；新服务接收相同 `ai::Configuration`，不新增密钥持久化。
 - 当前 Qt 安装具备 Network / Concurrent，未找到 Qt6Multimedia CMake 配置。Stage 1 不依赖 Multimedia；实现播放时需补装同版本 MSVC x64 Multimedia 并核对部署插件。
-- 仓库内只找到 ElaAwesome.ttf，没有 Maple 字体。字符画所需确切变体、版本、许可和部署方式待确认，不能用系统字体替代。
+- 最初调查没有 Maple 字体；随后用户提供了 Maple Mono NL NFMono CN Regular 7.900，字符画独立接入，见 `Character-Art-Testing.md`。
 
 ## 本轮服务层
 

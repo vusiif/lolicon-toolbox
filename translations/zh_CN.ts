@@ -546,4 +546,65 @@ Uses the saved API address and key in Settings; the text model selection is igno
         <name>Navigation</name>
         <message><source>Audio and Speech</source><translation>音频与语音</translation></message>
     </context>
+    <context>
+        <name>CharacterArtPage</name>
+        <message><source>Character Art Generator</source><translation>字符画生成器</translation></message>
+        <message><source>Local image-to-text conversion using Maple Mono NL NFMono CN. Copied text may look different in another font; PNG keeps the exact preview layout.</source><translation>使用 Maple Mono NL NFMono CN 在本地生成字符画。复制文本换用其他字体后可能变形；PNG 保留预览排版。</translation></message>
+        <message><source>Open image</source><translation>打开图片</translation></message>
+        <message><source>Generate</source><translation>生成</translation></message>
+        <message><source>Cancel</source><translation>取消</translation></message>
+        <message><source>Clear</source><translation>清空</translation></message>
+        <message><source>Copy text</source><translation>复制文本</translation></message>
+        <message><source>Save TXT</source><translation>保存 TXT</translation></message>
+        <message><source>Export PNG</source><translation>导出 PNG</translation></message>
+        <message><source>Columns</source><translation>列数</translation></message>
+        <message><source>Character set</source><translation>字符集</translation></message>
+        <message><source>Brightness</source><translation>亮度</translation></message>
+        <message><source>Contrast</source><translation>对比度</translation></message>
+        <message><source>Preview zoom</source><translation>预览缩放</translation></message>
+        <message><source>Invert</source><translation>反色</translation></message>
+        <message><source>Basic</source><translation>基础</translation></message>
+        <message><source>Dense</source><translation>密集</translation></message>
+        <message><source>Images (*.png *.jpg *.jpeg)</source><translation>图片 (*.png *.jpg *.jpeg)</translation></message>
+        <message><source>Text files (*.txt)</source><translation>文本文件 (*.txt)</translation></message>
+        <message><source>PNG images (*.png)</source><translation>PNG 图片 (*.png)</translation></message>
+        <message><source>Generation cancelled.</source><translation>已取消生成。</translation></message>
+        <message><source>Text copied.</source><translation>已复制文本。</translation></message>
+        <message><source>Could not obtain clipboard ownership. Retry copying.</source><translation>未取得剪贴板所有权，请重试复制。</translation></message>
+        <message><source>Saved a new file.</source><translation>已保存新文件。</translation></message>
+        <message><source>Could not encode PNG.</source><translation>无法编码 PNG。</translation></message>
+        <message><source>Could not render the character art.</source><translation>无法渲染字符画。</translation></message>
+        <message><source>Select a PNG or JPEG image. Nothing is uploaded.</source><translation>选择 PNG 或 JPEG 图片，不会上传任何内容。</translation></message>
+        <message><source>%1 · %2 × %3 pixels · Maple cell %4 × %5</source><translation>%1 · %2 × %3 像素 · Maple 字符格 %4 × %5</translation></message>
+        <message><source>Working… You can cancel or clear.</source><translation>正在处理… 可以取消或清空。</translation></message>
+        <message><source>Generated %1 columns × %2 rows. TXT uses UTF-8; PNG preserves the Maple layout.</source><translation>已生成 %1 列 × %2 行。TXT 使用 UTF-8；PNG 保留 Maple 排版。</translation></message>
+        <message><source>Choose an image and click Generate.</source><translation>选择图片并点击生成。</translation></message>
+    </context>
+    <context>
+        <name>CharacterArtErrors</name>
+        <message><source>The bundled Maple font could not be loaded. No fallback font is used.</source><translation>无法加载内置 Maple 字体，不会使用替代字体。</translation></message>
+        <message><source>Invalid Maple font metrics.</source><translation>Maple 字体度量无效。</translation></message>
+        <message><source>The bundled Maple font does not support the built-in palette.</source><translation>内置 Maple 字体不支持内置字符集。</translation></message>
+        <message><source>Select an existing PNG or JPEG file up to 32 MiB.</source><translation>请选择已存在且不超过 32 MiB 的 PNG 或 JPEG 文件。</translation></message>
+        <message><source>Only static PNG and JPEG images are supported.</source><translation>仅支持静态 PNG 和 JPEG 图片。</translation></message>
+        <message><source>Image exceeds the 8192-pixel dimension or 16-megapixel limit.</source><translation>图片单边超过 8192 像素或总像素超过 1600 万限制。</translation></message>
+        <message><source>Image decoding failed. The file may be damaged.</source><translation>图片解码失败，文件可能已损坏。</translation></message>
+        <message><source>Decoded image exceeds the pixel limit.</source><translation>解码后的图片超过像素限制。</translation></message>
+        <message><source>Invalid or oversized image.</source><translation>图片无效或过大。</translation></message>
+        <message><source>Invalid generation options or palette.</source><translation>生成参数或字符集无效。</translation></message>
+        <message><source>Invalid glyph palette.</source><translation>字形密度表无效。</translation></message>
+        <message><source>The image is too tall at this column count. Reduce the number of columns.</source><translation>当前列数下图片过高，请减少列数。</translation></message>
+        <message><source>Generation cancelled.</source><translation>已取消生成。</translation></message>
+        <message><source>Generation timed out.</source><translation>字符画生成超时。</translation></message>
+        <message><source>Could not create a new output file. Choose a path that does not already exist.</source><translation>无法创建新输出文件，请选择尚不存在的路径。</translation></message>
+        <message><source>Could not write the output file.</source><translation>无法写入输出文件。</translation></message>
+    </context>
+    <context>
+        <name>Tools</name>
+        <message><source>Character Art Generator</source><translation>字符画生成器</translation></message>
+    </context>
+    <context>
+        <name>Navigation</name>
+        <message><source>Image Tools</source><translation>图片工具</translation></message>
+    </context>
 </TS>
