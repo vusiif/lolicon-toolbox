@@ -56,9 +56,23 @@ building and A/B comparison are planned next. See
 [implementation progress](docs/Voice-Designer-Implementation.md) and
 [manual acceptance steps](docs/Voice-Designer-Testing.md).
 
-Requirements: Windows, Qt 6.11.2 MSVC 2022 64-bit including Widgets private headers,
-MSVC Build Tools, CMake, Ninja and Python 3 (build-time JSON validation only). Initialize the MSVC x64 environment before
-running CMake from PowerShell 7 (`pwsh`). The preset contains the local Qt path.
+Requirements: Windows, a Qt 6 MSVC 2022 64-bit kit with Widgets private headers
+and Qt Multimedia (tested with Qt 6.12.0), MSVC Build Tools, CMake, Ninja and
+Python 3 (build-time JSON validation only). Initialize the MSVC x64 environment
+before running CMake from PowerShell 7 (`pwsh`).
+
+The presets contain no machine paths. On the first configure of a build
+directory, CMake picks the Qt kit in this order:
+
+1. an explicit `-DCMAKE_PREFIX_PATH=...` / `-DQt6_DIR=...`, or the `Qt6_ROOT` /
+   `CMAKE_PREFIX_PATH` environment variables;
+2. the `QTDIR` environment variable (for example `C:\Qt\6.12.0\msvc2022_64`);
+3. the newest `C:\Qt\6.*\msvc2022_64` that includes Qt Multimedia.
+
+The configure log prints `Using Qt <version> from <path>`. The kit is cached in
+the build directory; delete the directory to switch kits. A personal
+`CMakeUserPresets.json` (ignored by git) can also inherit `default`/`release`
+and set `CMAKE_PREFIX_PATH`.
 
 ```powershell
 cmake --preset default
@@ -74,6 +88,12 @@ run the following in PowerShell 7 after initializing the MSVC x64 environment:
 ```powershell
 ./scripts/Package-Windows.ps1 -CMakePath cmake
 ```
+
+The script reads the version from the CMake project and runs `windeployqt` from
+the same Qt kit the Release build was configured with; `-QtBin` overrides it.
+Each package contains `VERSION.txt` with the commit and Qt version. Pass
+`-SkipArchive` to leave older builds in `dist/` instead of running the
+GitHub archive step described below.
 
 The output lives in `dist/`, with a SHA256 checksum beside the ZIP. Extract the
 archive and run `Toolbox.exe` in its folder. No Qt installation is needed on the

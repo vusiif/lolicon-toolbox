@@ -28,7 +28,32 @@ if(MSVC)
     set(CMAKE_CXX_COMPILER_LAUNCHER "cmd;/d;/v:off;/c;${msvc_launcher}")
 endif()
 
+# Qt kit selection. An explicit choice always wins: -DCMAKE_PREFIX_PATH=..., -DQt6_DIR=...,
+# or the Qt6_ROOT / CMAKE_PREFIX_PATH environment variables. Otherwise use the QTDIR
+# environment variable, then the newest C:/Qt/6.x/msvc2022_64 kit that has Multimedia.
+if(WIN32 AND NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR
+        AND NOT DEFINED ENV{Qt6_ROOT} AND NOT DEFINED ENV{CMAKE_PREFIX_PATH})
+    set(toolbox_qt_kit "")
+    if(DEFINED ENV{QTDIR})
+        file(TO_CMAKE_PATH "$ENV{QTDIR}" toolbox_qt_kit)
+    else()
+        file(GLOB toolbox_qt_kits LIST_DIRECTORIES true "C:/Qt/6.*/msvc2022_64")
+        list(SORT toolbox_qt_kits COMPARE NATURAL ORDER DESCENDING)
+        foreach(kit IN LISTS toolbox_qt_kits)
+            if(EXISTS "${kit}/lib/cmake/Qt6Multimedia/Qt6MultimediaConfig.cmake")
+                set(toolbox_qt_kit "${kit}")
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(toolbox_qt_kit)
+        list(APPEND CMAKE_PREFIX_PATH "${toolbox_qt_kit}")
+        message(STATUS "Qt kit: ${toolbox_qt_kit}")
+    endif()
+endif()
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets WidgetsPrivate LinguistTools)
+message(STATUS "Using Qt ${Qt6_VERSION} from ${Qt6_DIR}")
 
 # Build the vendored Ela controls without the example application or a runtime DLL.
 set(QT_VERSION_MAJOR 6)

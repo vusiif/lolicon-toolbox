@@ -15,6 +15,7 @@ dist/
 *.user
 *.suo
 *.sln.docstates
+CMakeUserPresets.json
 
 # Qt generated files
 moc_*.cpp
