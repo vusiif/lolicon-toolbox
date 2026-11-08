@@ -25,6 +25,7 @@
 using namespace mojibake;
 MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(parent), m_settings(settings), m_aiService(new ai::AiService(this)) {
     setObjectName("mojibakePage");
+    m_clipboardWriter = [](const QString& text) { auto* clipboard = QApplication::clipboard(); clipboard->setText(text); return clipboard->ownsClipboard(); };
     auto* outer = new QVBoxLayout(this);
     outer->setContentsMargins(0, 0, 0, 0);
     auto* scroll = new ElaScrollArea(this);
@@ -126,7 +127,7 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     layout->addWidget(m_aiStatus); layout->addWidget(m_aiOutput); layout->addWidget(m_aiExplanation);
     connect(m_aiAnalyze, &ElaPushButton::clicked, this, &MojibakePage::analyzeAi);
     connect(m_aiCancel, &ElaPushButton::clicked, m_aiService, &ai::AiService::cancel);
-    connect(m_aiCopy, &ElaPushButton::clicked, this, [this] { QApplication::clipboard()->setText(m_aiResult.text); });
+    connect(m_aiCopy, &ElaPushButton::clicked, this, [this] { m_clipboardWriter(m_aiResult.text); });
     m_aiProgressTimer.setInterval(1000);
     connect(&m_aiProgressTimer, &QTimer::timeout, this, &MojibakePage::showAiProgress);
     connect(m_aiService, &ai::AiService::progress, this, [this](bool thinking, int characters) {
@@ -170,8 +171,7 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(pa
     connect(m_copy, &ElaPushButton::clicked, this, [this]() {
         const int index = m_selectedCandidate;
         if (index < 0 || index >= m_result.candidates.size()) return;
-        QApplication::clipboard()->setText(m_result.candidates[index].text);
-        m_copied = true;
+        m_copied = m_clipboardWriter(m_result.candidates[index].text);
         showResult();
     });
     connect(&m_watcher, &QFutureWatcher<Result>::finished, this, [this]() {

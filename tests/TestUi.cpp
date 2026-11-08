@@ -241,14 +241,18 @@ void TestUi::mojibakeWorkflow()
     second->click();
     QVERIFY(second->isChecked() && !first->isChecked());
     QVERIFY(output->toPlainText() != QString::fromUtf8("你好"));
+    // Capture copies instead of using the system clipboard, which clipboard
+    // managers and IMEs can hold open (CLIPBRD_E_CANT_OPEN).
+    QString copied;
+    window.findChild<MojibakePage*>()->setClipboardWriter([&copied](const QString& text) { copied = text; return true; });
     window.findChild<ElaPushButton*>("mojibakeCopy")->click();
-    const auto alternative = QApplication::clipboard()->text();
+    const auto alternative = copied;
     first->click();
     QVERIFY(first->isChecked() && !second->isChecked());
     QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
     window.findChild<ElaPushButton*>("mojibakeCopy")->click();
-    QCOMPARE(QApplication::clipboard()->text(), QString::fromUtf8("你好"));
-    QVERIFY(alternative != QApplication::clipboard()->text());
+    QCOMPARE(copied, QString::fromUtf8("你好"));
+    QVERIFY(alternative != copied);
     QVERIFY(settings.setLocale("zh_CN"));
     QCoreApplication::processEvents();
     QCOMPARE(window.getNavigationNodeTitle(window.pageKey(descriptor.id)), QString::fromUtf8("乱码恢复"));
@@ -319,8 +323,9 @@ void TestUi::aiWorkflow()
     QVERIFY(aiAnalyze->isEnabled()); QCOMPARE(server.requests, 0);
     aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(output->toPlainText(), QString::fromUtf8("你好！"), 3000);
     QCOMPARE(local->toPlainText(), QString::fromUtf8("你好"));
+    QString aiCopied; page.setClipboardWriter([&aiCopied](const QString& text) { aiCopied = text; return true; });
     page.findChild<ElaPushButton*>("mojibakeAiCopy")->click();
-    QCOMPARE(QApplication::clipboard()->text(), QString::fromUtf8("你好！"));
+    QCOMPARE(aiCopied, QString::fromUtf8("你好！"));
     QVERIFY(page.grab().save("mojibake-ai.png"));
     QVERIFY(settings.setLocale("zh_CN"));
     QCoreApplication::processEvents(); QCOMPARE(aiAnalyze->text(), QString::fromUtf8("AI 深度分析"));

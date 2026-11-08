@@ -6,6 +6,7 @@
 #include <QElapsedTimer>
 #include <QTimer>
 #include "ai/AiProvider.h"
+#include <functional>
 class AppSettings;
 namespace ai { class AiService; }
 class ElaPlainTextEdit;
@@ -18,6 +19,9 @@ class MojibakePage : public ToolPage {
 public:
     explicit MojibakePage(QWidget* parent = nullptr, AppSettings* settings = nullptr);
     ~MojibakePage() override;
+    // Same seam as TextStylePage/CharacterArtPage: tests replace the system
+    // clipboard, which other applications (clipboard managers, IMEs) may hold.
+    void setClipboardWriter(std::function<bool(const QString&)> writer) { m_clipboardWriter = std::move(writer); }
 protected:
     void changeEvent(QEvent* event) override;
 private:
@@ -44,6 +48,7 @@ private:
     QString m_submitted;
     bool m_stale = false;
     bool m_copied = false;
+    std::function<bool(const QString&)> m_clipboardWriter;
     AppSettings* m_settings;
     ai::AiService* m_aiService;
     ElaPushButton *m_aiAnalyze, *m_aiCancel, *m_aiCopy;
