@@ -57,25 +57,26 @@ ClipboardSourcePage::ClipboardSourcePage(QWidget* parent) : QWidget(parent) {
     connect(m_html, &ElaPushButton::clicked, this, [this] { m_selected = 1; refresh(); });
     connect(m_clear, &ElaPushButton::clicked, this, [this] { m_snapshot = {}; m_readOnce = false; m_selected = -1; refresh(); });
     connect(m_use, &ElaPushButton::clicked, this, [this] {
-        if (m_worker.isRunning()) return;
+        if (m_extracting) return;
         if (m_selected == 0 && m_snapshot.plainUsable()) emit textChosen(m_snapshot.capture.plain);
         else if (m_selected == 1 && m_snapshot.htmlUsable()) emit textChosen(m_snapshot.htmlText);
     });
     connect(&m_worker, &QFutureWatcher<ClipboardTexts>::finished, this, [this] {
+        m_extracting = false;
         m_snapshot = m_worker.result(); m_selected = m_snapshot.plainUsable() ? 0 : m_snapshot.htmlUsable() ? 1 : -1; refresh();
     });
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { refresh(); });
     retranslate();
 }
 void ClipboardSourcePage::inspect(const QMimeData& mime) {
-    if (m_worker.isRunning()) return;
-    m_readOnce = true; m_snapshot = {}; m_selected = -1;
+    if (m_extracting) return;
+    m_extracting = true; m_readOnce = true; m_snapshot = {}; m_selected = -1;
     auto capture = ClipboardSource::capture(mime);
     m_worker.setFuture(QtConcurrent::run([capture = std::move(capture)]() mutable { return ClipboardSource::extract(std::move(capture)); }));
     refresh();
 }
 void ClipboardSourcePage::refresh() {
-    const bool busy = m_worker.isRunning(); const auto& capture = m_snapshot.capture;
+    const bool busy = m_extracting; const auto& capture = m_snapshot.capture;
     m_report->setReport(busy || !m_readOnce ? DiagnosticReport{} : DiagnosticReport::clipboard(m_snapshot, m_selected));
     m_read->setEnabled(!busy); m_clear->setEnabled(!busy && m_readOnce);
     m_plain->setEnabled(!busy && m_snapshot.plainUsable()); m_html->setEnabled(!busy && m_snapshot.htmlUsable());

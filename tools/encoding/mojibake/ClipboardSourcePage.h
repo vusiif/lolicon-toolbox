@@ -26,4 +26,8 @@ private:
     mojibake::ClipboardTexts m_snapshot;
     int m_selected = -1;
     bool m_readOnce = false;
+    // True from inspect() until the watcher's queued finished() is handled.
+    // QFutureWatcher::isRunning() alone is not enough: a fast extraction can
+    // finish before refresh() runs, while m_snapshot is still empty.
+    bool m_extracting = false;
 };
