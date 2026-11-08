@@ -29,6 +29,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'cmake-build-release/app/Toolbox.exe') -Destination $package
     Invoke-Checked $deployTool @('--release', '--compiler-runtime', (Join-Path $package 'Toolbox.exe'))
     Copy-Item -LiteralPath (Join-Path $projectRoot 'README.md') -Destination $package
+Copy-Item -LiteralPath (Join-Path $projectRoot 'LICENSE') -Destination (Join-Path $package 'LICENSE.txt')
     $packageDocs = Join-Path $package 'docs'
     New-Item -ItemType Directory -Path $packageDocs | Out-Null
     Copy-Item -LiteralPath (Join-Path $projectRoot 'docs/File-Recovery-Testing.md') -Destination $packageDocs

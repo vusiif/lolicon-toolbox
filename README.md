@@ -342,4 +342,14 @@ include output being parsed with the wrong codepage.
 
 ## License
 
-MIT.
+Copyright (C) 2026 Toolbox contributors.
+
+Toolbox is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version (SPDX: `GPL-3.0-or-later`). It is distributed WITHOUT ANY WARRANTY;
+see [LICENSE](LICENSE) for the full text.
+
+Bundled third-party components keep their own licenses: ElaWidgetTools (MIT),
+the Maple Mono font (SIL OFL 1.1), the text style data in `resources/styles/`
+(MIT, see its `LICENSE.txt` and `DATA-NOTICES.txt`) and Qt (LGPL-3.0).
