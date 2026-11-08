@@ -42,6 +42,8 @@ set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"
 )
+# The UI suite covers every tool page and takes ~40 s on a typical machine.
+set_tests_properties(TestUi PROPERTIES TIMEOUT 120)
 set_tests_properties(TestMojibake PROPERTIES TIMEOUT 90)
 set_tests_properties(TestFileRecovery PROPERTIES TIMEOUT 90)
 set_tests_properties(TestFilenameRecovery PROPERTIES TIMEOUT 90)
