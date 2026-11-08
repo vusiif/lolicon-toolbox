@@ -70,6 +70,11 @@ private slots:
     void audioValidation() {
         const auto audio = wav();
         QVERIFY(MiMoTtsService::validWav(audio));
+        const auto info = MiMoTtsService::wavInfo(audio); QVERIFY(info);
+        QCOMPARE(info->format, quint16(1)); QCOMPARE(info->channels, quint16(1));
+        QCOMPARE(info->sampleRate, quint32(24000)); QCOMPARE(info->bitsPerSample, quint16(16));
+        QCOMPARE(info->dataBytes, quint32(480)); QCOMPARE(info->durationMs(), qint64(10)); // 480 B at 48000 B/s
+        QVERIFY(!MiMoTtsService::wavInfo(audio.first(audio.size() - 1)));
         QCOMPARE(*MiMoTtsService::parseAudio(response(audio)), audio);
         for (int offset : {0, 4, 8, 16, 20, 22, 24, 28, 32, 34, 40}) {
             auto broken = audio; broken[offset] ^= char(0x7f);

@@ -672,7 +672,28 @@ void TestUi::voiceDesignerWorkflow()
     QCOMPARE(page->result()->audioData, audio); QCOMPARE(server.requests, 1);
     QCOMPARE(page->result()->snapshot.previewText, QStringLiteral("你好\nHello\u00a0world!"));
     QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), speech::MiMoTtsService::modelId());
-    QVERIFY(status->text().contains("validated"));
+    QVERIFY(status->text().contains("validated")); QVERIFY(status->text().contains("24000 Hz"));
+    auto* play = page->findChild<ElaPushButton*>("voicePlay");
+    auto* stop = page->findChild<ElaPushButton*>("voiceStop");
+    auto* save = page->findChild<ElaPushButton*>("voiceSave");
+    auto* time = page->findChild<QLabel*>("voiceTime");
+    auto* notice = page->findChild<QLabel*>("voiceNotice");
+    QVERIFY(play && stop && save && time && notice);
+    QVERIFY(play->isEnabled()); QVERIFY(save->isEnabled()); QVERIFY(!stop->isEnabled());
+    QCOMPARE(time->text(), QStringLiteral("0:00 / 0:00")); // 10 ms of silence
+    // Playback starts asynchronously; a host without an audio device reports an error instead.
+    play->click();
+    QTRY_VERIFY_WITH_TIMEOUT(page->isPlaying() || notice->isVisible(), 5000);
+    if (page->isPlaying()) {
+        QCOMPARE(play->text(), QStringLiteral("Pause")); QVERIFY(stop->isEnabled());
+        stop->click(); QTRY_VERIFY(!page->isPlaying()); QCOMPARE(play->text(), QStringLiteral("Play"));
+    }
+    QVERIFY(page->resultIsCurrent());
+    const auto wavPath = dir.filePath("voice.wav");
+    QVERIFY(page->saveWav(wavPath)); QVERIFY(notice->isVisible()); QVERIFY(notice->text().contains("voice.wav"));
+    QFile saved(wavPath); QVERIFY(saved.open(QIODevice::ReadOnly)); QCOMPARE(saved.readAll(), audio); saved.close();
+    QVERIFY(!page->saveWav(wavPath)); QVERIFY(notice->text().contains("never overwritten")); // Existing files are kept.
+    QFile kept(wavPath); QVERIFY(kept.open(QIODevice::ReadOnly)); QCOMPARE(kept.readAll(), audio); kept.close();
     settings.setThemeMode(ElaThemeType::Dark); eTheme->setThemeMode(ElaThemeType::Dark);
     QVERIFY(page->resultIsCurrent()); QVERIFY(page->grab().save("voice-designer-dark.png"));
     QVERIFY(settings.setLocale("zh_CN")); QCoreApplication::processEvents();
@@ -680,7 +701,12 @@ void TestUi::voiceDesignerWorkflow()
     QVERIFY(status->text().contains(QStringLiteral("校验")));
     QVERIFY(settings.setLocale("zh_TW")); QCoreApplication::processEvents(); QCOMPARE(generate->text(), QStringLiteral("產生試聽"));
     QVERIFY(settings.setLocale("en"));
-    description->setPlainText("new description"); QVERIFY(!page->resultIsCurrent()); QVERIFY(status->text().contains("out of date"));
+    QCoreApplication::processEvents(); QCOMPARE(play->text(), QStringLiteral("Play"));
+    play->click(); QTRY_VERIFY_WITH_TIMEOUT(page->isPlaying() || notice->isVisible(), 5000);
+    description->setPlainText("new description"); QVERIFY(!page->isPlaying()); // Editing stops stale playback.
+    QVERIFY(!page->resultIsCurrent()); QVERIFY(status->text().contains("out of date"));
+    QVERIFY(!play->isEnabled()); QVERIFY(!save->isEnabled()); QVERIFY(!notice->isVisible()); QVERIFY(!page->saveWav(dir.filePath("stale.wav")));
+    QVERIFY(!QFile::exists(dir.filePath("stale.wav")));
     server.hold = true; generate->click(); QTRY_COMPARE(server.requests, 2); QVERIFY(cancel->isEnabled()); QVERIFY(!generate->isEnabled());
     preview->appendPlainText("edit during request"); QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QVERIFY(!page->resultIsCurrent());
     generate->click(); QTRY_COMPARE(server.requests, 3); cancel->click(); QTRY_VERIFY(generate->isEnabled()); QVERIFY(status->text().contains("cancelled"));

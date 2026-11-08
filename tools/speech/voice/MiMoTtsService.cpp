@@ -53,23 +53,23 @@ QByteArray MiMoTtsService::requestBody(const VoiceDesignRequest& input) {
         {"audio", QJsonObject{{"format", "wav"}, {"optimize_text_preview", false}}}
     }).toJson(QJsonDocument::Compact);
 }
-bool MiMoTtsService::validWav(const QByteArray& audio) {
-    if (audio.size() < 44 || audio.size() > MaxAudioBytes || audio.first(4) != "RIFF" || audio.mid(8, 4) != "WAVE") return false;
+std::optional<WavInfo> MiMoTtsService::wavInfo(const QByteArray& audio) {
+    if (audio.size() < 44 || audio.size() > MaxAudioBytes || audio.first(4) != "RIFF" || audio.mid(8, 4) != "WAVE") return {};
     const auto u32 = [&audio](qsizetype offset) { return qFromLittleEndian<quint32>(audio.constData() + offset); };
     const auto u16 = [&audio](qsizetype offset) { return qFromLittleEndian<quint16>(audio.constData() + offset); };
-    if (quint64(u32(4)) + 8 != quint64(audio.size())) return false;
+    if (quint64(u32(4)) + 8 != quint64(audio.size())) return {};
     bool formatFound = false, dataFound = false;
     quint16 blockAlign = 0;
-    quint32 dataSize = 0;
+    WavInfo info;
     qsizetype offset = 12;
     while (offset < audio.size()) {
-        if (audio.size() - offset < 8) return false;
+        if (audio.size() - offset < 8) return {};
         const auto length = u32(offset + 4);
         const quint64 next = quint64(offset) + 8 + length + (length & 1);
-        if (next > quint64(audio.size())) return false;
+        if (next > quint64(audio.size())) return {};
         const auto tag = audio.mid(offset, 4);
         if (tag == "fmt ") {
-            if (formatFound || length < 16) return false;
+            if (formatFound || length < 16) return {};
             const auto type = u16(offset + 8), channels = u16(offset + 10), bits = u16(offset + 22);
             const auto sampleRate = u32(offset + 12), byteRate = u32(offset + 16);
             blockAlign = u16(offset + 20);
@@ -77,15 +77,17 @@ bool MiMoTtsService::validWav(const QByteArray& audio) {
             if ((type != 1 && type != 3) || channels == 0 || channels > 8 || sampleRate == 0 || sampleRate > 384000 ||
                 (type == 1 && bits != 8 && bits != 16 && bits != 24 && bits != 32) ||
                 (type == 3 && bits != 32 && bits != 64) || blockAlign != channels * (bits / 8) ||
-                byteRate != quint64(sampleRate) * blockAlign) return false;
+                byteRate != quint64(sampleRate) * blockAlign) return {};
             formatFound = true;
+            info.format = type; info.channels = channels; info.sampleRate = sampleRate; info.bitsPerSample = bits;
         } else if (tag == "data") {
-            if (dataFound || length == 0) return false;
-            dataFound = true; dataSize = length;
+            if (dataFound || length == 0) return {};
+            dataFound = true; info.dataBytes = length;
         }
         offset = qsizetype(next);
     }
-    return formatFound && dataFound && dataSize % blockAlign == 0;
+    if (!formatFound || !dataFound || info.dataBytes % blockAlign != 0) return {};
+    return info;
 }
 std::optional<QByteArray> MiMoTtsService::parseAudio(const QByteArray& response) {
     if (response.isEmpty() || response.size() > MaxResponseBytes) return {};

@@ -20,6 +20,18 @@ struct VoiceDesignResult {
     VoiceDesignRequest snapshot;
     QDateTime createdAt;
 };
+// Format facts read from a WAV that passed validation; used for display only.
+struct WavInfo {
+    quint16 format = 0; // 1 = PCM, 3 = IEEE float
+    quint16 channels = 0;
+    quint32 sampleRate = 0;
+    quint16 bitsPerSample = 0;
+    quint32 dataBytes = 0;
+    qint64 durationMs() const {
+        const quint64 bytesPerSecond = quint64(sampleRate) * channels * (bitsPerSample / 8);
+        return bytesPerSecond ? qint64(quint64(dataBytes) * 1000 / bytesPerSecond) : 0;
+    }
+};
 enum class VoiceDesignError {
     InvalidInput, Authorization, RateLimit, Http, Network, Timeout,
     ResponseTooLarge, InvalidResponse
@@ -42,7 +54,8 @@ public:
     static QUrl endpoint(const QString& baseUrl);
     static QByteArray requestBody(const VoiceDesignRequest&);
     static std::optional<QByteArray> parseAudio(const QByteArray& response);
-    static bool validWav(const QByteArray& audio);
+    static std::optional<WavInfo> wavInfo(const QByteArray& audio);
+    static bool validWav(const QByteArray& audio) { return wavInfo(audio).has_value(); }
     bool isBusy() const { return !m_reply.isNull(); }
     // A busy service rejects a second submission without disturbing the active one.
     bool generate(const ai::Configuration&, const VoiceDesignRequest&);

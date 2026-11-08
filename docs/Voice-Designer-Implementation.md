@@ -2,14 +2,14 @@
 
 2026-10-07。用户先开发 MiMo 音色设计，随后提供 Maple 字体并转做字符画；真实 MiMo 验收待用户有空时进行。
 依据根目录两份 Agent Plan 调查后，已完成 Voice Designer Stage 0 / Stage 1 / Stage 2。
-最小页面已加入「音频与语音」分组；播放、保存、Builder 与 A/B 尚未实现。
+最小页面已加入「音频与语音」分组。2026-11-08 完成 Stage 4（播放与保存 WAV，见下文）；Builder 与 A/B 尚未实现。
 
 ## 已核对的环境
 
 - Qt 6.11.2 MSVC x64、C++20、Ela Widgets；使用 PowerShell 7 / MSVC Build Tools / CMake / Ninja。
 - ToolRegistry 注册工具，NavigationManager 配置分组，页面由现有 LazyToolPage 创建。
 - AppSettings 已提供 API 配置、变更信号与当前用户 DPAPI 密钥加密；新服务接收相同 `ai::Configuration`，不新增密钥持久化。
-- 当前 Qt 安装具备 Network / Concurrent，未找到 Qt6Multimedia CMake 配置。Stage 1 不依赖 Multimedia；实现播放时需补装同版本 MSVC x64 Multimedia 并核对部署插件。
+- 2026-10-07 的 Qt 6.11.2 安装没有 Qt6Multimedia。2026-11-08 本机改用 Qt 6.12.0 MSVC x64，已带 Multimedia 与 FFmpeg 后端（FFmpeg 9.0.1，LGPL-2.1+）。
 - 最初调查没有 Maple 字体；随后用户提供了 Maple Mono NL NFMono CN Regular 7.900，字符画独立接入，见 `Character-Art-Testing.md`。
 
 ## 本轮服务层
@@ -26,6 +26,18 @@
 - 单请求、90 秒总超时、取消、析构时中止；完成/失败/取消带输入 revision，成功带描述与文案快照、UTC 时间。后续页面按 revision 丢弃过期结果。
 - HTTP 401/403、429、其他 HTTP、网络中断、超时、无效音频和响应超限均返回分类错误；不输出服务端原文、请求内容、密钥或 Qt 网络错误原文。
 - 文本和音频只留在内存，不写历史、临时音频、诊断日志或设置。
+
+## Stage 4：播放与保存
+
+`VoiceDesignerPage` 链接 `Qt6::Multimedia`：
+
+- `MiMoTtsService::wavInfo()` 在原有校验之上返回格式、声道、采样率、位深和 data 字节数；页面据此显示时长和采样率，不依赖后端异步报告的时长。`validWav()` 改为它的薄包装，校验规则不变。
+- `QMediaPlayer` + `QAudioOutput` 在第一次点击播放时才创建，打开页面不初始化媒体后端。音频经 `QBuffer` 从内存播放，不写临时文件；`QBuffer` 归播放器所有，析构时先断开信号再释放音源。
+- 播放 / 暂停为同一按钮，另有停止和可拖动的进度条，显示「当前 / 总时长」。
+- 只有当前 revision 的结果可以播放和另存。修改输入、配置变化、重新生成、清空都会停止播放并卸载音源；离开页面时暂停。
+- 后端报错时只显示固定提示（本机无法播放，可另存后用其他播放器），不显示后端原文。
+- 「另存 WAV…」由用户在对话框中选择路径，以 `QIODevice::NewOnly` 写入，不覆盖已有文件；写入不完整时删除残留文件。保存内容与收到的 WAV 字节完全一致。
+- 自动测试覆盖 WAV 信息解析、播放启动/停止（无音频设备时接受错误提示）、另存字节一致、拒绝覆盖、过期结果禁止播放和另存。
 
 ## 本地资源限制
 
@@ -60,8 +72,7 @@ ctest --preset release --output-on-failure
 ## 下一阶段
 
 1. Stage 3：按照 `Voice-Designer-Testing.md` 由用户验证真实 MiMo 账户权限、响应 WAV 和时间；不在自动测试使用真实密钥。
-2. Stage 4：Qt Multimedia 播放/停止与用户显式保存 WAV，并检查发布包依赖。
-3. 随后按计划逐步加入描述辅助构建、会话内 A/B、设计参数 JSON 导出与三语言整理。
+2. 随后按计划逐步加入描述辅助构建、会话内 A/B、设计参数 JSON 导出与三语言整理。
 
 Stage 2 的页面自动测试覆盖懒加载、空输入、显式生成、生成结果快照、NBSP / LF 文案、输入变更、配置变更、取消、离开页面、HTTP 错误、清空、中英简繁切换、主题切换与窄窗口布局。编辑描述不会自动生成，主题和语言切换不会改变音频。
 

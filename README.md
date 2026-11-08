@@ -47,10 +47,12 @@ matching the bundled font preview. See [usage and tests](docs/Character-Art-Test
 Custom character sets are also supported: Unicode grapheme segmentation, native
 Maple shaping/density calibration and fixed-width padding for mixed ASCII/CJK TXT.
 
-Voice Designer is available under Audio and Speech as a minimal online tool:
-describe a voice, enter preview text, generate/cancel and validate the returned WAV.
-It uses the saved API address/key and a fixed MiMo VoiceDesign model. Playback,
-audio saving, prompt building and A/B comparison are planned next. See
+Voice Designer is available under Audio and Speech as an online tool:
+describe a voice, enter preview text, generate/cancel and validate the returned WAV,
+then play, pause, stop and seek it in the app or save it as a new WAV file
+(existing files are never overwritten). It uses the saved API address/key and a
+fixed MiMo VoiceDesign model; audio stays in memory until you save it. Prompt
+building and A/B comparison are planned next. See
 [implementation progress](docs/Voice-Designer-Implementation.md) and
 [manual acceptance steps](docs/Voice-Designer-Testing.md).
 
@@ -352,4 +354,5 @@ see [LICENSE](LICENSE) for the full text.
 
 Bundled third-party components keep their own licenses: ElaWidgetTools (MIT),
 the Maple Mono font (SIL OFL 1.1), the text style data in `resources/styles/`
-(MIT, see its `LICENSE.txt` and `DATA-NOTICES.txt`) and Qt (LGPL-3.0).
+(MIT, see its `LICENSE.txt` and `DATA-NOTICES.txt`), Qt (LGPL-3.0) and the
+FFmpeg libraries deployed with Qt Multimedia (LGPL-2.1-or-later).

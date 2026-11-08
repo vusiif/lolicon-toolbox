@@ -512,7 +512,17 @@ Uses the saved API address and key in Settings; the text model selection is igno
         <message><source>Not configured</source><translation>未設定</translation></message>
         <message><source>Generating preview… %1 s elapsed. You can cancel; editing either text also cancels this request.</source><translation>正在產生試聽… 已等待 %1 秒。可以取消；修改任一文字也會取消請求。</translation></message>
         <message><source>Generation cancelled.</source><translation>已取消產生。</translation></message>
-        <message><source>WAV received and validated (%1 KiB). Playback and saving will be added in the next stage.</source><translation>已收到並校驗 WAV（%1 KiB）。播放和儲存將在下一階段接入。</translation></message>
+        <message><source>WAV received and validated (%1, %2 Hz, %3 KiB). Play it here or save it as a WAV file.</source><translation>已收到並校驗 WAV（%1，%2 Hz，%3 KiB）。可在此試聽，或另存為 WAV 檔案。</translation></message>
+        <message><source>Play</source><translation>播放</translation></message>
+        <message><source>Pause</source><translation>暫停</translation></message>
+        <message><source>Stop</source><translation>停止</translation></message>
+        <message><source>Save WAV…</source><translation>另存 WAV…</translation></message>
+        <message><source>Save WAV</source><translation>另存 WAV</translation></message>
+        <message><source>WAV audio (*.wav)</source><translation>WAV 音訊 (*.wav)</translation></message>
+        <message><source>This system could not play the audio. You can still save the WAV and open it in another player.</source><translation>本機無法播放這段音訊。仍可另存 WAV，再用其他播放器開啟。</translation></message>
+        <message><source>Could not create the file. Choose a new filename; existing files are never overwritten.</source><translation>無法建立檔案。請選擇新檔名；不會覆寫既有檔案。</translation></message>
+        <message><source>Could not write the WAV file. Check free space and permissions.</source><translation>無法寫入 WAV 檔案，請檢查磁碟空間與權限。</translation></message>
+        <message><source>Saved to %1</source><translation>已儲存到 %1</translation></message>
         <message><source>Inputs or API settings changed. The previous audio is out of date; generate a new preview.</source><translation>輸入或 API 設定已變更，上一輪音訊已過期，請重新產生試聽。</translation></message>
         <message><source>Enter a voice description and the exact text to read aloud.</source><translation>填寫聲音描述和希望朗讀的具體文字。</translation></message>
         <message><source>Ready. Only Generate preview sends these two texts to the configured API.</source><translation>準備就緒。僅點擊產生試聽時，才將這兩段文字傳送到設定的 API。</translation></message>
