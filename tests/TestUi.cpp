@@ -367,6 +367,33 @@ void TestUi::modelListingWorkflow()
     QCOMPARE(models->count(), 0);
     models->setEditText("manual-model");
     QCOMPARE(models->currentText(), QString("manual-model"));
+    // Voice API: a separate form that finds the voice design model in the listing.
+    auto* voiceUrl = page.findChild<ElaLineEdit*>("voiceApiUrl");
+    auto* voiceKey = page.findChild<ElaLineEdit*>("voiceApiKey");
+    auto* voiceModels = page.findChild<ElaComboBox*>("voiceApiModel");
+    auto* voiceFetch = page.findChild<ElaPushButton*>("voiceFetchModels");
+    auto* voiceSave = page.findChild<ElaPushButton*>("voiceSaveSettings");
+    QVERIFY(voiceUrl && voiceKey && voiceModels && voiceFetch && voiceSave && voiceUrl != url);
+    QVERIFY(!settings.hasVoiceConfiguration());
+    QCOMPARE(voiceModels->currentText(), AppSettings::defaultVoiceModel()); // Never the text model.
+    TestHttpServer voiceServer;
+    voiceServer.response = R"({"data":[{"id":"mimo-v2.6-flash"},{"id":"mimo-v2.5-tts"},{"id":"mimo-v2.5-tts-voicedesign"}]})";
+    voiceUrl->setText(voiceServer.url()); voiceKey->setText("voice-test-key");
+    voiceFetch->click(); QTRY_COMPARE_WITH_TIMEOUT(voiceModels->count(), 3, 3000);
+    QCOMPARE(voiceModels->itemText(0), QString("mimo-v2.5-tts-voicedesign")); // Voice design models are listed first.
+    QCOMPARE(voiceModels->currentText(), QString("mimo-v2.5-tts-voicedesign"));
+    voiceServer.response = R"({"data":[{"id":"other-tts"},{"id":"Acme-Voice_Design-2"}]})";
+    voiceFetch->click(); QTRY_COMPARE_WITH_TIMEOUT(voiceModels->itemText(0), QString("Acme-Voice_Design-2"), 3000);
+    QCOMPARE(voiceModels->currentText(), QString("Acme-Voice_Design-2")); // A model this endpoint does not offer is replaced.
+    voiceServer.response = R"({"data":[{"id":"text-only"}]})";
+    voiceFetch->click(); QTRY_COMPARE_WITH_TIMEOUT(voiceModels->count(), 1, 3000);
+    QCOMPARE(voiceModels->currentText(), QString("Acme-Voice_Design-2")); // Nothing suitable: keep the entered model.
+    voiceSave->click();
+    QVERIFY(settings.hasVoiceConfiguration());
+    QCOMPARE(settings.voiceConfiguration().model, QString("Acme-Voice_Design-2"));
+    QCOMPARE(settings.voiceConfiguration().apiKey, QString("voice-test-key"));
+    QCOMPARE(settings.aiConfiguration().model, QString("model-b")); // The text API is untouched.
+    QVERIFY(page.grab().save("settings-voice-api.png"));
 }
 void TestUi::fileRecoveryWorkflow()
 {
@@ -671,7 +698,10 @@ void TestUi::voiceDesignerWorkflow()
     generate->click(); QTRY_VERIFY_WITH_TIMEOUT(page->resultIsCurrent(), 3000);
     QCOMPARE(page->result()->audioData, audio); QCOMPARE(server.requests, 1);
     QCOMPARE(page->result()->snapshot.previewText, QStringLiteral("你好\nHello\u00a0world!"));
-    QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), speech::MiMoTtsService::modelId());
+    // No voice API saved yet: the text address and key are borrowed, with the default voice model.
+    QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), AppSettings::defaultVoiceModel());
+    auto* connection = page->findChild<QLabel*>("voiceConnection"); QVERIFY(connection);
+    QVERIFY(connection->text().contains("not saved")); QVERIFY(connection->text().contains(AppSettings::defaultVoiceModel()));
     QVERIFY(status->text().contains("validated")); QVERIFY(status->text().contains("24000 Hz"));
     auto* play = page->findChild<ElaPushButton*>("voicePlay");
     auto* stop = page->findChild<ElaPushButton*>("voiceStop");
@@ -713,8 +743,18 @@ void TestUi::voiceDesignerWorkflow()
     generate->click(); QTRY_COMPARE(server.requests, 4);
     QVERIFY(settings.setAiConfiguration({server.url(), "another-text-model", "other-test-key"}));
     QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QCOMPARE(server.requests, 4);
-    generate->click(); QTRY_COMPARE(server.requests, 5); lazy.hide(); QTRY_VERIFY(!cancel->isEnabled());
-    lazy.show(); QCOMPARE(loads, 1); QCOMPARE(server.requests, 5);
+    // Once saved, the voice API is independent: its own model and key, unaffected by text API changes.
+    QVERIFY(settings.setVoiceConfiguration({server.url(), "custom-voicedesign", "voice-test-key"}));
+    QVERIFY(connection->text().contains("custom-voicedesign")); QVERIFY(!connection->text().contains("not saved"));
+    generate->click(); QTRY_COMPARE(server.requests, 5);
+    QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), QString("custom-voicedesign"));
+    QVERIFY(server.lastHeaders.contains("Bearer voice-test-key"));
+    QVERIFY(settings.setAiConfiguration({server.url(), "text-again", "text-test-key"})); QCoreApplication::processEvents();
+    QVERIFY(cancel->isEnabled());
+    QVERIFY(settings.setVoiceConfiguration({server.url(), "custom-voicedesign", "voice-test-key"}));
+    QTRY_VERIFY(!cancel->isEnabled()); QVERIFY(generate->isEnabled());
+    generate->click(); QTRY_COMPARE(server.requests, 6); lazy.hide(); QTRY_VERIFY(!cancel->isEnabled());
+    lazy.show(); QCOMPARE(loads, 1); QCOMPARE(server.requests, 6);
     server.hold = false; server.status = 400; server.response = "private text and secret";
     generate->click(); QTRY_VERIFY_WITH_TIMEOUT(status->text().contains("400"), 3000);
     QVERIFY(!status->text().contains("private")); QVERIFY(generate->isEnabled());

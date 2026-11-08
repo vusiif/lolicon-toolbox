@@ -7,7 +7,6 @@
 #include <algorithm>
 
 namespace speech {
-QString MiMoTtsService::modelId() { return QStringLiteral("mimo-v2.5-tts-voicedesign"); }
 QString MiMoTtsService::defaultBaseUrl() { return QStringLiteral("https://api.xiaomimimo.com/v1"); }
 MiMoTtsService::MiMoTtsService(QObject* parent, int timeoutMs)
     : QObject(parent), m_timeoutMs(std::max(1, timeoutMs)) {
@@ -28,6 +27,9 @@ QString MiMoTtsService::validate(const ai::Configuration& config, const VoiceDes
     if (config.apiKey.trimmed().isEmpty() || config.apiKey.size() > 8192 ||
         std::any_of(config.apiKey.begin(), config.apiKey.end(), [](QChar c) { return c.category() == QChar::Other_Control; }))
         return tr("Enter a valid API key in Settings.");
+    if (config.model.trimmed().isEmpty() || config.model.size() > 256 ||
+        std::any_of(config.model.begin(), config.model.end(), [](QChar c) { return c.isSpace() || c.category() == QChar::Other_Control; }))
+        return tr("Choose a voice design model in Settings.");
     if (input.voiceDescription.size() > MaxDescriptionBytes || input.voiceDescription.toUtf8().size() > MaxDescriptionBytes)
         return tr("Voice description exceeds the 8 KiB UTF-8 limit.");
     if (input.previewText.size() > MaxPreviewBytes || input.previewText.toUtf8().size() > MaxPreviewBytes)
@@ -44,9 +46,9 @@ QUrl MiMoTtsService::endpoint(const QString& baseUrl) {
     url.setPath(path);
     return url;
 }
-QByteArray MiMoTtsService::requestBody(const VoiceDesignRequest& input) {
+QByteArray MiMoTtsService::requestBody(const VoiceDesignRequest& input, const QString& model) {
     return QJsonDocument(QJsonObject{
-        {"model", modelId()}, {"stream", false},
+        {"model", model.trimmed()}, {"stream", false},
         {"messages", QJsonArray{
             QJsonObject{{"role", "user"}, {"content", input.voiceDescription}},
             QJsonObject{{"role", "assistant"}, {"content", input.previewText}}}},
@@ -112,11 +114,11 @@ bool MiMoTtsService::generate(const ai::Configuration& config, const VoiceDesign
     if (isBusy()) return false;
     const auto error = validate(config, input);
     if (!error.isEmpty()) { emit failed(VoiceDesignError::InvalidInput, error, input.revision); return false; }
-    const auto body = requestBody(input);
+    const auto body = requestBody(input, config.model);
     if (body.size() > MaxRequestBytes) {
         emit failed(VoiceDesignError::InvalidInput, tr("Voice design request is too large."), input.revision); return false;
     }
-    m_snapshot = input; m_body.clear(); m_abortReason.reset(); m_cancelled = false;
+    m_snapshot = input; m_model = config.model.trimmed(); m_body.clear(); m_abortReason.reset(); m_cancelled = false;
     QNetworkRequest request(endpoint(config.baseUrl));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Accept", "application/json");
@@ -162,7 +164,7 @@ void MiMoTtsService::finish(QNetworkReply* reply) {
     if (networkError != QNetworkReply::NoError) { fail(VoiceDesignError::Network, tr("Voice design connection failed or the response was incomplete.")); return; }
     const auto audio = parseAudio(body);
     if (!audio) { fail(VoiceDesignError::InvalidResponse, tr("The service returned invalid audio. Expected a complete PCM or float WAV response.")); return; }
-    emit completed(VoiceDesignResult{*audio, "audio/wav", modelId(), snapshot, QDateTime::currentDateTimeUtc()});
+    emit completed(VoiceDesignResult{*audio, "audio/wav", m_model, snapshot, QDateTime::currentDateTimeUtc()});
 }
 void MiMoTtsService::cancel() {
     if (m_reply) { m_cancelled = true; m_reply->abort(); }

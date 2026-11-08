@@ -13,7 +13,16 @@
 #include <QLabel>
 #include <QEvent>
 #include <QSignalBlocker>
-SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings), m_models(new ai::AiService(this))
+#include <algorithm>
+namespace {
+// Provider model IDs vary ("mimo-v2.5-tts-voicedesign", "...-voice-design"); match the concept, not one ID.
+bool looksLikeVoiceDesign(const QString& id) {
+    auto folded = id.toLower(); folded.remove('-'); folded.remove('_');
+    return folded.contains("voicedesign");
+}
+}
+ai::Configuration SettingsPage::ApiForm::input() const { return {url->text(), model->currentText(), key->text()}; }
+SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings)
 {
     setObjectName("settingsPage");
     auto* outer = new QVBoxLayout(this);
@@ -49,65 +58,10 @@ SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(par
     m_language->addItem(QString::fromUtf8("繁體中文"), "zh_TW");
     m_error = ui::label({}, 10, ui::Tone::Danger, this);
     layout->addWidget(m_error);
-    auto* card = new QFrame(content); ui::styleCard(card);
-    auto* aiLayout = new QVBoxLayout(card);
-    aiLayout->setContentsMargins(20, 20, 20, 20);
-    m_aiTitle = ui::label({}, 13, ui::Tone::Primary, card);
-    m_aiInfo = ui::label({}, 10, ui::Tone::Secondary, card);
-    aiLayout->addWidget(m_aiTitle); aiLayout->addWidget(m_aiInfo);
-    auto* form = new QFormLayout;
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    auto field = [card, form](QLabel*& label, const char* name) {
-        label = ui::label({}, 10, ui::Tone::Secondary, card);
-        auto* edit = new ElaLineEdit(card); edit->setObjectName(name);
-        form->addRow(label, edit); return edit;
-    };
-    m_apiUrl = field(m_apiUrlLabel, "aiApiUrl");
-    m_apiModelLabel = ui::label({}, 10, ui::Tone::Secondary, card);
-    m_apiModel = new ElaComboBox(card); m_apiModel->setObjectName("aiApiModel"); m_apiModel->setEditable(true);
-    m_apiModel->setInsertPolicy(QComboBox::NoInsert);
-    m_apiModel->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-    m_apiModel->setMinimumContentsLength(16);
-    auto* modelRow = new QHBoxLayout;
-    m_fetchModels = new ElaPushButton(card); m_fetchModels->setObjectName("aiFetchModels");
-    modelRow->addWidget(m_apiModel, 1); modelRow->addWidget(m_fetchModels);
-    form->addRow(m_apiModelLabel, modelRow);
-    m_apiKey = field(m_apiKeyLabel, "aiApiKey"); m_apiKey->setEchoMode(QLineEdit::Password);
-    const auto config = settings.aiConfiguration();
-    m_apiUrl->setText(config.baseUrl); m_apiModel->setEditText(config.model); m_apiKey->setText(config.apiKey);
-    aiLayout->addLayout(form);
-    m_saveAi = new ElaPushButton(card); m_saveAi->setObjectName("aiSaveSettings"); ui::primaryButton(m_saveAi);
-    m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, card);
-    aiLayout->addWidget(m_saveAi, 0, Qt::AlignLeft); aiLayout->addWidget(m_aiStatus);
-    layout->addWidget(card);
-    connect(m_saveAi, &ElaPushButton::clicked, this, [this] {
-        const ai::Configuration config{m_apiUrl->text(), m_apiModel->currentText(), m_apiKey->text()};
-        const auto error = ai::AiService::validate(config);
-        if (!error.isEmpty()) { m_aiStatus->setText(error); return; }
-        if (!m_settings.setAiConfiguration(config)) m_aiStatus->setText(tr("Could not securely save the API settings."));
-        else m_aiStatus->setText(tr("API settings saved. No network request was sent."));
-    });
-    connect(m_fetchModels, &ElaPushButton::clicked, this, &SettingsPage::fetchModels);
-    connect(m_apiUrl, &QLineEdit::textChanged, this, &SettingsPage::invalidateModels);
-    connect(m_apiKey, &QLineEdit::textChanged, this, &SettingsPage::invalidateModels);
-    connect(m_models, &ai::AiService::modelsListed, this, [this](const QStringList& models) {
-        if (!m_modelsStale) {
-            const auto current = m_apiModel->currentText();
-            const QSignalBlocker blocker(m_apiModel);
-            m_apiModel->clear(); m_apiModel->addItems(models);
-            m_apiModel->setCurrentIndex(-1); m_apiModel->setEditText(current);
-            m_aiStatus->setText(tr("Found %1 models. Choose a model ID and save. The list may also include models that do not support text chat.").arg(models.size()));
-        }
-        updateFetchButton();
-    });
-    connect(m_models, &ai::AiService::failed, this, [this](const QString& error) {
-        if (!m_modelsStale) m_aiStatus->setText(error);
-        updateFetchButton();
-    });
-    connect(m_models, &ai::AiService::cancelled, this, [this] {
-        if (!m_modelsStale) m_aiStatus->setText(tr("Model listing cancelled. You can enter a model ID manually."));
-        updateFetchButton();
-    });
+    for (const auto api : {Api::Text, Api::Voice}) {
+        layout->addWidget(buildApiForm(form(api), api, api == Api::Text ? "ai" : "voice",
+            api == Api::Text ? settings.aiConfiguration() : settings.voiceConfiguration()));
+    }
     layout->addStretch();
     retranslate();
     synchronize();
@@ -118,6 +72,100 @@ SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(par
         } else m_error->clear();
     });
     connect(&settings, &AppSettings::localeChanged, this, &SettingsPage::synchronize);
+    // While the voice API is unsaved it mirrors the text API. Follow that in the voice
+    // fields unless the user has already started editing them.
+    m_voiceMirror = settings.voiceConfiguration();
+    connect(&settings, &AppSettings::aiConfigurationChanged, this, [this] {
+        if (m_settings.hasVoiceConfiguration()) return;
+        if (m_voice.url->text() != m_voiceMirror.baseUrl || m_voice.key->text() != m_voiceMirror.apiKey) return;
+        m_voiceMirror = m_settings.voiceConfiguration();
+        m_voice.url->setText(m_voiceMirror.baseUrl); m_voice.key->setText(m_voiceMirror.apiKey);
+    });
+}
+QWidget* SettingsPage::buildApiForm(ApiForm& apiForm, Api api, const char* prefix, const ai::Configuration& config)
+{
+    const auto name = [prefix](const char* suffix) { return QString::fromLatin1(prefix) + QString::fromLatin1(suffix); };
+    auto* card = new QFrame(this); ui::styleCard(card);
+    auto* box = new QVBoxLayout(card);
+    box->setContentsMargins(20, 20, 20, 20);
+    apiForm.title = ui::label({}, 13, ui::Tone::Primary, card);
+    apiForm.info = ui::label({}, 10, ui::Tone::Secondary, card); apiForm.info->setWordWrap(true);
+    box->addWidget(apiForm.title); box->addWidget(apiForm.info);
+    auto* layout = new QFormLayout;
+    layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+    auto field = [card, layout](QLabel*& label, const QString& objectName) {
+        label = ui::label({}, 10, ui::Tone::Secondary, card);
+        auto* edit = new ElaLineEdit(card); edit->setObjectName(objectName);
+        layout->addRow(label, edit); return edit;
+    };
+    apiForm.url = field(apiForm.urlLabel, name("ApiUrl"));
+    apiForm.modelLabel = ui::label({}, 10, ui::Tone::Secondary, card);
+    apiForm.model = new ElaComboBox(card); apiForm.model->setObjectName(name("ApiModel")); apiForm.model->setEditable(true);
+    apiForm.model->setInsertPolicy(QComboBox::NoInsert);
+    apiForm.model->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    apiForm.model->setMinimumContentsLength(16);
+    auto* modelRow = new QHBoxLayout;
+    apiForm.fetch = new ElaPushButton(card); apiForm.fetch->setObjectName(name("FetchModels"));
+    modelRow->addWidget(apiForm.model, 1); modelRow->addWidget(apiForm.fetch);
+    layout->addRow(apiForm.modelLabel, modelRow);
+    apiForm.key = field(apiForm.keyLabel, name("ApiKey")); apiForm.key->setEchoMode(QLineEdit::Password);
+    apiForm.url->setText(config.baseUrl); apiForm.model->setEditText(config.model); apiForm.key->setText(config.apiKey);
+    box->addLayout(layout);
+    apiForm.save = new ElaPushButton(card); apiForm.save->setObjectName(name("SaveSettings")); ui::primaryButton(apiForm.save);
+    apiForm.status = ui::label({}, 10, ui::Tone::Secondary, card); apiForm.status->setWordWrap(true);
+    box->addWidget(apiForm.save, 0, Qt::AlignLeft); box->addWidget(apiForm.status);
+    apiForm.models = new ai::AiService(this);
+    connect(apiForm.save, &ElaPushButton::clicked, this, [this, api] { saveApi(api); });
+    connect(apiForm.fetch, &ElaPushButton::clicked, this, [this, api] { fetchModels(api); });
+    connect(apiForm.url, &QLineEdit::textChanged, this, [this, api] { invalidateModels(api); });
+    connect(apiForm.key, &QLineEdit::textChanged, this, [this, api] { invalidateModels(api); });
+    connect(apiForm.models, &ai::AiService::modelsListed, this, [this, api](const QStringList& models) { modelsListed(api, models); });
+    connect(apiForm.models, &ai::AiService::failed, this, [this, api](const QString& error) {
+        if (!form(api).stale) form(api).status->setText(error);
+        updateFetchButton(api);
+    });
+    connect(apiForm.models, &ai::AiService::cancelled, this, [this, api] {
+        if (!form(api).stale) form(api).status->setText(tr("Model listing cancelled. You can enter a model ID manually."));
+        updateFetchButton(api);
+    });
+    return card;
+}
+void SettingsPage::saveApi(Api api)
+{
+    auto& apiForm = form(api);
+    const auto config = apiForm.input();
+    const auto error = ai::AiService::validate(config);
+    if (!error.isEmpty()) { apiForm.status->setText(error); return; }
+    const bool saved = api == Api::Text ? m_settings.setAiConfiguration(config) : m_settings.setVoiceConfiguration(config);
+    apiForm.status->setText(saved ? tr("API settings saved. No network request was sent.") : tr("Could not securely save the API settings."));
+    if (saved && api == Api::Voice) retranslate(); // The "not saved yet" note no longer applies.
+}
+void SettingsPage::modelsListed(Api api, const QStringList& listed)
+{
+    auto& apiForm = form(api);
+    if (apiForm.stale) { updateFetchButton(api); return; }
+    auto current = apiForm.model->currentText();
+    auto models = listed;
+    QString picked;
+    if (api == Api::Voice) {
+        // Voice design models first; pick one unless the entered model is offered by this endpoint.
+        std::stable_partition(models.begin(), models.end(), looksLikeVoiceDesign);
+        if (!models.isEmpty() && looksLikeVoiceDesign(models.first()) && !models.contains(current)) picked = current = models.first();
+    }
+    {
+        const QSignalBlocker blocker(apiForm.model);
+        apiForm.model->clear(); apiForm.model->addItems(models);
+        apiForm.model->setCurrentIndex(-1); apiForm.model->setEditText(current);
+    }
+    if (api == Api::Text)
+        apiForm.status->setText(tr("Found %1 models. Choose a model ID and save. The list may also include models that do not support text chat.").arg(models.size()));
+    else if (!picked.isEmpty())
+        apiForm.status->setText(tr("Found %1 models and selected the voice design model %2. Save to use it.").arg(models.size()).arg(picked));
+    else if (!models.isEmpty() && looksLikeVoiceDesign(models.first()))
+        apiForm.status->setText(tr("Found %1 models. The entered model is offered by this API; save to use it.").arg(models.size()));
+    else
+        apiForm.status->setText(tr("Found %1 models, but none looks like a voice design model. Check the address or enter the model ID manually.").arg(models.size()));
+    updateFetchButton(api);
 }
 void SettingsPage::synchronize()
 {
@@ -130,29 +178,42 @@ void SettingsPage::retranslate()
     m_title->setText(tr("Settings"));
     m_languageLabel->setText(tr("Display Language"));
     m_language->setItemText(0, tr("Follow system"));
-    m_aiTitle->setText(tr("AI API (OpenAI compatible)"));
-    m_aiInfo->setText(tr("Online tools send requests only when you click their AI or Generate button. The API key is encrypted for your Windows account. Voice Designer uses this address and key with its fixed MiMo model."));
-    m_apiUrlLabel->setText(tr("API base URL")); m_apiModelLabel->setText(tr("Model ID")); m_apiKeyLabel->setText(tr("API key"));
-    m_apiUrl->setPlaceholderText("https://api.example.com/v1"); m_apiModel->lineEdit()->setPlaceholderText(tr("Fetch models or enter the provider's model ID"));
-    m_apiModel->setToolTip(tr("Use the exact model ID, not the provider's product name."));
-    m_saveAi->setText(tr("Save API settings"));
-    updateFetchButton();
+    m_text.title->setText(tr("AI API (OpenAI compatible)"));
+    m_text.info->setText(tr("Used by the text AI tools. Requests are sent only when you click an AI button. The API key is encrypted for your Windows account."));
+    m_voice.title->setText(tr("Voice API (MiMo VoiceDesign)"));
+    m_voice.info->setText(m_settings.hasVoiceConfiguration()
+        ? tr("Used by Voice Designer. Requests are sent only when you click Generate preview. The API key is encrypted for your Windows account.")
+        : tr("Used by Voice Designer. Not saved yet: it currently uses the text API address and key. Fetch models to find the voice design model, then save."));
+    for (const auto api : {Api::Text, Api::Voice}) {
+        auto& apiForm = form(api);
+        apiForm.urlLabel->setText(tr("API base URL")); apiForm.modelLabel->setText(tr("Model ID")); apiForm.keyLabel->setText(tr("API key"));
+        apiForm.model->setToolTip(tr("Use the exact model ID, not the provider's product name."));
+        apiForm.save->setText(tr("Save API settings"));
+        updateFetchButton(api);
+    }
+    m_text.url->setPlaceholderText("https://api.example.com/v1");
+    m_text.model->lineEdit()->setPlaceholderText(tr("Fetch models or enter the provider's model ID"));
+    m_voice.url->setPlaceholderText(AppSettings::defaultVoiceBaseUrl());
+    m_voice.model->lineEdit()->setPlaceholderText(AppSettings::defaultVoiceModel());
 }
-void SettingsPage::updateFetchButton() {
-    m_fetchModels->setText(m_models->isBusy() ? tr("Cancel") : tr("Fetch models"));
+void SettingsPage::updateFetchButton(Api api) {
+    auto& apiForm = form(api);
+    apiForm.fetch->setText(apiForm.models->isBusy() ? tr("Cancel") : tr("Fetch models"));
 }
-void SettingsPage::invalidateModels() {
-    m_modelsStale = true; m_models->cancel();
-    const auto current = m_apiModel->currentText();
-    { const QSignalBlocker blocker(m_apiModel); m_apiModel->clear(); m_apiModel->setEditText(current); }
-    m_aiStatus->clear(); updateFetchButton();
+void SettingsPage::invalidateModels(Api api) {
+    auto& apiForm = form(api);
+    apiForm.stale = true; apiForm.models->cancel();
+    const auto current = apiForm.model->currentText();
+    { const QSignalBlocker blocker(apiForm.model); apiForm.model->clear(); apiForm.model->setEditText(current); }
+    apiForm.status->clear(); updateFetchButton(api);
 }
-void SettingsPage::fetchModels() {
-    if (m_models->isBusy()) { m_models->cancel(); return; }
-    m_modelsStale = false;
-    m_aiStatus->setText(tr("Fetching models from the entered address. Only the API key is sent; no text is uploaded."));
-    m_models->listModels({m_apiUrl->text(), {}, m_apiKey->text()});
-    updateFetchButton();
+void SettingsPage::fetchModels(Api api) {
+    auto& apiForm = form(api);
+    if (apiForm.models->isBusy()) { apiForm.models->cancel(); return; }
+    apiForm.stale = false;
+    apiForm.status->setText(tr("Fetching models from the entered address. Only the API key is sent; no text is uploaded."));
+    apiForm.models->listModels({apiForm.url->text(), {}, apiForm.key->text()});
+    updateFetchButton(api);
 }
 void SettingsPage::changeEvent(QEvent* event)
 {

@@ -87,7 +87,11 @@ VoiceDesignerPage::VoiceDesignerPage(QWidget* parent, AppSettings* settings)
         const QSignalBlocker description(m_description), preview(m_preview);
         m_description->clear(); m_preview->clear(); m_result.reset(); m_wav.reset(); invalidate();
     });
-    if (settings) connect(settings, &AppSettings::aiConfigurationChanged, this, &VoiceDesignerPage::invalidate);
+    if (settings) {
+        connect(settings, &AppSettings::voiceConfigurationChanged, this, &VoiceDesignerPage::invalidate);
+        // An unsaved voice API still borrows the text API address and key.
+        connect(settings, &AppSettings::aiConfigurationChanged, this, [this] { if (!m_settings->hasVoiceConfiguration()) invalidate(); });
+    }
     connect(m_service, &speech::MiMoTtsService::completed, this, [this](const speech::VoiceDesignResult& result) {
         if (result.snapshot.revision != m_revision) return;
         unloadPlayback();
@@ -126,7 +130,7 @@ void VoiceDesignerPage::generate() {
     if (!m_settings || m_service->isBusy()) return;
     unloadPlayback(); setNotice({}, false);
     ++m_revision; m_state = State::Running; m_error.clear(); m_elapsed.start(); refresh();
-    if (m_service->generate(m_settings->aiConfiguration(), input())) m_timer.start();
+    if (m_service->generate(m_settings->voiceConfiguration(), input())) m_timer.start();
     refresh();
 }
 void VoiceDesignerPage::cancel() {
@@ -203,7 +207,7 @@ bool VoiceDesignerPage::saveWav(const QString& path) {
 }
 void VoiceDesignerPage::refresh() {
     const auto request = input();
-    const auto configuration = m_settings ? m_settings->aiConfiguration() : ai::Configuration{};
+    const auto configuration = m_settings ? m_settings->voiceConfiguration() : ai::Configuration{};
     const auto validation = speech::MiMoTtsService::validate(configuration, request);
     const bool busy = m_service->isBusy();
     m_generate->setEnabled(m_settings && !busy && validation.isEmpty());
@@ -212,8 +216,10 @@ void VoiceDesignerPage::refresh() {
     m_generate->setToolTip(validation);
     // Show the host only: the URL is configuration, never a source of rich text.
     const QUrl url(configuration.baseUrl, QUrl::StrictMode);
-    m_connection->setText(tr("API host: %1 · Model: %2\nUses the saved API address and key in Settings; the text model selection is ignored.")
-        .arg(url.host().isEmpty() ? tr("Not configured") : url.host(), speech::MiMoTtsService::modelId()));
+    m_connection->setText((m_settings && !m_settings->hasVoiceConfiguration()
+        ? tr("API host: %1 · Model: %2\nThe voice API is not saved in Settings yet, so the text API address and key are used.")
+        : tr("API host: %1 · Model: %2\nUses the voice API address, key and model saved in Settings."))
+        .arg(url.host().isEmpty() ? tr("Not configured") : url.host(), configuration.model.trimmed().isEmpty() ? tr("Not configured") : configuration.model.trimmed()));
     ui::setTone(m_status, m_state == State::Error ? ui::Tone::Danger : m_state == State::Success ? ui::Tone::Success : ui::Tone::Secondary);
     if (m_state == State::Running) m_status->setText(tr("Generating preview… %1 s elapsed. You can cancel; editing either text also cancels this request.").arg(m_elapsed.elapsed() / 1000));
     else if (m_state == State::Error) m_status->setText(m_error);

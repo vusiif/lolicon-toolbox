@@ -20,15 +20,16 @@ QByteArray response(const QByteArray& audio = wav()) {
     }}}}).toJson(QJsonDocument::Compact);
 }
 VoiceDesignRequest input(quint64 revision = 7) { return {QStringLiteral("低沉、温暖的成年男性声音。"), QStringLiteral("你好，欢迎来到工具箱。\nHello!"), revision}; }
-ai::Configuration config(const TestHttpServer& server) { return {server.url(), "deliberately-not-the-voice-model", "test-only-key"}; }
+const QString VoiceModel = QStringLiteral("test-voicedesign-model");
+ai::Configuration config(const TestHttpServer& server) { return {server.url(), VoiceModel, "test-only-key"}; }
 }
 class TestVoiceDesign : public QObject {
     Q_OBJECT
 private slots:
     void requestContract() {
         const auto request = input();
-        const auto body = QJsonDocument::fromJson(MiMoTtsService::requestBody(request)).object();
-        QCOMPARE(body.value("model").toString(), MiMoTtsService::modelId());
+        const auto body = QJsonDocument::fromJson(MiMoTtsService::requestBody(request, " " + VoiceModel + " ")).object();
+        QCOMPARE(body.value("model").toString(), VoiceModel); // The configured voice model, trimmed.
         QCOMPARE(body.value("stream"), QJsonValue(false));
         const auto messages = body.value("messages").toArray();
         QCOMPARE(messages.size(), 2);
@@ -46,8 +47,10 @@ private slots:
         TestHttpServer server;
         auto settings = config(server); auto request = input();
         QVERIFY(MiMoTtsService::validate(settings, request).isEmpty());
-        settings.model.clear(); // Shared text-model selection must not affect this tool.
-        QVERIFY(MiMoTtsService::validate(settings, request).isEmpty());
+        for (const auto& model : {QString(), QStringLiteral("  "), QStringLiteral("two words"), QStringLiteral("bad\nmodel")}) {
+            settings.model = model; QVERIFY(!MiMoTtsService::validate(settings, request).isEmpty()); // A voice model is required.
+        }
+        settings = config(server);
         for (const auto& url : {"http://example.com/v1", "https://key@example.com/v1", "https://example.com/v1?key=secret", "https://example.com/#key", "file:///test"}) {
             settings.baseUrl = url; QVERIFY(!MiMoTtsService::validate(settings, request).isEmpty());
         }
@@ -123,11 +126,11 @@ private slots:
         const auto result = qvariant_cast<VoiceDesignResult>(done[0][0]);
         QCOMPARE(result.audioData, wav()); QCOMPARE(result.snapshot.voiceDescription, input().voiceDescription);
         QCOMPARE(result.snapshot.previewText, input().previewText); QCOMPARE(result.snapshot.revision, quint64(7));
-        QCOMPARE(result.modelId, MiMoTtsService::modelId()); QCOMPARE(result.mimeType, "audio/wav");
+        QCOMPARE(result.modelId, VoiceModel); QCOMPARE(result.mimeType, "audio/wav");
         QVERIFY(result.createdAt.isValid()); QCOMPARE(result.createdAt.timeSpec(), Qt::UTC);
         QVERIFY(server.lastHeaders.startsWith("POST /v1/chat/completions HTTP/1.1"));
         QVERIFY(server.lastHeaders.contains("Bearer test-only-key"));
-        QCOMPARE(QJsonDocument::fromJson(server.lastBody), QJsonDocument::fromJson(MiMoTtsService::requestBody(input())));
+        QCOMPARE(QJsonDocument::fromJson(server.lastBody), QJsonDocument::fromJson(MiMoTtsService::requestBody(input(), VoiceModel)));
     }
     void httpFailures_data() {
         QTest::addColumn<int>("status"); QTest::addColumn<VoiceDesignError>("code");

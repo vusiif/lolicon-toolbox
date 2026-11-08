@@ -37,7 +37,8 @@ enum class VoiceDesignError {
     ResponseTooLarge, InvalidResponse
 };
 
-// VoiceDesign only. No shared text-model parser, streaming or persistent history.
+// VoiceDesign only. The model comes from the voice API settings (see AppSettings::voiceConfiguration).
+// No shared text-model parser, streaming or persistent history.
 class MiMoTtsService : public QObject {
     Q_OBJECT
 public:
@@ -48,11 +49,10 @@ public:
     static constexpr qsizetype MaxResponseBytes = 34 * 1024 * 1024;
     explicit MiMoTtsService(QObject* parent = nullptr, int timeoutMs = 90000);
     ~MiMoTtsService() override;
-    static QString modelId();
     static QString defaultBaseUrl();
     static QString validate(const ai::Configuration&, const VoiceDesignRequest&);
     static QUrl endpoint(const QString& baseUrl);
-    static QByteArray requestBody(const VoiceDesignRequest&);
+    static QByteArray requestBody(const VoiceDesignRequest&, const QString& model);
     static std::optional<QByteArray> parseAudio(const QByteArray& response);
     static std::optional<WavInfo> wavInfo(const QByteArray& audio);
     static bool validWav(const QByteArray& audio) { return wavInfo(audio).has_value(); }
@@ -73,6 +73,7 @@ private:
     int m_timeoutMs;
     QByteArray m_body;
     VoiceDesignRequest m_snapshot;
+    QString m_model;
     bool m_cancelled = false;
     std::optional<VoiceDesignError> m_abortReason;
 };

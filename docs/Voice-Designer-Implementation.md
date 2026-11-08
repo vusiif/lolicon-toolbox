@@ -16,7 +16,8 @@
 
 `tools/speech/voice/MiMoTtsService.*`：
 
-- 固定模型 `mimo-v2.5-tts-voicedesign`，与共享设置中的文本模型选择无关。
+- 2026-11-08 起，音色设计使用设置中独立的「音频接口」：地址、密钥、模型都与文本 AI 接口分开保存（`AppSettings::voiceConfiguration()`，INI 分组 `Voice/`，密钥同样 DPAPI 加密）。模型不再写死，默认值 `mimo-v2.5-tts-voicedesign`；「获取模型」会把 ID 含 voicedesign（忽略大小写、`-`、`_`）的模型排在最前，并在当前模型不在列表中时自动选中。
+- 兼容旧设置：音频接口从未保存时，沿用文本接口的地址和密钥（不沿用文本模型），页面会明确提示；保存一次后两者完全独立，修改文本接口不再影响音色设计。
 - 提供官方默认地址 `https://api.xiaomimimo.com/v1`；实际请求使用传入的配置地址与密钥。不会把其他提供商的密钥自动发给 MiMo。
 - HTTPS；仅回环允许 HTTP 以支持本地测试。拒绝 URL 用户凭据、查询串和片段，不跟随重定向。
 - 非流式 Chat Completions，`user` 是声音描述、`assistant` 是试听文案；`audio.format=wav`，`audio.optimize_text_preview=false`。
@@ -57,7 +58,7 @@ JSON/Base64 解析会产生额外内存副本，因此响应上限不能按旧�
 ## 自动验证
 
 新增 `TestVoiceDesign`，全部使用本机回环 TestHttpServer、测试密钥与合成静音 WAV，不调用真实 API。
-验证请求消息角色和固定模型、UTF-8 边界、非法地址与密钥、完整音频、损坏 WAV / Base64 / JSON、截断响应、连接失败、401/403/429/400/500、重定向不跟随、超时、取消及重启、迟到响应、输入快照、响应超限、请求中析构。
+验证请求消息角色和所配置的音色模型、UTF-8 边界、非法地址与密钥、完整音频、损坏 WAV / Base64 / JSON、截断响应、连接失败、401/403/429/400/500、重定向不跟随、超时、取消及重启、迟到响应、输入快照、响应超限、请求中析构。
 
 在已初始化 MSVC 的 PowerShell 7 终端中：
 

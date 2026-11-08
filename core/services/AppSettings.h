@@ -29,13 +29,21 @@ public:
     void sync();
     ai::Configuration aiConfiguration() const;
     bool setAiConfiguration(const ai::Configuration& config);
+    // Audio API used by Voice Designer; stored separately from the text AI API.
+    ai::Configuration voiceConfiguration() const;
+    bool setVoiceConfiguration(const ai::Configuration& config);
+    bool hasVoiceConfiguration() const;
+    static QString defaultVoiceBaseUrl();
+    static QString defaultVoiceModel();
     QString textStylePreset() const;
     void setTextStylePreset(const QString& preset);
 signals:
     void themeChanged(ElaThemeType::ThemeMode mode);
     void localeChanged();
     void aiConfigurationChanged();
+    void voiceConfigurationChanged();
 private:
+    bool storeConfiguration(const QString& group, const ai::Configuration& config);
     bool eventFilter(QObject* watched, QEvent* event) override;
     bool applyLocale(const QString& locale);
     void refreshSystemLocale();

@@ -507,8 +507,11 @@ Unavailable</source><translation>候选 %1
         <message><source>Cancel</source><translation>取消</translation></message>
         <message><source>Clear</source><translation>清空</translation></message>
         <message><source>API host: %1 · Model: %2
-Uses the saved API address and key in Settings; the text model selection is ignored.</source><translation>API 主机：%1 · 模型：%2
-使用设置中保存的 API 地址和密钥，不使用文本模型选项。</translation></message>
+The voice API is not saved in Settings yet, so the text API address and key are used.</source><translation>API 主机：%1 · 模型：%2
+设置中尚未保存音频接口，暂时使用文本接口的地址和密钥。</translation></message>
+        <message><source>API host: %1 · Model: %2
+Uses the voice API address, key and model saved in Settings.</source><translation>API 主机：%1 · 模型：%2
+使用设置中保存的音频接口地址、密钥和模型。</translation></message>
         <message><source>Not configured</source><translation>未配置</translation></message>
         <message><source>Generating preview… %1 s elapsed. You can cancel; editing either text also cancels this request.</source><translation>正在生成试听… 已等待 %1 秒。可以取消；修改任一文本也会取消请求。</translation></message>
         <message><source>Generation cancelled.</source><translation>已取消生成。</translation></message>
@@ -543,10 +546,17 @@ Uses the saved API address and key in Settings; the text model selection is igno
         <message><source>Could not connect to the voice design service.</source><translation>无法连接音色设计服务。</translation></message>
         <message><source>Voice design connection failed or the response was incomplete.</source><translation>音色设计连接中断或响应不完整。</translation></message>
         <message><source>The service returned invalid audio. Expected a complete PCM or float WAV response.</source><translation>服务返回无效音频，需要完整的 PCM 或浮点 WAV 响应。</translation></message>
+        <message><source>Choose a voice design model in Settings.</source><translation>请在设置中选择音色设计模型。</translation></message>
     </context>
     <context>
         <name>SettingsPage</name>
-        <message><source>Online tools send requests only when you click their AI or Generate button. The API key is encrypted for your Windows account. Voice Designer uses this address and key with its fixed MiMo model.</source><translation>在线工具仅在点击 AI 或生成按钮时发起请求。密钥使用当前 Windows 账户加密保存；音色设计使用此地址和密钥，模型固定为 MiMo 音色设计模型。</translation></message>
+        <message><source>Used by the text AI tools. Requests are sent only when you click an AI button. The API key is encrypted for your Windows account.</source><translation>供文本 AI 工具使用。仅在点击 AI 按钮时发起请求。密钥使用当前 Windows 账户加密保存。</translation></message>
+        <message><source>Voice API (MiMo VoiceDesign)</source><translation>音频接口（MiMo 音色设计）</translation></message>
+        <message><source>Used by Voice Designer. Requests are sent only when you click Generate preview. The API key is encrypted for your Windows account.</source><translation>供音色设计使用。仅在点击生成试听时发起请求。密钥使用当前 Windows 账户加密保存。</translation></message>
+        <message><source>Used by Voice Designer. Not saved yet: it currently uses the text API address and key. Fetch models to find the voice design model, then save.</source><translation>供音色设计使用。尚未保存：目前沿用文本接口的地址和密钥。请获取模型以找到音色设计模型，然后保存。</translation></message>
+        <message><source>Found %1 models and selected the voice design model %2. Save to use it.</source><translation>已获取 %1 个模型，已选中音色设计模型 %2。保存后生效。</translation></message>
+        <message><source>Found %1 models. The entered model is offered by this API; save to use it.</source><translation>已获取 %1 个模型。当前填写的模型在此接口中可用，保存后生效。</translation></message>
+        <message><source>Found %1 models, but none looks like a voice design model. Check the address or enter the model ID manually.</source><translation>已获取 %1 个模型，但没有找到音色设计模型。请检查地址，或手动填写模型 ID。</translation></message>
     </context>
     <context>
         <name>Tools</name>

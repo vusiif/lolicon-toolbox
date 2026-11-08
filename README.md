@@ -50,8 +50,9 @@ Maple shaping/density calibration and fixed-width padding for mixed ASCII/CJK TX
 Voice Designer is available under Audio and Speech as an online tool:
 describe a voice, enter preview text, generate/cancel and validate the returned WAV,
 then play, pause, stop and seek it in the app or save it as a new WAV file
-(existing files are never overwritten). It uses the saved API address/key and a
-fixed MiMo VoiceDesign model; audio stays in memory until you save it. Prompt
+(existing files are never overwritten). It uses its own Voice API address, key and model in Settings, separate from the
+text AI API; Fetch models picks the voice design model from the provider's list.
+Audio stays in memory until you save it. Prompt
 building and A/B comparison are planned next. See
 [implementation progress](docs/Voice-Designer-Implementation.md) and
 [manual acceptance steps](docs/Voice-Designer-Testing.md).

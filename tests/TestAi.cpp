@@ -40,6 +40,25 @@ void TestAi::configuration() {
     file.close();
     QVERIFY(restored.setAiConfiguration({"https://example.com/v1", "model", ""}));
     QCOMPARE(AppSettings(path).aiConfiguration().apiKey, QString());
+    // An unsaved voice API borrows the text address and key, never the text model.
+    QVERIFY(restored.setAiConfiguration({"https://text.example.com/v1", "text-model", fakeKey}));
+    QVERIFY(!restored.hasVoiceConfiguration());
+    auto voice = restored.voiceConfiguration();
+    QCOMPARE(voice.baseUrl, QString("https://text.example.com/v1")); QCOMPARE(voice.apiKey, fakeKey);
+    QCOMPARE(voice.model, AppSettings::defaultVoiceModel());
+    const QString voiceKey = "test-only-voice-key";
+    QSignalSpy voiceChanged(&restored, &AppSettings::voiceConfigurationChanged), textChanged(&restored, &AppSettings::aiConfigurationChanged);
+    QVERIFY(restored.setVoiceConfiguration({" https://voice.example.com/v1 ", " voice-model ", voiceKey}));
+    QCOMPARE(voiceChanged.size(), 1); QCOMPARE(textChanged.size(), 0);
+    { AppSettings reopened(path);
+      QVERIFY(reopened.hasVoiceConfiguration());
+      voice = reopened.voiceConfiguration();
+      QCOMPARE(voice.baseUrl, QString("https://voice.example.com/v1")); QCOMPARE(voice.model, QString("voice-model"));
+      QCOMPARE(voice.apiKey, voiceKey); QCOMPARE(reopened.aiConfiguration().apiKey, fakeKey); // Keys stay separate.
+      QVERIFY(reopened.setAiConfiguration({"https://other.example.com/v1", "m", ""}));
+      QCOMPARE(reopened.voiceConfiguration().baseUrl, QString("https://voice.example.com/v1")); }
+    QVERIFY(file.open(QIODevice::ReadOnly)); const auto stored = file.readAll(); file.close();
+    QVERIFY(!stored.contains(voiceKey.toUtf8()) && !stored.contains(fakeKey.toUtf8()));
 }
 void TestAi::parsing() {
     auto parsed = OpenAICompatibleProvider::parse(TestHttpServer::success(), 1);

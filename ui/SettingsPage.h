@@ -1,5 +1,6 @@
 #pragma once
 #include <QWidget>
+#include "ai/AiProvider.h"
 class AppSettings;
 class ElaComboBox;
 class QLabel;
@@ -14,21 +15,31 @@ public:
 protected:
     void changeEvent(QEvent* event) override;
 private:
+    // One card per API: text AI tools and the Voice Designer audio API are configured separately.
+    struct ApiForm {
+        ElaLineEdit *url = nullptr, *key = nullptr;
+        ElaComboBox* model = nullptr;
+        ElaPushButton *save = nullptr, *fetch = nullptr;
+        ai::AiService* models = nullptr;
+        bool stale = false;
+        QLabel *title = nullptr, *info = nullptr, *urlLabel = nullptr, *modelLabel = nullptr, *keyLabel = nullptr, *status = nullptr;
+        ai::Configuration input() const;
+    };
+    enum class Api { Text, Voice };
+    QWidget* buildApiForm(ApiForm& form, Api api, const char* prefix, const ai::Configuration& config);
+    ApiForm& form(Api api) { return api == Api::Text ? m_text : m_voice; }
     void retranslate();
     void synchronize();
-    void fetchModels();
-    void invalidateModels();
-    void updateFetchButton();
+    void fetchModels(Api api);
+    void modelsListed(Api api, const QStringList& models);
+    void invalidateModels(Api api);
+    void updateFetchButton(Api api);
+    void saveApi(Api api);
     AppSettings& m_settings;
     QLabel* m_title;
     QLabel* m_languageLabel;
     QLabel* m_error;
     ElaComboBox* m_language;
-    ElaLineEdit *m_apiUrl, *m_apiKey;
-    ElaComboBox* m_apiModel;
-    ElaPushButton* m_saveAi;
-    ElaPushButton* m_fetchModels;
-    ai::AiService* m_models;
-    bool m_modelsStale = false;
-    QLabel *m_aiTitle, *m_aiInfo, *m_apiUrlLabel, *m_apiModelLabel, *m_apiKeyLabel, *m_aiStatus;
+    ApiForm m_text, m_voice;
+    ai::Configuration m_voiceMirror; // Inherited values last shown in the unsaved voice form.
 };
