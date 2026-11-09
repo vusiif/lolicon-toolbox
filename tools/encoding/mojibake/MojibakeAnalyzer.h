@@ -5,5 +5,6 @@ class MojibakeAnalyzer {
 public:
     static constexpr qsizetype MaxInputBytes = 1024 * 1024;
     static Result analyze(const QString& input, const Cancellation& cancel = {});
+    static bool lossyQuestionMarks(const QString& text);
 };
 }

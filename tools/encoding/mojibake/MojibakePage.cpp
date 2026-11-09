@@ -266,7 +266,7 @@ void MojibakePage::showCandidate() {
     m_copy->setEnabled(!candidate.text.isEmpty());
     QStringList path;
     path << tr("Quality score: %1 / 100 (not a probability).").arg(candidate.score, 0, 'f', 1);
-    path << tr("Ranking uses anomaly density, conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.");
+    path << tr("Ranking uses anomaly density (encoding errors and uncommon CJK characters), conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.");
     if (candidate.path.isEmpty()) path << tr("Original text: no conversion applied.");
     for (int i = 0; i < candidate.path.size(); ++i) {
         const auto& step = candidate.path[i];

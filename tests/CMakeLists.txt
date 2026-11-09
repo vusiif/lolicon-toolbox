@@ -9,6 +9,10 @@ add_executable(TestMojibake TestMojibake.cpp)
 target_link_libraries(TestMojibake PRIVATE Qt6::Test MojibakeLogic)
 target_compile_definitions(TestMojibake PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
 add_test(NAME TestMojibake COMMAND TestMojibake -o mojibake-results.txt,txt)
+add_executable(TestMojibakeBenchmark TestMojibakeBenchmark.cpp)
+target_link_libraries(TestMojibakeBenchmark PRIVATE Qt6::Test MojibakeLogic)
+target_compile_definitions(TestMojibakeBenchmark PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+add_test(NAME TestMojibakeBenchmark COMMAND TestMojibakeBenchmark -o mojibake-benchmark-results.txt,txt)
 add_executable(TestAi TestAi.cpp TestHttpServer.h)
 target_link_libraries(TestAi PRIVATE Qt6::Test ToolboxCore)
 add_test(NAME TestAi COMMAND TestAi -o ai-results.txt,txt)
@@ -37,7 +41,7 @@ add_test(NAME TestCharacterArt COMMAND TestCharacterArt -o character-art-results
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME TestStyleJsonValidation COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Check-Style-Json.py" --self-test)
 add_test(NAME TestMartianDictionaryMerge COMMAND "${Python3_EXECUTABLE}" "${PROJECT_SOURCE_DIR}/scripts/Merge-Martian-Dictionaries.py" --self-test)
-set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle TestVoiceDesign TestCharacterArt PROPERTIES
+set_tests_properties(TestBase64Codec TestUi TestMojibake TestMojibakeBenchmark TestAi TestFileRecovery TestFilenameRecovery TestClipboardSource TestDiagnosticReport TestTextStyle TestVoiceDesign TestCharacterArt PROPERTIES
     TIMEOUT 30
     ENVIRONMENT "QT_QPA_PLATFORM=windows;QT_QPA_PLATFORM_PLUGIN_PATH=$<TARGET_FILE_DIR:Qt6::Core>/../plugins/platforms"
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>;PATH=path_list_prepend:${CMAKE_BINARY_DIR}/app"
@@ -45,6 +49,8 @@ set_tests_properties(TestBase64Codec TestUi TestMojibake TestAi TestFileRecovery
 # The UI suite covers every tool page and takes ~40 s on a typical machine.
 set_tests_properties(TestUi PROPERTIES TIMEOUT 120)
 set_tests_properties(TestMojibake PROPERTIES TIMEOUT 90)
+# Hundreds of generated analyses; Debug builds are roughly ten times slower than Release.
+set_tests_properties(TestMojibakeBenchmark PROPERTIES TIMEOUT 300)
 set_tests_properties(TestFileRecovery PROPERTIES TIMEOUT 90)
 set_tests_properties(TestFilenameRecovery PROPERTIES TIMEOUT 90)
 set_tests_properties(TestTextStyle PROPERTIES TIMEOUT 90)

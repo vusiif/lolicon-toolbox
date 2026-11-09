@@ -190,7 +190,7 @@ Unavailable</source><translation>候選 %1
         <message><source>Copied to clipboard.</source><translation>已複製到剪貼簿。</translation></message>
         <message><source>Original text: no conversion applied.</source><translation>原始文字：未進行轉換。</translation></message>
         <message><source>Quality score: %1 / 100 (not a probability).</source><translation>品質評分：%1 / 100（不代表正確機率）。</translation></message>
-        <message><source>Ranking uses anomaly density, conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.</source><translation>排序依據：異常密度、轉換次數、UTF-8 解碼優先項，以及未完整恢復的扣分。</translation></message>
+        <message><source>Ranking uses anomaly density (encoding errors and uncommon CJK characters), conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.</source><translation>排序依據：異常密度（編碼錯誤與罕用的中日韓字元）、轉換次數、UTF-8 解碼優先項，以及未完整恢復的扣分。</translation></message>
         <message><source>Step %1: encode as %2, then decode as %3.</source><translation>步驟 %1：按 %2 還原位元組，再按 %3 解碼。</translation></message>
         <message><source>Only representable text segments were changed; other text was preserved.</source><translation>僅轉換可表示的文字片段，其餘文字保持原樣。</translation></message>
         <message><source>Readable sections were recovered. Unknown byte regions are marked with U+FFFD; their original content and length cannot be determined.</source><translation>已恢復可讀片段。遺失的位元組區域以 � 標記，無法確定原始內容和長度。</translation></message>

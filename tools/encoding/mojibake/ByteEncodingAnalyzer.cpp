@@ -81,6 +81,9 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
     auto append = [&](FileCandidate c) {
         auto existing = std::find_if(result.candidates.begin(), result.candidates.end(), [&](const auto& other) { return other.text == c.text; });
         if (existing == result.candidates.end()) result.candidates.append(std::move(c));
+        // The same text reached by a plain decode is the simpler, exact explanation:
+        // a GBK file is GBK, not "Latin-1 plus a repair back to the same text".
+        else if (!existing->repairPath.isEmpty() && c.repairPath.isEmpty()) *existing = std::move(c);
         else if (existing->repairPath.isEmpty() && c.repairPath.isEmpty()) {
             existing->aliases.append(c.encoding);
             if (c.score > existing->score) { existing->encoding = c.encoding; existing->score = c.score; }
@@ -93,14 +96,19 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         if (!decoded) continue;
         if (!textLike(*decoded)) { nonTextDecode = true; continue; }
         if (e == Encoding::Utf8 || (!result.preferredEncoding && wideEvidence(payload, e))) result.preferredEncoding = e;
-        double score = CandidateScorer::score(Candidate{*decoded, {}});
+        // The plain decode has no path, so pass the codec for the script check.
+        double score = CandidateScorer::score(Candidate{*decoded, {}}, e);
         if (!result.bomEncoding) {
             if (wide(e) && !wideEvidence(payload, e)) score -= 25;
-            else if (e != Encoding::Utf8 && !wide(e)) score -= 6;
+            else if (e != Encoding::Utf8 && !wide(e)) score -= 6 + CandidateScorer::legacyPrior(e);
         }
         const auto anomalies = CandidateScorer::anomalies(*decoded);
         append({*decoded, e, {e}, {}, std::clamp(score, 0.0, 100.0), true, anomalies});
         if (anomalies == 0) continue;
+        // A UTF-16/32 reading without a BOM or structural evidence is already ranked
+        // far down; most such readings are runs of rare Han characters (bytes "aa"
+        // become 慡). Searching repairs inside them costs time and finds nothing.
+        if (wide(e) && !result.bomEncoding && !wideEvidence(payload, e)) continue;
         if (decoded->size() > MojibakeAnalyzer::MaxInputBytes || decoded->toUtf8().size() > MojibakeAnalyzer::MaxInputBytes) {
             result.inverseRepairSkipped = true; continue;
         }

@@ -3,10 +3,27 @@
 #include "CandidateScorer.h"
 #include <algorithm>
 namespace mojibake {
+// Lossy conversions write one '?' per unrepresentable character. A run of two or
+// more counts as possible loss unless it reads as emphatic punctuation: it follows
+// a letter or CJK character and ends the text or is followed by whitespace.
+bool MojibakeAnalyzer::lossyQuestionMarks(const QString& text) {
+    for (qsizetype i = 0; i < text.size(); ++i) {
+        if (text[i] != '?') continue;
+        qsizetype end = i;
+        while (end < text.size() && text[end] == '?') ++end;
+        if (end - i >= 2) {
+            const bool afterWord = i > 0 && text[i - 1].isLetterOrNumber();
+            const bool closes = end == text.size() || text[end].isSpace();
+            if (!(afterWord && closes)) return true;
+        }
+        i = end - 1;
+    }
+    return false;
+}
 Result MojibakeAnalyzer::analyze(const QString& input, const Cancellation& cancel) {
     Result result;
     result.original = input;
-    result.possibleLoss = input.contains(QChar(0xfffd)) || input.contains("??");
+    result.possibleLoss = input.contains(QChar(0xfffd)) || lossyQuestionMarks(input);
     if (input.size() > MaxInputBytes || input.toUtf8().size() > MaxInputBytes) { result.tooLarge = true; return result; }
     if (input.isEmpty()) return result;
     result.candidates = CandidateGenerator::generate(input, cancel, result.searchLimited);

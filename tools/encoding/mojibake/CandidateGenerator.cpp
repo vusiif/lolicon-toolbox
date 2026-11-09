@@ -100,6 +100,10 @@ QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancell
                     // A single-byte rendering of CJK bytes can hide damage
                     // markers while destroying the readable text.
                     if (cjk > parent.text.size() / 2 && (to == Encoding::Latin1 || to == Encoding::Windows1252)) continue;
+                    // GB18030 writes characters outside GBK as four-byte codes of
+                    // digits and 0x81-0x84; reading those as a single-byte codec
+                    // yields clean-looking noise ("ƒ2î8"), never a plausible history.
+                    if (from == Encoding::Gb18030 && (to == Encoding::Latin1 || to == Encoding::Windows1252)) continue;
                     Transformation step{from, to};
                     auto transformed = bytes ? EncodingConverter::decode(*bytes, to) : std::nullopt;
                     if (!transformed && to == Encoding::Utf8 && (from == Encoding::Latin1 || from == Encoding::Windows1252)) {
