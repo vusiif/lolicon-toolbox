@@ -30,11 +30,15 @@ MainWindow::MainWindow(AppSettings& settings, const ToolRegistry& tools, const N
         | ElaAppBarType::StayTopButtonHint | ElaAppBarType::MinimizeButtonHint
         | ElaAppBarType::MaximizeButtonHint | ElaAppBarType::CloseButtonHint);
     // Adapt the two utility positions; Ela retains drag, resize and window controls.
+    // This relies on ElaAppBar's internal layout. If a future Ela changes it, keep
+    // Ela's default order instead of dereferencing a missing item.
     auto* bar = findChild<ElaAppBar*>();
-    auto* box = qobject_cast<QHBoxLayout*>(bar->layout());
-    auto* right = qobject_cast<QHBoxLayout*>(box->itemAt(box->count() - 1)->layout());
-    auto* pin = right->takeAt(0)->layout();
-    right->insertLayout(1, pin);
+    auto* box = bar ? qobject_cast<QHBoxLayout*>(bar->layout()) : nullptr;
+    auto* last = box && box->count() > 0 ? box->itemAt(box->count() - 1) : nullptr;
+    auto* right = last ? qobject_cast<QHBoxLayout*>(last->layout()) : nullptr;
+    auto* first = right && right->count() > 1 ? right->itemAt(0) : nullptr;
+    if (first && first->layout()) right->insertLayout(1, right->takeAt(0)->layout());
+    else qWarning("Toolbox: ElaAppBar layout changed; keeping the default title bar button order.");
     connect(eTheme, &ElaTheme::themeModeChanged, &settings, [&settings](ElaThemeType::ThemeMode mode) {
         // System-driven changes already updated settings; only user toggles are overrides.
         if (mode != settings.themeMode()) settings.setThemeMode(mode);
