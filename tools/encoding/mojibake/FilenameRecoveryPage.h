@@ -46,5 +46,6 @@ private:
     mojibake::NameProgressPtr m_progress;
     QFutureWatcher<mojibake::NamePlan> m_scan;
     QFutureWatcher<mojibake::NameCopyResult> m_copy;
+    bool m_scanning = false, m_copying = false;  // until the finished handler ran
     QTimer m_timer;
 };

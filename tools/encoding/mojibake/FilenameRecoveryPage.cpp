@@ -75,19 +75,22 @@ FilenameRecoveryPage::FilenameRecoveryPage(QWidget* parent) : QWidget(parent) {
         dialog.setAcceptMode(QFileDialog::AcceptSave); dialog.setFileMode(QFileDialog::AnyFile); dialog.setOption(QFileDialog::DontConfirmOverwrite);
         if (dialog.exec() == QDialog::Accepted && !dialog.selectedFiles().isEmpty()) exportCopy(dialog.selectedFiles().first());
     });
-    connect(&m_scan, &QFutureWatcher<NamePlan>::finished, this, [this] { m_plan = m_scan.result(); m_timer.stop(); rebuildTree(); refresh(); });
-    connect(&m_copy, &QFutureWatcher<NameCopyResult>::finished, this, [this] { m_copyResult = m_copy.result(); m_timer.stop(); refresh(); });
+    connect(&m_scan, &QFutureWatcher<NamePlan>::finished, this, [this] { m_scanning = false; m_plan = m_scan.result(); m_timer.stop(); rebuildTree(); refresh(); });
+    connect(&m_copy, &QFutureWatcher<NameCopyResult>::finished, this, [this] { m_copying = false; m_copyResult = m_copy.result(); m_timer.stop(); refresh(); });
     m_timer.setInterval(250); connect(&m_timer, &QTimer::timeout, this, [this] { refresh(); });
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { refresh(); });
     retranslate();
 }
 FilenameRecoveryPage::~FilenameRecoveryPage() { if (m_cancelToken) m_cancelToken->store(true); }
-bool FilenameRecoveryPage::busy() const { return m_scan.isRunning() || m_copy.isRunning(); }
+// The flags last until the finished handlers ran: a task that fails at once can
+// stop running before refresh() looks, while its result is not shown yet.
+bool FilenameRecoveryPage::busy() const { return m_scanning || m_copying; }
 void FilenameRecoveryPage::scanDirectory(const QString& path) {
     if (path.isEmpty() || busy()) return;
     m_directory = path; m_plan = {}; m_copyResult = {}; m_selected = -1; m_model->removeRows(0, m_model->rowCount()); m_rows.clear();
     m_cancelToken = std::make_shared<std::atomic_bool>(false); m_progress = std::make_shared<NameProgress>();
     const auto cancel = m_cancelToken; const auto progress = m_progress;
+    m_scanning = true;
     m_scan.setFuture(QtConcurrent::run([path, cancel, progress] { return FilenameRecovery::scan(path, cancel, progress); }));
     m_timer.start(); refresh();
 }
@@ -95,6 +98,7 @@ void FilenameRecoveryPage::exportCopy(const QString& path) {
     if (path.isEmpty() || busy() || !m_plan.error.isEmpty() || m_plan.cancelled || m_plan.root.isEmpty() || !FilenameRecovery::validate(m_plan).valid()) return;
     m_copyResult = {}; m_cancelToken = std::make_shared<std::atomic_bool>(false); m_progress = std::make_shared<NameProgress>();
     const auto plan = m_plan; const auto cancel = m_cancelToken; const auto progress = m_progress;
+    m_copying = true;
     m_copy.setFuture(QtConcurrent::run([plan, path, cancel, progress] { return FilenameRecovery::copy(plan, path, cancel, progress); }));
     m_timer.start(); refresh();
 }
@@ -142,8 +146,8 @@ void FilenameRecoveryPage::refresh() {
     const bool selected = m_selected >= 0 && m_selected < m_plan.entries.size();
     m_name->setEnabled(selected && !working); m_apply->setEnabled(selected && !working); m_original->setEnabled(selected && !working);
     m_path->setText(m_directory.isEmpty() ? tr("No directory selected.") : m_directory);
-    if (m_scan.isRunning()) m_status->setText(tr("Scanning names and hashing file bytes locally: %1 entries, %2 MiB…").arg(m_progress->entries.load()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
-    else if (m_copy.isRunning()) m_status->setText(tr("Verifying and copying: %1 / %2 entries, %3 MiB written…").arg(m_progress->entries.load()).arg(m_plan.entries.size()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
+    if (m_scanning) m_status->setText(tr("Scanning names and hashing file bytes locally: %1 entries, %2 MiB…").arg(m_progress->entries.load()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
+    else if (m_copying) m_status->setText(tr("Verifying and copying: %1 / %2 entries, %3 MiB written…").arg(m_progress->entries.load()).arg(m_plan.entries.size()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
     else if (!m_copyResult.error.isEmpty()) m_status->setText(m_copyResult.error + (m_copyResult.outputCreated ? tr(" Partial output remains at %1; it is not a completed recovery. Choose a new destination for another attempt.").arg(m_copyResult.destination) : QString()));
     else if (m_copyResult.success) m_status->setText(tr("Created directory copy: %1. Source names and file bytes were preserved.").arg(m_copyResult.destination));
     else if (!m_plan.error.isEmpty()) m_status->setText(m_plan.error);
