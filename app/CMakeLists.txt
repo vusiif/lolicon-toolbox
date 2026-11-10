@@ -3,3 +3,5 @@ target_link_libraries(ToolboxShell PUBLIC ToolboxUI)
 target_include_directories(ToolboxShell PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(Toolbox WIN32 main.cpp Application.h Application.cpp)
 target_link_libraries(Toolbox PRIVATE ToolboxShell ToolBase64 ToolMojibake ToolTextStyle ToolVoiceDesigner ToolCharacterArt)
+# The project() version is the single source; the app and the package both read it.
+target_compile_definitions(Toolbox PRIVATE TOOLBOX_VERSION="${PROJECT_VERSION}")

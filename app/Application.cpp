@@ -14,7 +14,7 @@
 Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 {
     setApplicationName("Toolbox");
-    setApplicationVersion("0.2.0");
+    setApplicationVersion(TOOLBOX_VERSION);
     eApp->init();
     m_settings = std::make_unique<AppSettings>();
     eTheme->setThemeMode(m_settings->themeMode());
