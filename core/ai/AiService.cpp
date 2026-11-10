@@ -14,7 +14,8 @@ QString AiService::validate(const Configuration& c) { return OpenAICompatiblePro
 void AiService::listModels(const Configuration& c) { if (!isBusy()) m_provider->listModels(c); }
 void AiService::analyze(const Configuration& c, const QJsonObject& context, const QString& locale) {
     if (isBusy()) return;
-    const auto original = context.value("original_text").toString();
+    // Lossy refinement sends a marked-up draft of one chunk instead of the original text.
+    const auto original = context.value(context.contains("draft") ? "draft" : "original_text").toString();
     if (original.isEmpty() || original.toUtf8().size() > 16 * 1024) {
         emit failed(tr("AI analysis requires nonempty input of at most 16 KiB. Analyze a smaller section.")); return;
     }

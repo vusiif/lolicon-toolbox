@@ -1,0 +1,13 @@
+zh_charlm.bin - Chinese character frequency model for lossy GBK recovery
+
+Derived from the jieba main dictionary (jieba/dict.txt) by Sun Junyi,
+https://github.com/fxsjy/jieba, retrieved on 2026-11-10 from
+https://raw.githubusercontent.com/fxsjy/jieba/master/jieba/dict.txt
+(SHA256 7197C3211DDD98962B036CDF40324D1EA2BFAA12BD028E68FAA70111A88E12A8).
+jieba is released under the MIT License; see jieba-LICENSE.txt.
+
+The file contains only derived statistics: per-character sums of word
+frequencies and within-word adjacent character pair sums of at least 20.
+Regenerate it with:
+
+    python -I scripts/build_zh_charlm.py path/to/jieba/dict.txt

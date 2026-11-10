@@ -22,7 +22,7 @@ QJsonArray steps(const QList<Transformation>& path) {
     QJsonArray result;
     for (const auto& step : path) result.append(QJsonObject{
         {"encode_as", EncodingConverter::name(step.encodeAs)}, {"decode_as", EncodingConverter::name(step.decodeAs)},
-        {"segmented", step.segmented}, {"partial", step.partial}});
+        {"segmented", step.segmented}, {"partial", step.partial}, {"lossy_reconstruction", step.lossy}});
     return result;
 }
 QJsonObject candidate(double score, bool reversible, const QList<Transformation>& path) {

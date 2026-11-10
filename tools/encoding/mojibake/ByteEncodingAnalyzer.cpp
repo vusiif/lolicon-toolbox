@@ -44,7 +44,8 @@ QByteArray ByteEncodingAnalyzer::bom(Encoding e) {
     default: return {};
     }
 }
-FileResult ByteEncodingAnalyzer::load(const QString& path, std::optional<Encoding> forced, const Cancellation& cancel) {
+FileResult ByteEncodingAnalyzer::load(const QString& path, std::optional<Encoding> forced, const Cancellation& cancel,
+                                      const std::function<void(double)>& progress) {
     FileResult result; result.path = QFileInfo(path).absoluteFilePath();
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) { result.error = file.errorString(); return result; }
@@ -57,9 +58,10 @@ FileResult ByteEncodingAnalyzer::load(const QString& path, std::optional<Encodin
         bytes += chunk;
         if (bytes.size() > MaxFileBytes) { result.tooLarge = true; return result; }
     }
-    result = analyze(bytes, forced, cancel); result.path = QFileInfo(path).absoluteFilePath(); return result;
+    result = analyze(bytes, forced, cancel, progress); result.path = QFileInfo(path).absoluteFilePath(); return result;
 }
-FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<Encoding> forced, const Cancellation& cancel) {
+FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<Encoding> forced, const Cancellation& cancel,
+                                         const std::function<void(double)>& progress) {
     FileResult result;
     if (bytes.size() > MaxFileBytes) { result.tooLarge = true; return result; }
     result.bytes = bytes; result.hash = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
@@ -89,7 +91,7 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
             if (c.score > existing->score) { existing->encoding = c.encoding; existing->score = c.score; }
         }
     };
-    bool nonTextDecode = false;
+    bool nonTextDecode = false, lossyFound = false;
     for (auto e : encodings) {
         if (cancelled(cancel)) { result.cancelled = true; result.candidates.clear(); return result; }
         const auto decoded = EncodingConverter::decode(payload, e);
@@ -105,6 +107,9 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         const auto anomalies = CandidateScorer::anomalies(*decoded);
         append({*decoded, e, {e}, {}, std::clamp(score, 0.0, 100.0), true, anomalies});
         if (anomalies == 0) continue;
+        // Once the UTF-8 reading has been rebuilt as damaged GBK, repairs of other readings only
+        // re-encode its replacement characters (and are discarded below): skip the search.
+        if (lossyFound) continue;
         // A UTF-16/32 reading without a BOM or structural evidence is already ranked
         // far down; most such readings are runs of rare Han characters (bytes "aa"
         // become 慡). Searching repairs inside them costs time and finds nothing.
@@ -112,11 +117,12 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         if (decoded->size() > MojibakeAnalyzer::MaxInputBytes || decoded->toUtf8().size() > MojibakeAnalyzer::MaxInputBytes) {
             result.inverseRepairSkipped = true; continue;
         }
-        const auto repaired = MojibakeAnalyzer::analyze(*decoded, cancel);
+        const auto repaired = MojibakeAnalyzer::analyze(*decoded, cancel, progress);
         if (!repaired.likelyMojibake) continue;
         for (const auto& candidate : repaired.candidates) {
             if (candidate.path.isEmpty() || candidate.anomalies >= anomalies) continue;
-            append({candidate.text, e, {e}, candidate.path, candidate.score, candidate.reversible, candidate.anomalies});
+            append({candidate.text, e, {e}, candidate.path, candidate.score, candidate.reversible, candidate.anomalies, candidate.evidence, candidate.lossy});
+            lossyFound = lossyFound || (!candidate.path.isEmpty() && candidate.path.last().lossy);
         }
     }
     if (cancelled(cancel)) { result.cancelled = true; result.candidates.clear(); return result; }
@@ -134,6 +140,16 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
             if (!c.aliases.contains(*result.preferredEncoding)) c.score = std::min(c.score, std::max(0.0, best - 8));
     }
     std::stable_sort(result.candidates.begin(), result.candidates.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
+    // As in MojibakeAnalyzer: a lossy GBK reconstruction is the only candidate that
+    // explains the replacement pattern; conversions of the debris merely look clean.
+    const auto lossy = std::find_if(result.candidates.begin(), result.candidates.end(), [](const auto& c) {
+        return !c.repairPath.isEmpty() && c.repairPath.last().lossy;
+    });
+    if (lossy != result.candidates.end()) {
+        std::rotate(result.candidates.begin(), lossy, lossy + 1);
+        // Other repairs only re-encode the replacement characters; plain decodings stay as alternatives.
+        result.candidates.removeIf([](const auto& c) { return !c.repairPath.isEmpty() && !c.repairPath.last().lossy; });
+    }
     result.candidates = result.candidates.mid(0, 5);
     return result;
 }

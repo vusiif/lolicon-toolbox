@@ -1,5 +1,6 @@
 #pragma once
 #include "MojibakeCandidate.h"
+#include <functional>
 namespace mojibake {
 struct FileCandidate {
     QString text;
@@ -9,6 +10,8 @@ struct FileCandidate {
     double score = 0;
     bool reversible = true;
     int anomalies = 0;
+    QByteArray evidence;  // See Candidate::evidence.
+    std::shared_ptr<const LossyRecovery> lossy;  // See Candidate::lossy.
 };
 struct FileResult {
     QString path;
@@ -23,8 +26,11 @@ struct FileResult {
 class ByteEncodingAnalyzer {
 public:
     static constexpr qsizetype MaxFileBytes = 10 * 1024 * 1024;
-    static FileResult load(const QString& path, std::optional<Encoding> forced = {}, const Cancellation& cancel = {});
-    static FileResult analyze(const QByteArray& bytes, std::optional<Encoding> forced = {}, const Cancellation& cancel = {});
+    // progress (0..1, from worker threads) is reported while a lossy GBK reconstruction runs.
+    static FileResult load(const QString& path, std::optional<Encoding> forced = {}, const Cancellation& cancel = {},
+                           const std::function<void(double)>& progress = {});
+    static FileResult analyze(const QByteArray& bytes, std::optional<Encoding> forced = {}, const Cancellation& cancel = {},
+                              const std::function<void(double)>& progress = {});
     static QByteArray bom(Encoding encoding);
 };
 }

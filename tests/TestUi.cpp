@@ -41,6 +41,7 @@
 #include <QMimeData>
 #include <QTextDocument>
 #include <QStackedWidget>
+#include <QStringConverter>
 #include <QDir>
 #include <QFile>
 #include "services/AppSettings.h"
@@ -59,6 +60,7 @@ private slots:
     void groupedNavigation();
     void mojibakeWorkflow();
     void aiWorkflow();
+    void lossyRecoveryWorkflow();
     void modelListingWorkflow();
     void fileRecoveryWorkflow();
     void filenameRecoveryWorkflow();
@@ -313,29 +315,81 @@ void TestUi::aiWorkflow()
     MojibakePage page(nullptr, &settings);
     page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(900, 1100); page.show();
     auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput");
-    auto* local = page.findChild<ElaPlainTextEdit*>("mojibakeOutput");
-    auto* output = page.findChild<ElaPlainTextEdit*>("mojibakeAiOutput");
+    auto* output = page.findChild<ElaPlainTextEdit*>("mojibakeOutput");
     auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze");
     auto* aiAnalyze = page.findChild<ElaPushButton*>("mojibakeAiAnalyze");
+    auto* aiCard = page.findChild<ElaPushButton*>("mojibakeAiCandidate");
+    auto* localCard = page.findChild<ElaPushButton*>("mojibakeCandidate1");
+    QVERIFY(aiCard && localCard);
     input->setPlainText(QString::fromUtf8("浣犲ソ"));
     QVERIFY(!aiAnalyze->isEnabled());
     analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
-    QVERIFY(aiAnalyze->isEnabled()); QCOMPARE(server.requests, 0);
-    aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(output->toPlainText(), QString::fromUtf8("你好！"), 3000);
-    QCOMPARE(local->toPlainText(), QString::fromUtf8("你好"));
-    QString aiCopied; page.setClipboardWriter([&aiCopied](const QString& text) { aiCopied = text; return true; });
-    page.findChild<ElaPushButton*>("mojibakeAiCopy")->click();
-    QCOMPARE(aiCopied, QString::fromUtf8("你好！"));
+    QVERIFY(aiAnalyze->isEnabled()); QCOMPARE(server.requests, 0); QVERIFY(!aiCard->isEnabled());
+    // The AI reply becomes its own card, shown at once; local candidates stay available.
+    aiAnalyze->click(); QTRY_VERIFY_WITH_TIMEOUT(aiCard->isEnabled(), 3000);
+    QVERIFY(aiCard->isChecked()); QCOMPARE(output->toPlainText(), QString::fromUtf8("你好！"));
+    QString copied; page.setClipboardWriter([&copied](const QString& text) { copied = text; return true; });
+    page.findChild<ElaPushButton*>("mojibakeCopy")->click();
+    QCOMPARE(copied, QString::fromUtf8("你好！"));
     QVERIFY(page.grab().save("mojibake-ai.png"));
+    localCard->click(); QCOMPARE(output->toPlainText(), QString::fromUtf8("你好"));
+    aiCard->click(); QCOMPARE(output->toPlainText(), QString::fromUtf8("你好！"));
     QVERIFY(settings.setLocale("zh_CN"));
     QCoreApplication::processEvents(); QCOMPARE(aiAnalyze->text(), QString::fromUtf8("AI 深度分析"));
     QCOMPARE(output->toPlainText(), QString::fromUtf8("你好！"));
     server.hold = true;
     aiAnalyze->click(); QTRY_COMPARE_WITH_TIMEOUT(server.requests, 2, 3000);
     QVERIFY(page.findChild<QLabel*>("mojibakeAiStatus")->text().contains(QString::fromUtf8("已等待")));
+    QVERIFY(!aiCard->isEnabled()); // A new request replaces the previous suggestion.
     input->setPlainText("changed input");
     QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), 3000);
-    QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiAnalyze->isEnabled());
+    QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!aiAnalyze->isEnabled()); QVERIFY(!aiCard->isEnabled());
+}
+void TestUi::lossyRecoveryWorkflow()
+{
+    // GBK text read as UTF-8 with replacement characters and saved again.
+    QTemporaryDir dir; AppSettings settings(dir.filePath("lossy-ui.ini")); QVERIFY(settings.setLocale("zh_CN"));
+    TestHttpServer server;
+    const QString truth = QString::fromUtf8("那天傍晚下着小雨，我撑着伞走过旧城区的石板路。街角的面包店还亮着灯。");
+    QStringEncoder gbk("GBK"); QStringDecoder utf8(QStringConverter::Utf8);
+    const QString damaged = utf8(gbk(truth));
+    server.response = TestHttpServer::success(truth);
+    QVERIFY(settings.setAiConfiguration({server.url(), "test-model", "test-only-key"}));
+    MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1100, 1000); page.show();
+    auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput");
+    auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze");
+    auto* output = page.findChild<ElaPlainTextEdit*>("mojibakeOutput");
+    auto* aiAnalyze = page.findChild<ElaPushButton*>("mojibakeAiAnalyze");
+    input->setPlainText(damaged); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 10000);
+    QVERIFY(page.findChild<QLabel*>("mojibakeStatus")->text().contains(QString::fromUtf8("受损的 GBK")));
+    QVERIFY(output->toPlainText().contains(QChar(0x25a1)));
+    QVERIFY(page.findChild<QLabel*>("mojibakeEvidenceStats")->text().contains(QString::fromUtf8("丢失")));
+    QVERIFY(aiAnalyze->text().contains(QString::fromUtf8("AI 精修")));
+    QVERIFY(page.grab().save("mojibake-lossy.png"));
+    // The AI draft is re-solved against the surviving bytes; a correct draft is accepted in full.
+    aiAnalyze->click();
+    auto* aiCard = page.findChild<ElaPushButton*>("mojibakeAiCandidate");
+    QTRY_VERIFY2_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), qPrintable(page.findChild<QLabel*>("mojibakeAiStatus")->text()), 10000);
+    QVERIFY(aiCard->isEnabled() && aiCard->isChecked());
+    QCOMPARE(output->toPlainText(), truth);
+    QCOMPARE(server.requests, 1);
+    QVERIFY(page.findChild<QLabel*>("mojibakeAiStatus")->text().contains(QString::fromUtf8("校验")));
+    QVERIFY(page.grab().save("mojibake-lossy-ai.png"));
+    // The file mode offers the same refinement and saves the AI text as a copy.
+    const auto source = dir.filePath("damaged.txt"), copy = dir.filePath("repaired.txt");
+    { QFile file(source); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(damaged.toUtf8()); }
+    page.findChild<ElaPushButton*>("mojibakeFileMode")->click();
+    auto* filePage = page.findChild<TextFileRecoveryPage*>();
+    filePage->openFile(source);
+    QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("fileRecoveryAnalyze")->isEnabled(), 10000);
+    QVERIFY(page.findChild<ElaPlainTextEdit*>("fileRecoveryPreview")->toPlainText().contains(QChar(0x25a1)));
+    auto* fileAi = page.findChild<ElaPushButton*>("fileRecoveryAiAnalyze");
+    QVERIFY(fileAi->isEnabled()); fileAi->click();
+    QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("fileRecoveryAiCancel")->isVisible(), 10000);
+    QCOMPARE(page.findChild<ElaPlainTextEdit*>("fileRecoveryPreview")->toPlainText(), truth);
+    filePage->exportCopy(copy); QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("fileRecoverySave")->isEnabled(), 5000);
+    { QFile file(copy); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(QString::fromUtf8(file.readAll()), truth); }
+    QVERIFY(page.grab().save("file-recovery-lossy-ai.png"));
 }
 void TestUi::modelListingWorkflow()
 {
@@ -529,6 +583,7 @@ void TestUi::diagnosticReportWorkflow()
     auto* report = page.findChild<DiagnosticReportWidget*>("textDiagnosticReport"); QVERIFY(report);
     auto* exportButton = report->findChild<ElaPushButton*>("diagnosticExport"); QVERIFY(!exportButton->isEnabled());
     input->setPlainText("浣犲ソ"); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 5000);
+    page.findChild<ElaPushButton*>("mojibakeDetails")->click(); // The report sits with the recovery process.
     QVERIFY(exportButton->isEnabled()); QVERIFY(report->findChild<QLabel*>("diagnosticSummary")->text().contains("Unicode 文本"));
     const auto destination = dir.filePath("diagnostic.json"); QVERIFY(report->exportReport(destination));
     QVERIFY(report->findChild<QLabel*>("diagnosticExportStatus")->isVisible());

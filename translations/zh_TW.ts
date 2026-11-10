@@ -201,6 +201,33 @@ Unavailable</source><translation>候選 %1
         <message><source>Search depth: at most 2; examined %1 unique candidates.</source><translation>搜尋最多 2 層，共檢查 %1 個不重複候選。</translation></message>
         <message><source>The bounded search was pruned; other possibilities may exist.</source><translation>搜尋已按上限剪枝，可能仍有其他結果。</translation></message>
         <message><source>A reversible encoding path does not prove that the meaning is correct.</source><translation>編碼路徑可逆並不代表語意一定正確。</translation></message>
+        <message numerus="yes"><source>AI refinement (%n chunk(s))</source><translation><numerusform>AI 精修（%n 段）</numerusform></translation></message>
+        <message numerus="yes"><source>AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.</source><translation><numerusform>AI 精修會把標註好的本機草稿分 %n 段傳送到 %1，每次並行 3 段。每段回覆都會對照殘留位元組校驗；可能耗時較長，並產生 API 費用。</numerusform></translation></message>
+        <message><source>Recover text that was saved or opened with the wrong encoding. Local analysis stays offline; AI is used only when you click it.</source><translation>找回以錯誤編碼儲存或開啟的文字。本機分析完全離線；只有點擊 AI 按鈕時才會連網。</translation></message>
+        <message><source>1  Garbled text</source><translation>1  亂碼原文</translation></message>
+        <message><source>Paste the text exactly as it looks. You can also drop a text file here.</source><translation>依原樣貼上亂碼，不要手動修改；也可以把文字檔案直接拖到這裡。</translation></message>
+        <message><source>2  Choose a result</source><translation>2  選擇修復結果</translation></message>
+        <message><source>Results appear here after analysis.</source><translation>分析後，修復結果會顯示在這裡。</translation></message>
+        <message><source>Damaged GBK text detected. Characters whose bytes were lost are marked; AI refinement can fill them from context.</source><translation>偵測到受損的 GBK 文字：遺失位元組的字已標出，可用 AI 精修依上下文補全。</translation></message>
+        <message><source>No conversion</source><translation>未做轉換</translation></message>
+        <message><source>Rebuilt damaged GBK text</source><translation>重建受損的 GBK 文字</translation></message>
+        <message><source>%1 certain · %2 guessed · %3 lost</source><translation>確定 %1 · 推測 %2 · 遺失 %3</translation></message>
+        <message><source>%1 read as %2</source><translation>%1 被當作 %2 讀取</translation></message>
+        <message><source>Partly readable; lost bytes stay marked</source><translation>部分可讀，遺失的位元組保留標記</translation></message>
+        <message><source>Exact inverse verified</source><translation>已驗證精確逆向轉換</translation></message>
+        <message><source>Inverse not proven</source><translation>未能驗證逆向轉換</translation></message>
+        <message><source>Recommended</source><translation>推薦</translation></message>
+        <message><source>Original</source><translation>原文</translation></message>
+        <message><source>The original bytes were GBK. They were read as UTF-8, which replaced every invalid byte sequence with U+FFFD and lost those bytes; the file was then saved again.</source><translation>原始位元組是 GBK。它們曾被當作 UTF-8 讀取，所有無效的位元組序列都被替換成 U+FFFD 而遺失，之後檔案又被重新儲存。</translation></message>
+        <message><source>Every byte that formed valid UTF-8 survived. The tool searched GBK byte sequences that reproduce the damaged text exactly and ranked them with a character frequency model (jieba dictionary).</source><translation>凡是恰好構成合法 UTF-8 的位元組都保留了下來。本工具搜尋能精確還原出這段受損文字的 GBK 位元組序列，並以字頻模型（jieba 詞典）排序。</translation></message>
+        <message><source>Certain characters: %1 (both bytes survived). Guessed: %2 (one byte survived; the model chose the other). Lost: %3 (no byte survived), shown as □.</source><translation>確定的字：%1（兩個位元組都在）。推測的字：%2（只剩一個位元組，另一個由字頻模型選擇）。遺失的字：%3（位元組全部遺失），顯示為 □。</translation></message>
+        <message><source>The damage matches a decoder that writes one U+FFFD per invalid byte (for example Qt or .NET).</source><translation>損壞方式符合「每個無效位元組替換為一個 U+FFFD」的解碼器（例如 Qt 或 .NET）。</translation></message>
+        <message><source>The damage matches a decoder that writes one U+FFFD per invalid sequence (for example browsers, Java or Python).</source><translation>損壞方式符合「每段無效序列替換為一個 U+FFFD」的解碼器（例如瀏覽器、Java 或 Python）。</translation></message>
+        <message><source>AI refinement can fill lost characters from context; it is checked against the surviving bytes, but filled characters remain guesses.</source><translation>AI 精修可以依上下文補全遺失的字；結果會對照殘留位元組校驗，但補全的字仍只是推測。</translation></message>
+        <message><source>AI refined text</source><translation>AI 精修版</translation></message>
+        <message><source>AI suggestion</source><translation>AI 建議</translation></message>
+        <message><source>Checked against the surviving bytes</source><translation>已對照殘留位元組校驗</translation></message>
+        <message><source>Semantic guess, not byte-verified</source><translation>語意推測，未經位元組校驗</translation></message>
     </context>
     <context>
         <name>ai::OpenAICompatibleProvider</name>
@@ -271,6 +298,24 @@ Unavailable</source><translation>候選 %1
         <message><source>Output newlines</source><translation>輸出換行</translation></message>
         <message><source>Preserve original</source><translation>保留原樣</translation></message>
         <message><source>Write BOM (defaults to source BOM presence)</source><translation>寫入 BOM（預設跟隨來源檔案是否有 BOM）</translation></message>
+        <message><source>Decoded as %1</source><translation>依 %1 解碼</translation></message>
+        <message><source>Same text as %1</source><translation>與 %1 解碼結果相同</translation></message>
+        <message><source>Plain decoding, no repair</source><translation>直接解碼，未做修復</translation></message>
+        <message><source>Recommended</source><translation>推薦</translation></message>
+        <message><source>AI refined text</source><translation>AI 精修版</translation></message>
+        <message><source>AI suggestion</source><translation>AI 建議</translation></message>
+        <message><source>Checked against the surviving bytes</source><translation>已對照殘留位元組校驗</translation></message>
+        <message><source>Semantic guess, not byte-verified</source><translation>語意推測，未經位元組校驗</translation></message>
+        <message><source>This file is GBK text that was once opened as UTF-8 and saved again; some bytes are gone. Certain and guessed characters are shown, lost ones are marked.</source><translation>這個檔案原本是 GBK 文字，曾被當作 UTF-8 開啟並重新儲存，部分位元組已經遺失。確定與推測的字都已顯示，遺失的字會被標出。</translation></message>
+        <message><source>Scores rank possibilities, not probabilities. File contents are sent to AI only when you click the AI button.</source><translation>分數只用於排序，不代表機率。只有點擊 AI 按鈕時，檔案內容才會傳送給 AI。</translation></message>
+        <message><source>Analyze a file first. AI is used only when you click it.</source><translation>請先分析檔案。只有點擊時才會使用 AI。</translation></message>
+        <message><source>AI suggestions are limited to 16 KiB of text. Damaged GBK files can be refined in chunks of any size.</source><translation>AI 建議只支援 16 KiB 以內的文字；受損的 GBK 檔案可以不限大小分段精修。</translation></message>
+        <message><source>Clicking AI analysis sends the decoded text and local candidates to %1.</source><translation>點擊 AI 分析會把解碼後的文字與本機候選傳送到 %1。</translation></message>
+        <message><source>1  Choose a text file</source><translation>1  選擇文字檔案</translation></message>
+        <message><source>Choose or drop one file. Its bytes are analyzed locally; the source file is never modified, and a repaired copy is saved separately.</source><translation>選擇或拖入一個檔案。檔案位元組只在本機分析，來源檔案永遠不會被修改，修復結果另存為副本。</translation></message>
+        <message><source>2  Choose a result and save a copy</source><translation>2  選擇結果並另存副本</translation></message>
+        <message><source>Results appear here after a file is analyzed.</source><translation>分析檔案後，結果會顯示在這裡。</translation></message>
+        <message><source>Details</source><translation>詳細資訊</translation></message>
     </context>
     <context>
         <name>RecoveryOperation</name>
@@ -639,4 +684,36 @@ Uses the voice API address, key and model saved in Settings.</source><translatio
 <message><source>Use 2 to 128 distinct grapheme clusters, including the optional space.</source><translation>請使用 2 至 128 個不同字素，可計入選用空格。</translation></message>
 </context>
 <context><name>CharacterArtErrors</name><message><source>Invalid Unicode in custom characters.</source><translation>自訂字元包含無效 Unicode。</translation></message></context>
+    <context>
+        <name>MojibakeAi</name>
+        <message><source>AI refinement stopped: %1 of %2 chunks verified. Run it again to continue with the rest.</source><translation>AI 精修已停止：%2 段中已校驗 %1 段。再次執行可繼續處理其餘部分。</translation></message>
+        <message><source>AI request cancelled. Local results are unchanged.</source><translation>AI 請求已取消，本機結果保留。</translation></message>
+        <message><source>Nothing to refine: every character is backed by surviving bytes.</source><translation>無需精修：每個字都有殘留位元組佐證。</translation></message>
+        <message><source>AI could not propose a reliable recovery. See its explanation.</source><translation>AI 無法提出可靠恢復結果，請查看說明。</translation></message>
+        <message><source>AI suggestion received. Verify the text and any inferred characters.</source><translation>已收到 AI 建議，請核對內文與推測的字元。</translation></message>
+        <message><source>The AI returned no text for a chunk.</source><translation>AI 對某一段沒有回傳內文。</translation></message>
+        <message><source>AI refinement stopped after repeated failures: %1</source><translation>AI 精修連續失敗，已停止：%1</translation></message>
+        <message><source>AI refinement finished: %1 of %2 chunks verified, %3 failed. Run it again to retry the failed chunks.</source><translation>AI 精修完成：%2 段中 %1 段已校驗，%3 段失敗。再次執行可重試失敗的段。</translation></message>
+        <message><source>AI refinement finished: all %1 chunks were checked against the surviving bytes.</source><translation>AI 精修完成：全部 %1 段均已對照殘留位元組校驗。</translation></message>
+        <message><source>AI refinement: %1 of %2 chunks done, %3 in progress, %4 s elapsed.</source><translation>AI 精修中：已完成 %1/%2 段，進行中 %3 段，已用時 %4 秒。</translation></message>
+        <message><source>Waiting for the service to start responding… %1 s elapsed (90 s limit).</source><translation>正在等待服務開始回覆…已等待 %1 秒（最多 90 秒）。</translation></message>
+        <message><source>The model is thinking… %1 s elapsed, %2 reasoning characters received.</source><translation>模型正在思考…已等待 %1 秒，已收到 %2 個思考字元。</translation></message>
+        <message><source>Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.</source><translation>正在接收 AI 回覆…已等待 %1 秒，已收到 %2 個輸出字元。完成後將驗證結果。</translation></message>
+        <message><source>AI refinement: %1 of %2 chunks verified against the surviving bytes; %3 failed.</source><translation>AI 精修：%2 段中有 %1 段已對照殘留位元組校驗；%3 段失敗。</translation></message>
+        <message><source>AI filled %1 lost characters. %2 AI characters contradicted surviving bytes and were not used.</source><translation>AI 補全了 %1 個遺失的字；有 %2 個 AI 字與殘留位元組矛盾，未被採用。</translation></message>
+        <message><source>Characters filled by AI are contextual guesses, not recovered bytes. Chunks without a verified AI reply keep the local result.</source><translation>AI 補全的字是依上下文的推測，不是恢復出的位元組。未通過校驗的段保留本機結果。</translation></message>
+        <message><source>Last error: %1</source><translation>最近一次錯誤：%1</translation></message>
+        <message><source>AI preferred local candidate %1.</source><translation>AI 傾向本機候選 %1。</translation></message>
+        <message><source>Contextual guesses reported by the model:</source><translation>模型回報的語境推測：</translation></message>
+        <message><source>All AI output is a suggestion. Inferred characters are not verified byte recovery.</source><translation>AI 輸出僅供參考，推測的字元未經位元組恢復驗證。</translation></message>
+    </context>
+    <context>
+        <name>RecoveryWorkspace</name>
+        <message><source>guessed from one surviving byte</source><translation>依殘留的一個位元組推測</translation></message>
+        <message><source>filled in by AI</source><translation>AI 補全</translation></message>
+        <message><source>lost</source><translation>已遺失</translation></message>
+        <message><source>%1 certain, %2 guessed, %3 AI, %4 lost</source><translation>確定 %1 字，推測 %2 字，AI 補全 %3 字，遺失 %4 字</translation></message>
+        <message><source>Preview shows the first %1 characters.</source><translation>預覽僅顯示前 %1 個字元。</translation></message>
+        <message><source>Candidates</source><translation>候選結果</translation></message>
+    </context>
 </TS>

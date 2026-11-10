@@ -22,8 +22,8 @@ FilenameRecoveryPage::FilenameRecoveryPage(QWidget* parent) : QWidget(parent) {
     auto* outer = new QVBoxLayout(this); outer->setContentsMargins(0, 0, 0, 0);
     auto* scroll = new ElaScrollArea(this); scroll->setWidgetResizable(true); outer->addWidget(scroll);
     auto* content = new QWidget(scroll); content->setAutoFillBackground(false); scroll->viewport()->setAutoFillBackground(false); scroll->setWidget(content);
-    auto* layout = new QVBoxLayout(content); layout->setContentsMargins(32, 28, 32, 28); layout->setSpacing(12);
-    m_title = ui::label({}, 18, ui::Tone::Primary, content);
+    auto* layout = new QVBoxLayout(content); layout->setContentsMargins(32, 12, 32, 28); layout->setSpacing(12);
+    m_title = ui::label({}, 12, ui::Tone::Primary, content);
     m_description = ui::label({}, 10, ui::Tone::Secondary, content);
     m_path = ui::label({}, 10, ui::Tone::Secondary, content); m_path->setTextFormat(Qt::PlainText);
     m_status = ui::label({}, 10, ui::Tone::Secondary, content); m_status->setTextFormat(Qt::PlainText); m_status->setObjectName("filenameStatus");

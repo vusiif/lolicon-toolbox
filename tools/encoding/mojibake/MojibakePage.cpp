@@ -1,271 +1,88 @@
 #include "MojibakePage.h"
 #include "MojibakeAnalyzer.h"
+#include "LossyGbkRecovery.h"
+#include "MojibakeAi.h"
+#include "RecoveryWorkspace.h"
 #include "TextFileRecoveryPage.h"
 #include "FilenameRecoveryPage.h"
 #include "ClipboardSourcePage.h"
 #include "DiagnosticReportWidget.h"
-#include <QStackedWidget>
 #include "UiTheme.h"
 #include "services/AppSettings.h"
-#include "ai/AiService.h"
-#include <QJsonArray>
 #include <ElaPlainTextEdit.h>
+#include <ElaProgressBar.h>
 #include <ElaPushButton.h>
-#include <ElaTheme.h>
-#include <QButtonGroup>
 #include <ElaScrollArea.h>
-#include <QtConcurrentRun>
-#include <QVBoxLayout>
+#include <ElaTheme.h>
+#include <QApplication>
+#include <QButtonGroup>
+#include <QClipboard>
+#include <QDragEnterEvent>
+#include <QDropEvent>
+#include <QEvent>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QEvent>
-#include <QClipboard>
-#include <QApplication>
+#include <QMimeData>
+#include <QStackedWidget>
 #include <QTextDocument>
+#include <QVBoxLayout>
+#include <QtConcurrentRun>
 using namespace mojibake;
-MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings) : ToolPage(parent), m_settings(settings), m_aiService(new ai::AiService(this)) {
-    setObjectName("mojibakePage");
-    m_clipboardWriter = [](const QString& text) { auto* clipboard = QApplication::clipboard(); clipboard->setText(text); return clipboard->ownsClipboard(); };
-    auto* outer = new QVBoxLayout(this);
-    outer->setContentsMargins(0, 0, 0, 0);
-    auto* scroll = new ElaScrollArea(this);
-    scroll->setWidgetResizable(true);
-    auto* content = new QWidget(scroll);
-    scroll->setWidget(content);
-    content->setAutoFillBackground(false);
-    scroll->viewport()->setAutoFillBackground(false);
-    auto* modes = new QHBoxLayout; modes->setContentsMargins(32, 12, 32, 0);
-    m_textMode = new ElaPushButton(this); m_textMode->setObjectName("mojibakeTextMode");
-    m_fileMode = new ElaPushButton(this); m_fileMode->setObjectName("mojibakeFileMode");
-    m_nameMode = new ElaPushButton(this); m_nameMode->setObjectName("mojibakeNameMode");
-    m_clipboardMode = new ElaPushButton(this); m_clipboardMode->setObjectName("mojibakeClipboardMode");
-    modes->addWidget(m_textMode); modes->addWidget(m_fileMode); modes->addWidget(m_nameMode); modes->addWidget(m_clipboardMode); modes->addStretch(); outer->addLayout(modes);
-    auto* pages = new QStackedWidget(this); pages->setObjectName("mojibakeSources");
-    pages->addWidget(scroll); pages->addWidget(new TextFileRecoveryPage(pages)); pages->addWidget(new FilenameRecoveryPage(pages)); outer->addWidget(pages);
-    auto* clipboardPage = new ClipboardSourcePage(pages); pages->addWidget(clipboardPage);
-    m_textMode->setEnabled(false);
-    auto selectMode = [this, pages](int index) {
-        pages->setCurrentIndex(index); m_textMode->setEnabled(index != 0); m_fileMode->setEnabled(index != 1); m_nameMode->setEnabled(index != 2);
-        m_clipboardMode->setEnabled(index != 3);
-    };
-    connect(m_textMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(0); });
-    connect(m_fileMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(1); });
-    connect(m_nameMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(2); });
-    connect(m_clipboardMode, &ElaPushButton::clicked, this, [selectMode] { selectMode(3); });
-    auto* layout = new QVBoxLayout(content);
-    layout->setContentsMargins(32, 28, 32, 28);
-    layout->setSpacing(12);
-    layout->setSizeConstraint(QLayout::SetMinimumSize);
-    m_title = ui::label({}, 18, ui::Tone::Primary, content);
-    m_description = ui::label({}, 10, ui::Tone::Secondary, content);
-    m_inputLabel = ui::label({}, 10, ui::Tone::Secondary, content);
-    m_outputLabel = ui::label({}, 10, ui::Tone::Secondary, content);
-    m_status = ui::label({}, 10, ui::Tone::Secondary, content);
-    m_status->setObjectName("mojibakeStatus");
-    auto editor = [content](const char* name, bool readOnly) {
-        auto* edit = new ElaPlainTextEdit(content);
-        edit->setObjectName(name);
-        edit->setReadOnly(readOnly);
-        edit->setMinimumHeight(100);
-        return edit;
-    };
-    m_input = editor("mojibakeInput", false);
-    connect(clipboardPage, &ClipboardSourcePage::textChosen, this, [this, selectMode](const QString& text) {
-        m_input->setPlainText(text); invalidate(); selectMode(0);
-        m_status->setText(tr("Selected clipboard text loaded. Run local analysis before requesting AI."));
-    });
-    m_output = editor("mojibakeOutput", true);
-    m_process = editor("mojibakeProcess", true);
-    m_report = new DiagnosticReportWidget(content); m_report->setObjectName("textDiagnosticReport");
-    m_process->hide();
-    auto button = [content](const char* name) {
-        auto* b = new ElaPushButton(content);
-        b->setObjectName(name);
-        return b;
-    };
-    m_analyze = button("mojibakeAnalyze"); ui::primaryButton(m_analyze);
-    m_clear = button("mojibakeClear");
-    m_cancel = button("mojibakeCancel"); m_cancel->hide();
-    m_copy = button("mojibakeCopy"); m_copy->setEnabled(false);
-    m_details = button("mojibakeDetails"); m_details->setCheckable(true); m_details->setEnabled(false);
-    m_candidates = new QButtonGroup(this);
-    m_candidates->setObjectName("mojibakeCandidates");
-    m_candidates->setExclusive(true);
-    auto* candidateRow = new QHBoxLayout;
-    candidateRow->setSpacing(8);
-    for (int i = 0; i < 5; ++i) {
-        auto* b = button(qPrintable(QString("mojibakeCandidate%1").arg(i + 1)));
-        b->setCheckable(true);
-        b->setEnabled(false);
-        b->setFixedHeight(54);
-        b->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
-        auto font = b->font(); font.setPixelSize(12); b->setFont(font);
-        m_candidateButtons[i] = b;
-        m_candidates->addButton(b, i);
-        candidateRow->addWidget(b, 1);
+namespace {
+QFrame* card(QWidget* parent) { auto* frame = new QFrame(parent); ui::styleCard(frame); return frame; }
+// Mode buttons look like segments: the current one uses the primary colour.
+void styleMode(ElaPushButton* b, bool selected) {
+    for (auto mode : {ElaThemeType::Light, ElaThemeType::Dark}) {
+        const auto base = eTheme->getThemeColor(mode, selected ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase);
+        const auto hover = eTheme->getThemeColor(mode, selected ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover);
+        const auto press = eTheme->getThemeColor(mode, selected ? ElaThemeType::PrimaryPress : ElaThemeType::BasicPress);
+        const auto text = eTheme->getThemeColor(mode, selected ? ElaThemeType::BasicTextInvert : ElaThemeType::BasicText);
+        if (mode == ElaThemeType::Light) { b->setLightDefaultColor(base); b->setLightHoverColor(hover); b->setLightPressColor(press); b->setLightTextColor(text); }
+        else { b->setDarkDefaultColor(base); b->setDarkHoverColor(hover); b->setDarkPressColor(press); b->setDarkTextColor(text); }
     }
-    auto* actions = new QHBoxLayout;
-    actions->addWidget(m_analyze); actions->addWidget(m_cancel); actions->addWidget(m_clear); actions->addStretch();
-    auto* resultActions = new QHBoxLayout;
-    resultActions->addWidget(m_copy); resultActions->addWidget(m_details); resultActions->addStretch();
-    layout->addWidget(m_title); layout->addWidget(m_description); layout->addWidget(m_inputLabel);
-    layout->addWidget(m_input, 1); layout->addLayout(actions); layout->addWidget(m_status);
-    layout->addWidget(m_outputLabel); layout->addLayout(candidateRow); layout->addWidget(m_output, 1);
-    layout->addLayout(resultActions); layout->addWidget(m_report); layout->addWidget(m_process);
-    m_aiTitle = ui::label({}, 13, ui::Tone::Primary, content);
-    m_aiHint = ui::label({}, 10, ui::Tone::Secondary, content);
-    m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, content); m_aiStatus->setObjectName("mojibakeAiStatus");
-    m_aiAnalyze = button("mojibakeAiAnalyze");
-    m_aiCancel = button("mojibakeAiCancel"); m_aiCancel->hide();
-    m_aiCopy = button("mojibakeAiCopy"); m_aiCopy->setEnabled(false);
-    m_aiOutput = editor("mojibakeAiOutput", true);
-    m_aiExplanation = editor("mojibakeAiExplanation", true);
-    m_aiOutput->hide(); m_aiExplanation->hide();
-    auto* aiActions = new QHBoxLayout;
-    aiActions->addWidget(m_aiAnalyze); aiActions->addWidget(m_aiCancel); aiActions->addWidget(m_aiCopy); aiActions->addStretch();
-    layout->addWidget(m_aiTitle); layout->addWidget(m_aiHint); layout->addLayout(aiActions);
-    layout->addWidget(m_aiStatus); layout->addWidget(m_aiOutput); layout->addWidget(m_aiExplanation);
-    connect(m_aiAnalyze, &ElaPushButton::clicked, this, &MojibakePage::analyzeAi);
-    connect(m_aiCancel, &ElaPushButton::clicked, m_aiService, &ai::AiService::cancel);
-    connect(m_aiCopy, &ElaPushButton::clicked, this, [this] { m_clipboardWriter(m_aiResult.text); });
-    m_aiProgressTimer.setInterval(1000);
-    connect(&m_aiProgressTimer, &QTimer::timeout, this, &MojibakePage::showAiProgress);
-    connect(m_aiService, &ai::AiService::progress, this, [this](bool thinking, int characters) {
-        if (m_aiStale) return;
-        m_aiThinking = thinking; m_aiCharacters = characters; showAiProgress();
-    });
-    connect(m_aiService, &ai::AiService::completed, this, [this](const ai::Reply& reply) {
-        m_aiProgressTimer.stop();
-        if (m_aiStale || m_aiSubmitted != inputText()) { updateAiControls(); return; }
-        m_aiResult = reply;
-        m_aiOutput->setPlainText(reply.text); m_aiOutput->setVisible(!reply.text.isEmpty());
-        QStringList explanation{reply.reason};
-        if (reply.selectedCandidate >= 0) explanation << tr("AI preferred local candidate %1.").arg(reply.selectedCandidate + 1);
-        if (!reply.guesses.isEmpty()) explanation << tr("Contextual guesses reported by the model:") << reply.guesses;
-        explanation << tr("All AI output is a suggestion. Inferred characters are not verified byte recovery.");
-        m_aiExplanation->setPlainText(explanation.join('\n')); m_aiExplanation->show();
-        m_aiStatus->setText(reply.text.isEmpty() ? tr("AI could not propose a reliable recovery. See its explanation.")
-                                              : tr("AI suggestion received. Verify the text and any inferred characters."));
-        updateAiControls();
-    });
-    connect(m_aiService, &ai::AiService::failed, this, [this](const QString& error) {
-        m_aiProgressTimer.stop();
-        if (!m_aiStale) m_aiStatus->setText(error);
-        updateAiControls();
-    });
-    connect(m_aiService, &ai::AiService::cancelled, this, [this] {
-        m_aiProgressTimer.stop();
-        if (!m_aiStale) m_aiStatus->setText(tr("AI request cancelled. Local results are unchanged."));
-        updateAiControls();
-    });
-    if (m_settings) connect(m_settings, &AppSettings::aiConfigurationChanged, this, [this] { invalidateAi(); updateAiControls(); });
-    connect(m_analyze, &ElaPushButton::clicked, this, &MojibakePage::analyze);
-    connect(m_clear, &ElaPushButton::clicked, this, [this]() { m_input->clear(); invalidate(); });
-    connect(m_cancel, &ElaPushButton::clicked, this, [this]() { if (m_cancellation) m_cancellation->store(true); });
-    connect(m_input, &ElaPlainTextEdit::textChanged, this, &MojibakePage::invalidate);
-    connect(m_candidates, &QButtonGroup::idClicked, this, [this](int index) {
-        m_selectedCandidate = index; m_copied = false; showResult();
-    });
-    connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { showCandidate(); });
-    connect(m_details, &ElaPushButton::toggled, m_process, &QWidget::setVisible);
-    connect(m_copy, &ElaPushButton::clicked, this, [this]() {
-        const int index = m_selectedCandidate;
-        if (index < 0 || index >= m_result.candidates.size()) return;
-        m_copied = m_clipboardWriter(m_result.candidates[index].text);
-        showResult();
-    });
-    connect(&m_watcher, &QFutureWatcher<Result>::finished, this, [this]() {
-        m_analyze->setEnabled(true); m_cancel->hide();
-        if (m_stale || inputText() != m_submitted) { m_result = {}; showResult(); return; }
-        m_result = m_watcher.result();
-        showResult();
-    });
-    retranslate();
+    b->update();
 }
-MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); m_aiService->disconnect(this); m_aiService->cancel(); }
-QString MojibakePage::inputText() const {
-    // QTextDocument::toPlainText normalizes NBSP to ASCII spaces, destroying
-    // byte evidence in common UTF-8-as-Latin-1 mojibake such as "ä½ å¥½".
-    return m_input->document()->toRawText().replace(QChar::ParagraphSeparator, '\n')
-        .replace(QChar::LineSeparator, '\n');
+bool lossy(const Candidate& c) { return !c.path.isEmpty() && c.path.last().lossy; }
 }
-void MojibakePage::invalidate() {
-    invalidateAi();
-    m_stale = true; m_copied = false;
-    if (m_cancellation) m_cancellation->store(true);
-    m_result = {}; m_output->clear(); m_process->clear();
-    m_report->setReport({});
-    m_selectedCandidate = -1;
-    m_candidates->setExclusive(false);
-    for (auto* b : m_candidateButtons) { b->setChecked(false); b->setEnabled(false); }
-    m_candidates->setExclusive(true);
-    m_copy->setEnabled(false); m_details->setEnabled(false);
-    showCandidate();
-    updateAiControls();
-    if (!m_watcher.isRunning()) showResult();
-}
-void MojibakePage::analyze() {
-    if (m_watcher.isRunning()) return;
-    m_submitted = inputText();
-    invalidate();
-    m_stale = false;
-    if (m_submitted.isEmpty()) { m_status->setText(tr("Enter text to analyze.")); return; }
-    m_analyze->setEnabled(false); m_cancel->show();
-    m_status->setText(tr("Analyzing locally…"));
-    m_cancellation = std::make_shared<std::atomic_bool>(false);
-    const auto text = m_submitted;
-    const auto cancel = m_cancellation;
-    // No QWidget or page pointer is captured by the worker.
-    m_watcher.setFuture(QtConcurrent::run([text, cancel]() { return MojibakeAnalyzer::analyze(text, cancel); }));
-}
-void MojibakePage::showResult() {
-    m_selectedCandidate = m_result.candidates.isEmpty() ? -1 : qBound(0, m_selectedCandidate, int(m_result.candidates.size()) - 1);
-    m_report->setReport(m_watcher.isRunning() ? DiagnosticReport{} : DiagnosticReport::text(m_result, m_selectedCandidate));
-    m_candidates->setExclusive(false);
-    for (int i = 0; i < 5; ++i) {
-        auto* b = m_candidateButtons[i];
-        const bool available = i < m_result.candidates.size();
-        b->setEnabled(available);
-        b->setChecked(available && i == m_selectedCandidate);
-        b->setText(available ? tr("Candidate %1\n%2 / 100").arg(i + 1).arg(m_result.candidates[i].score, 0, 'f', 1)
-                             : tr("Candidate %1\nUnavailable").arg(i + 1));
-        b->setToolTip(available && m_result.candidates[i].path.isEmpty() ? tr("Original text (unchanged)") : QString());
+WorkspaceCandidate MojibakePage::describe(const Candidate& c, bool recommended) {
+    WorkspaceCandidate w;
+    w.text = c.text; w.evidence = c.evidence; w.score = c.score;
+    if (c.path.isEmpty()) { w.title = tr("Original text"); w.subtitle = tr("No conversion"); }
+    else if (lossy(c)) {
+        w.title = tr("Rebuilt damaged GBK text");
+        w.subtitle = tr("%1 certain · %2 guessed · %3 lost").arg(c.evidence.count(char(CharEvidence::Exact)))
+                         .arg(c.evidence.count(char(CharEvidence::Partial))).arg(c.evidence.count(char(CharEvidence::Unknown)));
+    } else {
+        QStringList steps;
+        bool partial = false;
+        // Each step encodes as A and decodes as B: the bytes were B, misread as A.
+        for (const auto& step : c.path) {
+            steps << tr("%1 read as %2").arg(EncodingConverter::name(step.decodeAs), EncodingConverter::name(step.encodeAs));
+            partial = partial || step.partial;
+        }
+        w.title = steps.join(" · ");
+        w.subtitle = partial ? tr("Partly readable; lost bytes stay marked") : c.reversible ? tr("Exact inverse verified") : tr("Inverse not proven");
     }
-    m_candidates->setExclusive(true);
-    m_details->setEnabled(!m_result.candidates.isEmpty());
-    ui::setTone(m_status, ui::Tone::Secondary);
-    if (m_watcher.isRunning()) m_status->setText(tr("Analyzing locally…"));
-    else if (m_result.tooLarge) m_status->setText(tr("Input exceeds the 1 MiB limit. Analyze a smaller section."));
-    else if (m_result.cancelled) m_status->setText(tr("Analysis cancelled."));
-    else if (m_result.candidates.isEmpty()) m_status->setText(tr("Paste text, then analyze. Scores rank possibilities; they are not probabilities."));
-    else if (m_result.possibleLoss) m_status->setText(tr("Possible missing information: replacement characters or repeated question marks. Recovery is uncertain."));
-    else if (!m_result.likelyMojibake) m_status->setText(tr("No reliable improvement found. The original text is retained; alternatives may be incorrect."));
-    else if (m_result.confidence == Confidence::High) m_status->setText(tr("High confidence candidate. Check the meaning before using it."));
-    else m_status->setText(tr("Possible recovery. Several encodings may explain the same bytes; compare the candidates."));
-    if (m_copied) m_status->setText(m_status->text() + " " + tr("Copied to clipboard."));
-    showCandidate();
-    updateAiControls();
+    if (recommended) w.badge = tr("Recommended");
+    else if (c.path.isEmpty()) { w.badge = tr("Original"); w.accentBadge = false; }
+    return w;
 }
-void MojibakePage::showCandidate() {
-    for (auto* b : m_candidateButtons) {
-        const bool selected = b->isChecked();
-        b->setLightDefaultColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase));
-        b->setLightHoverColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover));
-        b->setLightPressColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::PrimaryPress : ElaThemeType::BasicPress));
-        b->setLightTextColor(eTheme->getThemeColor(ElaThemeType::Light, selected ? ElaThemeType::BasicTextInvert : ElaThemeType::BasicText));
-        b->setDarkDefaultColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase));
-        b->setDarkHoverColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover));
-        b->setDarkPressColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::PrimaryPress : ElaThemeType::BasicPress));
-        b->setDarkTextColor(eTheme->getThemeColor(ElaThemeType::Dark, selected ? ElaThemeType::BasicTextInvert : ElaThemeType::BasicText));
-        b->update();
-    }
-    const int index = m_selectedCandidate;
-    if (index < 0 || index >= m_result.candidates.size()) { m_output->clear(); m_copy->setEnabled(false); return; }
-    const auto& candidate = m_result.candidates[index];
-    m_output->setPlainText(candidate.text);
-    m_copy->setEnabled(!candidate.text.isEmpty());
+QStringList MojibakePage::processLines(const Candidate& candidate, int examined, bool limited) {
     QStringList path;
     path << tr("Quality score: %1 / 100 (not a probability).").arg(candidate.score, 0, 'f', 1);
+    if (lossy(candidate)) {
+        const auto& e = candidate.evidence;
+        path << tr("The original bytes were GBK. They were read as UTF-8, which replaced every invalid byte sequence with U+FFFD and lost those bytes; the file was then saved again.");
+        path << tr("Every byte that formed valid UTF-8 survived. The tool searched GBK byte sequences that reproduce the damaged text exactly and ranked them with a character frequency model (jieba dictionary).");
+        path << tr("Certain characters: %1 (both bytes survived). Guessed: %2 (one byte survived; the model chose the other). Lost: %3 (no byte survived), shown as □.")
+                    .arg(e.count(char(CharEvidence::Exact))).arg(e.count(char(CharEvidence::Partial))).arg(e.count(char(CharEvidence::Unknown)));
+        if (candidate.lossy) path << (candidate.lossy->replacement == Utf8Replacement::PerByte
+            ? tr("The damage matches a decoder that writes one U+FFFD per invalid byte (for example Qt or .NET).")
+            : tr("The damage matches a decoder that writes one U+FFFD per invalid sequence (for example browsers, Java or Python)."));
+        path << tr("AI refinement can fill lost characters from context; it is checked against the surviving bytes, but filled characters remain guesses.");
+        return path;
+    }
     path << tr("Ranking uses anomaly density (encoding errors and uncommon CJK characters), conversion count, a preference for UTF-8 decoding, and penalties for incomplete recovery.");
     if (candidate.path.isEmpty()) path << tr("Original text: no conversion applied.");
     for (int i = 0; i < candidate.path.size(); ++i) {
@@ -277,67 +94,282 @@ void MojibakePage::showCandidate() {
     }
     path << tr("Exact inverse verified: %1").arg(candidate.reversible ? tr("Yes") : tr("Not proven for the complete text"));
     path << tr("Detected anomaly count: %1").arg(candidate.anomalies);
-    path << tr("Search depth: at most 2; examined %1 unique candidates.").arg(m_result.generated);
-    if (m_result.searchLimited) path << tr("The bounded search was pruned; other possibilities may exist.");
+    path << tr("Search depth: at most 2; examined %1 unique candidates.").arg(examined);
+    if (limited) path << tr("The bounded search was pruned; other possibilities may exist.");
     path << tr("A reversible encoding path does not prove that the meaning is correct.");
-    m_process->setPlainText(path.join('\n'));
+    return path;
+}
+MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings)
+    : ToolPage(parent), m_ai(new MojibakeAi(settings, this)), m_analysisProgress(std::make_shared<std::atomic_int>(0)), m_settings(settings) {
+    setObjectName("mojibakePage");
+    m_clipboardWriter = [](const QString& text) { auto* clipboard = QApplication::clipboard(); clipboard->setText(text); return clipboard->ownsClipboard(); };
+    auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0, 0, 0, 0); outer->setSpacing(0);
+    // Header: what the tool does, then where the text comes from.
+    auto* header = new QVBoxLayout; header->setContentsMargins(32, 20, 32, 8); header->setSpacing(6);
+    m_title = ui::label({}, 18, ui::Tone::Primary, this);
+    m_description = ui::label({}, 10, ui::Tone::Secondary, this);
+    header->addWidget(m_title); header->addWidget(m_description);
+    auto* modes = new QHBoxLayout; modes->setSpacing(6); modes->setContentsMargins(0, 6, 0, 0);
+    m_modeGroup = new QButtonGroup(this);
+    const std::array<const char*, 4> modeNames{"mojibakeTextMode", "mojibakeFileMode", "mojibakeNameMode", "mojibakeClipboardMode"};
+    for (int i = 0; i < 4; ++i) {
+        auto* b = new ElaPushButton(this); b->setObjectName(modeNames[i]); b->setCheckable(true);
+        m_modes[i] = b; m_modeGroup->addButton(b, i); modes->addWidget(b);
+    }
+    modes->addStretch(); header->addLayout(modes);
+    outer->addLayout(header);
+    m_pages = new QStackedWidget(this); m_pages->setObjectName("mojibakeSources");
+    outer->addWidget(m_pages, 1);
+    // ------------------------------------------------------ pasted text
+    auto* scroll = new ElaScrollArea(this);
+    scroll->setWidgetResizable(true);
+    auto* content = new QWidget(scroll);
+    scroll->setWidget(content);
+    content->setAutoFillBackground(false); scroll->viewport()->setAutoFillBackground(false);
+    auto* layout = new QVBoxLayout(content);
+    layout->setContentsMargins(32, 12, 32, 28); layout->setSpacing(14);
+    const auto button = [content](const char* name) { auto* b = new ElaPushButton(content); b->setObjectName(name); return b; };
+    // Step 1: input.
+    auto* inputCard = card(content);
+    auto* inputLayout = new QVBoxLayout(inputCard); inputLayout->setContentsMargins(18, 14, 18, 16); inputLayout->setSpacing(8);
+    m_inputLabel = ui::label({}, 12, ui::Tone::Primary, inputCard);
+    m_inputHint = ui::label({}, 9, ui::Tone::Secondary, inputCard);
+    m_input = new ElaPlainTextEdit(inputCard); m_input->setObjectName("mojibakeInput");
+    m_input->setMinimumHeight(110); m_input->setMaximumHeight(200);  // The results deserve the space.
+    m_input->viewport()->installEventFilter(this);
+    m_analyze = button("mojibakeAnalyze"); ui::primaryButton(m_analyze); m_analyze->setMinimumWidth(120);
+    m_cancel = button("mojibakeCancel"); m_cancel->hide();
+    m_clear = button("mojibakeClear");
+    m_status = ui::label({}, 10, ui::Tone::Secondary, inputCard); m_status->setObjectName("mojibakeStatus");
+    m_progress = new ElaProgressBar(inputCard); m_progress->setObjectName("mojibakeProgress");
+    m_progress->setRange(0, 1000); m_progress->setTextVisible(false); m_progress->setFixedHeight(6); m_progress->hide();
+    auto* actions = new QHBoxLayout; actions->setSpacing(8);
+    actions->addWidget(m_analyze); actions->addWidget(m_cancel); actions->addWidget(m_clear); actions->addSpacing(8); actions->addWidget(m_status, 1);
+    inputLayout->addWidget(m_inputLabel); inputLayout->addWidget(m_inputHint); inputLayout->addWidget(m_input, 1);
+    inputLayout->addLayout(actions); inputLayout->addWidget(m_progress);
+    layout->addWidget(inputCard);
+    // Step 2: choose and use a result.
+    auto* resultCard = card(content);
+    auto* resultLayout = new QVBoxLayout(resultCard); resultLayout->setContentsMargins(18, 14, 18, 16); resultLayout->setSpacing(10);
+    m_outputLabel = ui::label({}, 12, ui::Tone::Primary, resultCard);
+    m_workspace = new RecoveryWorkspace("mojibake", "mojibakeOutput", resultCard);
+    m_copy = button("mojibakeCopy"); ui::primaryButton(m_copy); m_copy->setEnabled(false);
+    m_aiAnalyze = button("mojibakeAiAnalyze");
+    m_aiCancel = button("mojibakeAiCancel"); m_aiCancel->hide();
+    m_details = button("mojibakeDetails"); m_details->setCheckable(true); m_details->setEnabled(false);
+    auto* resultActions = new QHBoxLayout; resultActions->setSpacing(8);
+    resultActions->addWidget(m_copy); resultActions->addWidget(m_aiAnalyze); resultActions->addWidget(m_aiCancel);
+    resultActions->addStretch(); resultActions->addWidget(m_details);
+    m_aiHint = ui::label({}, 9, ui::Tone::Secondary, resultCard); m_aiHint->setObjectName("mojibakeAiHint");
+    m_aiStatus = ui::label({}, 10, ui::Tone::Secondary, resultCard); m_aiStatus->setObjectName("mojibakeAiStatus");
+    m_aiProgress = new ElaProgressBar(resultCard); m_aiProgress->setObjectName("mojibakeAiProgress");
+    m_aiProgress->setTextVisible(false); m_aiProgress->setFixedHeight(6); m_aiProgress->hide();
+    m_detailsBox = new QWidget(resultCard);
+    auto* detailsLayout = new QVBoxLayout(m_detailsBox); detailsLayout->setContentsMargins(0, 0, 0, 0); detailsLayout->setSpacing(8);
+    m_process = new ElaPlainTextEdit(m_detailsBox); m_process->setObjectName("mojibakeProcess"); m_process->setReadOnly(true); m_process->setMinimumHeight(150);
+    m_report = new DiagnosticReportWidget(m_detailsBox); m_report->setObjectName("textDiagnosticReport");
+    detailsLayout->addWidget(m_process); detailsLayout->addWidget(m_report);
+    m_detailsBox->hide();
+    resultLayout->addWidget(m_outputLabel); resultLayout->addWidget(m_workspace, 1); resultLayout->addLayout(resultActions);
+    resultLayout->addWidget(m_aiHint); resultLayout->addWidget(m_aiStatus); resultLayout->addWidget(m_aiProgress); resultLayout->addWidget(m_detailsBox);
+    layout->addWidget(resultCard, 1);
+    m_pages->addWidget(scroll);
+    // ------------------------------------------------------ other sources
+    m_filePage = new TextFileRecoveryPage(m_pages, settings);
+    m_pages->addWidget(m_filePage);
+    m_pages->addWidget(new FilenameRecoveryPage(m_pages));
+    auto* clipboardPage = new ClipboardSourcePage(m_pages);
+    m_pages->addWidget(clipboardPage);
+    connect(m_modeGroup, &QButtonGroup::idClicked, this, [this](int id) { selectMode(id); });
+    connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { selectMode(m_pages->currentIndex()); });
+    connect(clipboardPage, &ClipboardSourcePage::textChosen, this, [this](const QString& text) {
+        m_input->setPlainText(text); invalidate(); selectMode(0);
+        m_status->setText(tr("Selected clipboard text loaded. Run local analysis before requesting AI."));
+    });
+    // ------------------------------------------------------ behaviour
+    connect(m_analyze, &ElaPushButton::clicked, this, &MojibakePage::analyze);
+    connect(m_clear, &ElaPushButton::clicked, this, [this] { m_input->clear(); invalidate(); });
+    connect(m_cancel, &ElaPushButton::clicked, this, [this] { if (m_cancellation) m_cancellation->store(true); });
+    connect(m_input, &ElaPlainTextEdit::textChanged, this, &MojibakePage::invalidate);
+    connect(m_workspace, &RecoveryWorkspace::selectionChanged, this, [this] { m_copied = false; showSelection(); });
+    connect(m_details, &ElaPushButton::toggled, m_detailsBox, &QWidget::setVisible);
+    connect(m_copy, &ElaPushButton::clicked, this, [this] {
+        const auto text = selectedText();
+        if (text.isEmpty()) return;
+        m_copied = m_clipboardWriter(text);
+        showResult();
+    });
+    connect(m_aiAnalyze, &ElaPushButton::clicked, this, &MojibakePage::requestAi);
+    connect(m_aiCancel, &ElaPushButton::clicked, m_ai, &MojibakeAi::cancel);
+    connect(m_ai, &MojibakeAi::changed, this, &MojibakePage::aiChanged);
+    if (m_settings) connect(m_settings, &AppSettings::aiConfigurationChanged, this, [this] { m_ai->reset(); });
+    m_progressPoll.setInterval(150);
+    connect(&m_progressPoll, &QTimer::timeout, this, [this] {
+        const int value = m_analysisProgress->load();
+        m_progress->setVisible(value > 0); m_progress->setValue(value);
+    });
+    connect(&m_watcher, &QFutureWatcher<Result>::finished, this, [this] {
+        m_progressPoll.stop(); m_progress->hide();
+        m_analyze->setEnabled(true); m_cancel->hide();
+        if (m_stale || inputText() != m_submitted) { m_result = {}; showResult(); return; }
+        m_result = m_watcher.result();
+        m_workspace->select(0);
+        showResult();
+    });
+    selectMode(0);
+    retranslate();
+}
+MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); m_ai->disconnect(this); m_ai->reset(); }
+void MojibakePage::selectMode(int index) {
+    m_pages->setCurrentIndex(index);
+    for (int i = 0; i < 4; ++i) { m_modes[i]->setChecked(i == index); styleMode(m_modes[i], i == index); }
+}
+QString MojibakePage::inputText() const {
+    // QTextDocument::toPlainText normalizes NBSP to ASCII spaces, destroying
+    // byte evidence in common UTF-8-as-Latin-1 mojibake such as "ä½ å¥½".
+    return m_input->document()->toRawText().replace(QChar::ParagraphSeparator, '\n')
+        .replace(QChar::LineSeparator, '\n');
+}
+QString MojibakePage::selectedText() const {
+    const int index = m_workspace->selected();
+    if (index == RecoveryWorkspace::LocalSlots) return m_ai->text();
+    return index >= 0 && index < m_result.candidates.size() ? m_result.candidates[index].text : QString();
+}
+void MojibakePage::invalidate() {
+    m_ai->reset();
+    m_stale = true; m_copied = false;
+    if (m_cancellation) m_cancellation->store(true);
+    m_result = {};
+    m_details->setChecked(false);
+    if (!m_watcher.isRunning()) showResult();
+    else { m_workspace->setCandidates({}, nullptr); m_process->clear(); m_report->setReport({}); }
+}
+void MojibakePage::analyze() {
+    if (m_watcher.isRunning()) return;
+    m_submitted = inputText();
+    invalidate();
+    m_stale = false;
+    if (m_submitted.isEmpty()) { m_status->setText(tr("Enter text to analyze.")); return; }
+    m_analyze->setEnabled(false); m_cancel->show();
+    m_status->setText(tr("Analyzing locally…"));
+    m_cancellation = std::make_shared<std::atomic_bool>(false);
+    m_analysisProgress = std::make_shared<std::atomic_int>(0);
+    m_progressPoll.start();
+    const auto text = m_submitted;
+    const auto cancel = m_cancellation;
+    const auto progress = m_analysisProgress;
+    // No QWidget or page pointer is captured by the worker.
+    m_watcher.setFuture(QtConcurrent::run([text, cancel, progress] {
+        return MojibakeAnalyzer::analyze(text, cancel, [progress](double fraction) { progress->store(std::max(1, int(fraction * 1000))); });
+    }));
+}
+void MojibakePage::refreshCards() {
+    QList<WorkspaceCandidate> cards;
+    for (int i = 0; i < m_result.candidates.size(); ++i) cards << describe(m_result.candidates[i], i == 0 && m_result.likelyMojibake);
+    WorkspaceCandidate ai;
+    if (m_ai->hasResult()) {
+        ai.title = m_ai->refined() ? tr("AI refined text") : tr("AI suggestion");
+        ai.badge = "AI"; ai.text = m_ai->text(); ai.evidence = m_ai->evidence();
+        ai.subtitle = m_ai->refined() ? tr("Checked against the surviving bytes") : tr("Semantic guess, not byte-verified");
+    }
+    m_workspace->setCandidates(cards, m_ai->hasResult() ? &ai : nullptr);
+    m_aiRevision = m_ai->revision();
+}
+void MojibakePage::showResult() {
+    refreshCards();
+    ui::setTone(m_status, ui::Tone::Secondary);
+    if (m_watcher.isRunning()) m_status->setText(tr("Analyzing locally…"));
+    else if (m_result.tooLarge) m_status->setText(tr("Input exceeds the 1 MiB limit. Analyze a smaller section."));
+    else if (m_result.cancelled) m_status->setText(tr("Analysis cancelled."));
+    else if (m_result.candidates.isEmpty()) m_status->setText(tr("Paste text, then analyze. Scores rank possibilities; they are not probabilities."));
+    else if (lossy(m_result.candidates.first())) m_status->setText(tr("Damaged GBK text detected. Characters whose bytes were lost are marked; AI refinement can fill them from context."));
+    else if (m_result.possibleLoss) m_status->setText(tr("Possible missing information: replacement characters or repeated question marks. Recovery is uncertain."));
+    else if (!m_result.likelyMojibake) m_status->setText(tr("No reliable improvement found. The original text is retained; alternatives may be incorrect."));
+    else if (m_result.confidence == Confidence::High) m_status->setText(tr("High confidence candidate. Check the meaning before using it."));
+    else m_status->setText(tr("Possible recovery. Several encodings may explain the same bytes; compare the candidates."));
+    if (m_copied) m_status->setText(m_status->text() + " " + tr("Copied to clipboard."));
+    m_details->setEnabled(!m_result.candidates.isEmpty());
+    showSelection();
+}
+void MojibakePage::showSelection() {
+    const int index = m_workspace->selected();
+    const bool local = index >= 0 && index < m_result.candidates.size();
+    m_copy->setEnabled(!selectedText().isEmpty() && !m_watcher.isRunning());
+    m_report->setReport(m_watcher.isRunning() ? DiagnosticReport{} : DiagnosticReport::text(m_result, local ? index : (m_result.candidates.isEmpty() ? -1 : 0)));
+    if (index == RecoveryWorkspace::LocalSlots) m_process->setPlainText(m_ai->explanation().join('\n'));
+    else if (local) m_process->setPlainText(processLines(m_result.candidates[index], m_result.generated, m_result.searchLimited).join('\n'));
+    else m_process->clear();
+    updateAiControls();
+}
+void MojibakePage::requestAi() {
+    if (m_watcher.isRunning() || m_result.candidates.isEmpty() || m_ai->busy()) return;
+    const auto& top = m_result.candidates.first();
+    if (lossy(top) && top.lossy) m_ai->refine(top.lossy);
+    else m_ai->suggest(m_submitted, m_result.candidates, m_result.possibleLoss);
+    // A refinement shows its partial result at once: put it in front of the user.
+    if (m_ai->refined() && m_ai->hasResult()) m_workspace->select(RecoveryWorkspace::LocalSlots);
+}
+void MojibakePage::aiChanged() {
+    if (m_ai->revision() != m_aiRevision) {
+        const bool first = !m_workspace->card(RecoveryWorkspace::LocalSlots)->isEnabled();
+        refreshCards();
+        // A finished suggestion is shown right away; later updates keep the user's choice.
+        if (first && m_ai->hasResult()) m_workspace->select(RecoveryWorkspace::LocalSlots);
+        if (m_workspace->selected() == RecoveryWorkspace::LocalSlots) m_process->setPlainText(m_ai->explanation().join('\n'));
+        m_copy->setEnabled(!selectedText().isEmpty() && !m_watcher.isRunning());
+    } else if (m_workspace->selected() == RecoveryWorkspace::LocalSlots) m_process->setPlainText(m_ai->explanation().join('\n'));
+    updateAiControls();
+}
+void MojibakePage::updateAiControls() {
+    const bool configured = m_ai->configured();
+    const bool busy = m_ai->busy();
+    const bool lossyTop = !m_result.candidates.isEmpty() && lossy(m_result.candidates.first()) && m_result.candidates.first().lossy;
+    const int chunks = lossyTop ? MojibakeAi::chunkCount(*m_result.candidates.first().lossy) : 0;
+    m_aiAnalyze->setText(lossyTop ? tr("AI refinement (%n chunk(s))", nullptr, chunks) : tr("AI deep analysis"));
+    m_aiAnalyze->setEnabled(configured && !busy && !m_watcher.isRunning() && !m_result.candidates.isEmpty() && (!lossyTop || chunks > 0));
+    m_aiCancel->setVisible(busy);
+    if (!configured) m_aiHint->setText(tr("Configure the AI API address and model in Settings first. Local analysis does not upload text."));
+    else if (lossyTop) m_aiHint->setText(tr("AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.", nullptr, chunks).arg(m_ai->target()));
+    else m_aiHint->setText(tr("Clicking AI analysis sends the original text and local candidates to %1 using model %2. Suggestions may contain inferred characters. Run local analysis first.")
+                               .arg(m_settings ? m_settings->aiConfiguration().baseUrl : QString(), m_settings ? m_settings->aiConfiguration().model : QString()));
+    m_aiStatus->setText(m_ai->status());
+    m_aiStatus->setVisible(!m_ai->status().isEmpty());
+    m_aiProgress->setVisible(busy && m_ai->refined());
+    m_aiProgress->setRange(0, std::max(1, m_ai->progressMaximum())); m_aiProgress->setValue(m_ai->progress());
+}bool MojibakePage::openDroppedFile(const QMimeData* mime) {
+    if (!mime || !mime->hasUrls() || mime->urls().size() != 1 || !mime->urls().first().isLocalFile()) return false;
+    selectMode(1);
+    m_filePage->openFile(mime->urls().first().toLocalFile());
+    return true;
+}
+bool MojibakePage::eventFilter(QObject* watched, QEvent* event) {
+    // A file dropped on the text box opens in the file mode instead of pasting its path.
+    if (watched == m_input->viewport()) {
+        if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
+            auto* drag = static_cast<QDragMoveEvent*>(event);
+            if (drag->mimeData()->hasUrls() && drag->mimeData()->urls().size() == 1 && drag->mimeData()->urls().first().isLocalFile()) { drag->acceptProposedAction(); return true; }
+        } else if (event->type() == QEvent::Drop) {
+            auto* drop = static_cast<QDropEvent*>(event);
+            if (openDroppedFile(drop->mimeData())) { drop->acceptProposedAction(); return true; }
+        }
+    }
+    return ToolPage::eventFilter(watched, event);
 }
 void MojibakePage::retranslate() {
     m_title->setText(tr("Mojibake Repair"));
-    m_textMode->setText(tr("Pasted text")); m_fileMode->setText(tr("Text file"));
-    m_nameMode->setText(tr("File and folder names"));
-    m_clipboardMode->setText(tr("Clipboard"));
-    m_description->setText(tr("Local analysis stays offline. AI assistance sends text only when you explicitly request it."));
-    m_inputLabel->setText(tr("Original text")); m_outputLabel->setText(tr("Recovery candidates"));
+    m_description->setText(tr("Recover text that was saved or opened with the wrong encoding. Local analysis stays offline; AI is used only when you click it."));
+    m_modes[0]->setText(tr("Pasted text")); m_modes[1]->setText(tr("Text file"));
+    m_modes[2]->setText(tr("File and folder names")); m_modes[3]->setText(tr("Clipboard"));
+    for (auto* b : m_modes) b->setFixedWidth(std::max(110, b->fontMetrics().horizontalAdvance(b->text()) + 36));
+    m_inputLabel->setText(tr("1  Garbled text")); m_inputHint->setText(tr("Paste the text exactly as it looks. You can also drop a text file here."));
+    m_outputLabel->setText(tr("2  Choose a result"));
     m_analyze->setText(tr("Analyze")); m_cancel->setText(tr("Cancel")); m_clear->setText(tr("Clear"));
     m_copy->setText(tr("Copy result")); m_details->setText(tr("Recovery process"));
     m_input->setPlaceholderText(tr("Paste garbled text here…"));
-    m_aiTitle->setText(tr("AI suggestion (semantic inference)"));
-    m_aiAnalyze->setText(tr("AI deep analysis")); m_aiCancel->setText(tr("Cancel AI")); m_aiCopy->setText(tr("Copy AI suggestion"));
+    m_workspace->setPlaceholder(tr("Results appear here after analysis."));
+    m_aiCancel->setText(tr("Cancel AI"));
     showResult();
-}
-void MojibakePage::invalidateAi() {
-    m_aiProgressTimer.stop();
-    m_aiStale = true; m_aiService->cancel(); m_aiResult = {};
-    m_aiOutput->clear(); m_aiExplanation->clear(); m_aiStatus->clear();
-    m_aiOutput->hide(); m_aiExplanation->hide(); m_aiCopy->setEnabled(false);
-}
-void MojibakePage::updateAiControls() {
-    const auto config = m_settings ? m_settings->aiConfiguration() : ai::Configuration{};
-    const bool configured = m_settings && ai::AiService::validate(config).isEmpty();
-    const bool busy = m_aiService->isBusy();
-    m_aiAnalyze->setEnabled(configured && !busy && !m_watcher.isRunning() && !m_result.candidates.isEmpty());
-    m_aiCancel->setVisible(busy);
-    m_aiCopy->setEnabled(!m_aiResult.text.isEmpty() && !busy);
-    m_aiHint->setText(configured ? tr("Clicking AI analysis sends the original text and local candidates to %1 using model %2. Suggestions may contain inferred characters. Run local analysis first.").arg(config.baseUrl, config.model)
-                               : tr("Configure the AI API address and model in Settings first. Local analysis does not upload text."));
-}
-void MojibakePage::analyzeAi() {
-    if (!m_settings || m_aiService->isBusy() || m_watcher.isRunning() || m_result.candidates.isEmpty()) return;
-    invalidateAi(); m_aiStale = false; m_aiSubmitted = inputText();
-    QJsonArray candidates;
-    for (int i = 0; i < m_result.candidates.size(); ++i) {
-        const auto& candidate = m_result.candidates[i];
-        QJsonArray path;
-        for (const auto& step : candidate.path) path.append(QJsonObject{
-            {"encode_as", EncodingConverter::name(step.encodeAs)}, {"decode_as", EncodingConverter::name(step.decodeAs)},
-            {"segmented", step.segmented}, {"partial", step.partial}});
-        candidates.append(QJsonObject{{"index", i + 1}, {"text", candidate.text}, {"quality_score", candidate.score},
-                                      {"inverse_verified", candidate.reversible}, {"path", path}});
-    }
-    const QJsonObject context{{"original_text", m_aiSubmitted}, {"candidates", candidates}, {"possible_loss", m_result.possibleLoss}};
-    m_aiCharacters = 0; m_aiThinking = false; m_aiElapsed.start();
-    m_aiStatus->setText(tr("Waiting for AI response…"));
-    m_aiService->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
-    if (m_aiService->isBusy()) { m_aiProgressTimer.start(); showAiProgress(); }
-    updateAiControls();
-}
-void MojibakePage::showAiProgress() {
-    if (m_aiStale || !m_aiService->isBusy()) return;
-    const auto seconds = m_aiElapsed.elapsed() / 1000;
-    if (!m_aiCharacters) m_aiStatus->setText(tr("Waiting for the service to start responding… %1 s elapsed (90 s limit).").arg(seconds));
-    else if (m_aiThinking) m_aiStatus->setText(tr("The model is thinking… %1 s elapsed, %2 reasoning characters received.").arg(seconds).arg(m_aiCharacters));
-    else m_aiStatus->setText(tr("Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.").arg(seconds).arg(m_aiCharacters));
 }
 void MojibakePage::changeEvent(QEvent* event) {
     ToolPage::changeEvent(event);
