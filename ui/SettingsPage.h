@@ -27,11 +27,11 @@ private:
     };
     enum class Api { Text, Voice };
     QWidget* buildApiForm(ApiForm& form, Api api, const char* prefix, const ai::Configuration& config);
-    ApiForm& form(Api api) { return api == Api::Text ? m_text : m_voice; }
+    ApiForm& form(const Api api) { return api == Api::Text ? m_text : m_voice; }
     void retranslate();
     void synchronize();
     void fetchModels(Api api);
-    void modelsListed(Api api, const QStringList& models);
+    void modelsListed(Api api, const QStringList& listed);
     void invalidateModels(Api api);
     void updateFetchButton(Api api);
     void saveApi(Api api);

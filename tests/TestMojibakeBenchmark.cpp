@@ -2,7 +2,7 @@
 // Every sentence in data/mojibake_benchmark.json is encoded with one codec and
 // wrongly decoded with another; the analyzer must rank the original first.
 // Results are written to mojibake-benchmark.txt in the working directory.
-#include <QtTest>
+#include <QTest>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -16,7 +16,7 @@ struct Sentence { QString language, text; };
 struct Tally {
     int total = 0, top1 = 0, top5 = 0;
     QStringList misses;
-    double rate() const { return total ? double(top1) / total : 1.0; }
+    double rate() const { return total ? static_cast<double>(top1) / total : 1.0; }
 };
 struct Mismatch { Encoding source, wrong; int layers = 1; };
 QString pairName(const Mismatch& m) {
@@ -26,12 +26,12 @@ QString pairName(const Mismatch& m) {
 // Text is only encoded with codecs that are really used for its language: Chinese
 // stored as EUC-KR hanja or Japanese stored as GBK kana would inflate the
 // numbers with histories that do not occur.
-bool realistic(Encoding source, const QString& language, const QString& text) {
+bool realistic(const Encoding source, const QString& language, const QString& text) {
     if (language == "mixed") {
         // Mixed lines carry their own script: only pair them with that script's codecs.
-        const auto has = [&text](char32_t from, char32_t to) {
+        const auto has = [&text](const char32_t from, const char32_t to) {
             const auto ucs = text.toUcs4();
-            return std::any_of(ucs.begin(), ucs.end(), [=](char32_t u) { return u >= from && u <= to; });
+            return std::ranges::any_of(ucs, [=](const char32_t u) { return u >= from && u <= to; });
         };
         const bool kana = has(0x3041, 0x30ff), hangul = has(0xac00, 0xd7a3);
         switch (source) {
@@ -61,7 +61,6 @@ std::optional<QString> damage(QString text, const Mismatch& m) {
     }
     return text;
 }
-}
 class TestMojibakeBenchmark : public QObject {
     Q_OBJECT
     QList<Sentence> m_sentences;
@@ -84,7 +83,7 @@ class TestMojibakeBenchmark : public QObject {
     // Regression floors, set a little below the 2026-11-08 results (clean 100%,
     // text 95.4%, files 99.6%; before common-character scoring: 61.3% and 58.9%).
     // Raise them when recovery improves; never lower them to make a change pass.
-    static void floor(const Tally& all, double minimum, const char* what) {
+    static void floor(const Tally& all, const double minimum, const char* what) {
         QVERIFY2(all.rate() >= minimum, qPrintable(QStringLiteral("%1: %2% is below the %3% floor").arg(what).arg(100.0 * all.rate(), 0, 'f', 1).arg(100.0 * minimum)));
     }
 private slots:
@@ -93,7 +92,7 @@ private slots:
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto root = QJsonDocument::fromJson(file.readAll()).object();
         for (const auto& language : {"zh_Hans", "zh_Hant", "ja", "ko", "en", "mixed"})
-            for (const auto& value : root.value(language).toArray()) m_sentences.append({language, value.toString()});
+            for (const auto& value : root.value(language).toArray()) m_sentences.append({.language = language, .text = value.toString()});
         QVERIFY(m_sentences.size() >= 80);
         m_report.setFileName("mojibake-benchmark.txt");
         QVERIFY(m_report.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text));
@@ -103,37 +102,37 @@ private slots:
     void cleanTextIsKept() {
         // Correct text, including rare characters and accents, must be left alone.
         QMap<QString, Tally> tallies;
-        for (const auto& s : m_sentences) {
-            auto& t = tallies[s.language];
-            const auto result = MojibakeAnalyzer::analyze(s.text);
+        for (const auto& [language, text] : m_sentences) {
+            auto& t = tallies[language];
+            const auto result = MojibakeAnalyzer::analyze(text);
             ++t.total;
-            const bool kept = !result.likelyMojibake && result.candidates.first().text == s.text;
-            if (kept) { ++t.top1; ++t.top5; } else t.misses.append(s.text + "  ->  " + result.candidates.first().text);
+            if (!result.likelyMojibake && result.candidates.first().text == text) { ++t.top1; ++t.top5; }
+            else t.misses.append(text + "  ->  " + result.candidates.first().text);
         }
         const auto all = summarize("Clean text kept unchanged", tallies);
         QCOMPARE(all.top1, all.total); // Never "repair" correct text.
     }
     void textRecovery() {
         const QList<Mismatch> mismatches{
-            {Encoding::Utf8, Encoding::Gbk}, {Encoding::Utf8, Encoding::Latin1}, {Encoding::Utf8, Encoding::Windows1252},
-            {Encoding::Utf8, Encoding::Big5}, {Encoding::Utf8, Encoding::ShiftJis}, {Encoding::Utf8, Encoding::EucKr},
-            {Encoding::Gbk, Encoding::Latin1}, {Encoding::Gbk, Encoding::Windows1252}, {Encoding::Big5, Encoding::Latin1},
-            {Encoding::ShiftJis, Encoding::Latin1}, {Encoding::EucKr, Encoding::Latin1},
-            {Encoding::Gbk, Encoding::Big5}, {Encoding::Big5, Encoding::Gbk},
-            {Encoding::Utf8, Encoding::Gbk, 2}, {Encoding::Utf8, Encoding::Windows1252, 2},
+            {.source = Encoding::Utf8, .wrong = Encoding::Gbk}, {.source = Encoding::Utf8, .wrong = Encoding::Latin1}, {.source = Encoding::Utf8, .wrong = Encoding::Windows1252},
+            {.source = Encoding::Utf8, .wrong = Encoding::Big5}, {.source = Encoding::Utf8, .wrong = Encoding::ShiftJis}, {.source = Encoding::Utf8, .wrong = Encoding::EucKr},
+            {.source = Encoding::Gbk, .wrong = Encoding::Latin1}, {.source = Encoding::Gbk, .wrong = Encoding::Windows1252}, {.source = Encoding::Big5, .wrong = Encoding::Latin1},
+            {.source = Encoding::ShiftJis, .wrong = Encoding::Latin1}, {.source = Encoding::EucKr, .wrong = Encoding::Latin1},
+            {.source = Encoding::Gbk, .wrong = Encoding::Big5}, {.source = Encoding::Big5, .wrong = Encoding::Gbk},
+            {.source = Encoding::Utf8, .wrong = Encoding::Gbk, .layers = 2}, {.source = Encoding::Utf8, .wrong = Encoding::Windows1252, .layers = 2},
         };
         QMap<QString, Tally> tallies;
         for (const auto& m : mismatches) {
             auto& t = tallies[pairName(m)];
-            for (const auto& s : m_sentences) {
-                if (!realistic(m.source, s.language, s.text)) continue;
-                const auto input = damage(s.text, m);
-                if (!input || *input == s.text) continue; // Not representable, or the mismatch changes nothing.
+            for (const auto& [language, text] : m_sentences) {
+                if (!realistic(m.source, language, text)) continue;
+                const auto input = damage(text, m);
+                if (!input || *input == text) continue; // Not representable, or the mismatch changes nothing.
                 const auto result = MojibakeAnalyzer::analyze(*input);
                 ++t.total;
                 int rank = 0;
-                for (int i = 0; i < result.candidates.size(); ++i) if (result.candidates[i].text == s.text) { rank = i + 1; break; }
-                if (rank == 1) ++t.top1; else t.misses.append(QStringLiteral("%1 -> %2 (rank %3)").arg(s.text, result.candidates.first().text).arg(rank));
+                for (int i = 0; i < result.candidates.size(); ++i) if (result.candidates[i].text == text) { rank = i + 1; break; }
+                if (rank == 1) ++t.top1; else t.misses.append(QStringLiteral("%1 -> %2 (rank %3)").arg(text, result.candidates.first().text).arg(rank));
                 if (rank >= 1) ++t.top5;
             }
         }
@@ -143,29 +142,30 @@ private slots:
     }
     void fileDetection() {
         QMap<QString, Tally> tallies;
-        const auto check = [&](const QString& key, const QString& text, Encoding e) {
+        const auto check = [&](const QString& key, const QString& text, const Encoding e) {
             const auto bytes = EncodingConverter::encode(text, e);
             if (!bytes) return;
             auto& t = tallies[key];
             const auto result = ByteEncodingAnalyzer::analyze(*bytes);
             ++t.total;
             const bool first = !result.candidates.isEmpty() && result.candidates.first().text == text;
-            const bool listed = std::any_of(result.candidates.begin(), result.candidates.end(), [&](const auto& c) { return c.text == text; });
+            const bool listed = std::ranges::any_of(result.candidates, [&](const auto& c) { return c.text == text; });
             if (first) ++t.top1; else t.misses.append(text.left(24) + "  ->  " + (result.candidates.isEmpty() ? QString("(none)") : result.candidates.first().text.left(24)));
             if (listed) ++t.top5;
         };
-        const QList<Encoding> encodings{Encoding::Utf8, Encoding::Gbk, Encoding::Big5, Encoding::ShiftJis, Encoding::EucKr, Encoding::Windows1252};
-        for (auto e : encodings) {
+        for (const QList encodings{Encoding::Utf8, Encoding::Gbk, Encoding::Big5, Encoding::ShiftJis, Encoding::EucKr, Encoding::Windows1252};
+             const auto e : encodings) {
             // Single lines are realistic for short notes; paragraphs for ordinary files.
-            for (const auto& s : m_sentences)
-                if (s.text.size() >= 6 && realistic(e, s.language, s.text)) check(EncodingConverter::name(e) + " line", s.text, e);
+            for (const auto& [language, text] : m_sentences)
+                if (text.size() >= 6 && realistic(e, language, text)) check(EncodingConverter::name(e) + " line", text, e);
             QMap<QString, QStringList> paragraphs;
-            for (const auto& s : m_sentences) if (realistic(e, s.language, s.text)) paragraphs[s.language].append(s.text);
+            for (const auto& [language, text] : m_sentences) if (realistic(e, language, text)) paragraphs[language].append(text);
             for (const auto& lines : paragraphs) check(EncodingConverter::name(e) + " paragraph", lines.join('\n'), e);
         }
         const auto all = summarize("Text files decoded with the right encoding first", tallies);
         floor(all, 0.97, "file detection");
     }
 };
+}  // namespace
 QTEST_GUILESS_MAIN(TestMojibakeBenchmark)
 #include "TestMojibakeBenchmark.moc"

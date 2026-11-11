@@ -12,7 +12,6 @@
 #include <ElaComboBox.h>
 #include <ElaCheckBox.h>
 #include <ElaProgressBar.h>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFrame>
@@ -21,7 +20,6 @@
 #include <QDir>
 #include <QEvent>
 #include <QDragEnterEvent>
-#include <QDropEvent>
 #include <QMimeData>
 #include <QSignalBlocker>
 #include <QtConcurrentRun>
@@ -57,7 +55,7 @@ TextFileRecoveryPage::TextFileRecoveryPage(QWidget* parent, AppSettings* setting
     actions->addWidget(m_open); actions->addWidget(m_analyze); actions->addWidget(m_cancel); actions->addSpacing(8); actions->addWidget(m_pathLabel, 1);
     m_sourceLabel = ui::label({}, 10, ui::Tone::Secondary, fileCard);
     m_source = new ElaComboBox(fileCard); m_source->setObjectName("fileRecoverySource"); m_source->addItem({}, -1);
-    for (auto e : EncodingConverter::supported()) m_source->addItem(EncodingConverter::name(e), int(e));
+    for (auto e : EncodingConverter::supported()) m_source->addItem(EncodingConverter::name(e), static_cast<int>(e));
     auto* sourceRow = new QHBoxLayout; sourceRow->addWidget(m_sourceLabel); sourceRow->addWidget(m_source); sourceRow->addStretch();
     m_status = ui::label({}, 10, ui::Tone::Secondary, fileCard); m_status->setObjectName("fileRecoveryStatus"); m_status->setTextFormat(Qt::PlainText);
     m_progress = new ElaProgressBar(fileCard); m_progress->setObjectName("fileRecoveryProgress");
@@ -80,7 +78,7 @@ TextFileRecoveryPage::TextFileRecoveryPage(QWidget* parent, AppSettings* setting
     resultActions->addStretch(); resultActions->addWidget(m_detailsToggle);
     m_outputLabel = ui::label({}, 10, ui::Tone::Secondary, resultCard);
     m_output = new ElaComboBox(resultCard); m_output->setObjectName("fileRecoveryOutputEncoding");
-    for (auto e : EncodingConverter::supported()) m_output->addItem(EncodingConverter::name(e), int(e));
+    for (auto e : EncodingConverter::supported()) m_output->addItem(EncodingConverter::name(e), static_cast<int>(e));
     m_newlineLabel = ui::label({}, 10, ui::Tone::Secondary, resultCard);
     m_newlines = new ElaComboBox(resultCard); m_newlines->setObjectName("fileRecoveryNewlines");
     for (int i = 0; i < 3; ++i) m_newlines->addItem({}, i);
@@ -103,8 +101,8 @@ TextFileRecoveryPage::TextFileRecoveryPage(QWidget* parent, AppSettings* setting
     resultLayout->addWidget(m_aiProgress); resultLayout->addWidget(m_detailsBox);
     layout->addWidget(resultCard, 1);
     connect(m_open, &ElaPushButton::clicked, this, [this] {
-        const auto path = QFileDialog::getOpenFileName(this, tr("Open a text file"), {}, tr("Text files (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;All files (*)"));
-        if (!path.isEmpty()) openFile(path);
+        if (const auto path = QFileDialog::getOpenFileName(this, tr("Open a text file"), {}, tr("Text files (*.txt *.csv *.log *.json *.ini *.xml *.yaml *.yml *.cpp *.h *.py *.md);;All files (*)"));
+            !path.isEmpty()) openFile(path);
     });
     connect(m_analyze, &ElaPushButton::clicked, this, [this] { openFile(m_path); });
     connect(m_cancel, &ElaPushButton::clicked, this, [this] { if (m_cancelToken) m_cancelToken->store(true); });
@@ -133,22 +131,22 @@ TextFileRecoveryPage::TextFileRecoveryPage(QWidget* parent, AppSettings* setting
         m_progressPoll.stop(); m_progress->hide();
         m_result = m_analysis.result();
         if (m_resetOutput) {
-            const QSignalBlocker block(m_output); m_output->setCurrentIndex(m_output->findData(int(Encoding::Utf8)));
+            const QSignalBlocker block(m_output); m_output->setCurrentIndex(m_output->findData(static_cast<int>(Encoding::Utf8)));
             m_newlines->setCurrentIndex(0); m_bom->setChecked(m_result.bomEncoding.has_value());
         }
         refreshCards(); m_workspace->select(0); refresh();
     });
     connect(&m_export, &QFutureWatcher<SaveResult>::finished, this, [this] {
-        const auto result = m_export.result(); m_saveError = result.error;
-        m_savedPath = result.success ? m_pendingDestination : QString(); refresh();
+        const auto [success, error] = m_export.result(); m_saveError = error;
+        m_savedPath = success ? m_pendingDestination : QString(); refresh();
     });
     retranslate();
 }
-TextFileRecoveryPage::~TextFileRecoveryPage() { if (m_cancelToken) m_cancelToken->store(true); m_ai->disconnect(this); m_ai->reset(); }
+TextFileRecoveryPage::~TextFileRecoveryPage() { if (m_cancelToken) m_cancelToken->store(true); static_cast<void>(m_ai->disconnect(this)); m_ai->reset(); }
 std::optional<Encoding> TextFileRecoveryPage::forcedEncoding() const {
-    return m_source->currentData().toInt() < 0 ? std::nullopt : std::optional{Encoding(m_source->currentData().toInt())};
+    return m_source->currentData().toInt() < 0 ? std::nullopt : std::optional{static_cast<Encoding>(m_source->currentData().toInt())};
 }
-Encoding TextFileRecoveryPage::outputEncoding() const { return Encoding(m_output->currentData().toInt()); }
+Encoding TextFileRecoveryPage::outputEncoding() const { return static_cast<Encoding>(m_output->currentData().toInt()); }
 bool TextFileRecoveryPage::lossyTop() const { return !m_result.candidates.isEmpty() && lossy(m_result.candidates.first()); }
 void TextFileRecoveryPage::openFile(const QString& path) {
     if (path.isEmpty() || m_analysis.isRunning() || m_export.isRunning()) return;
@@ -160,7 +158,7 @@ void TextFileRecoveryPage::openFile(const QString& path) {
     const auto cancel = m_cancelToken; const auto forced = forcedEncoding(); const auto progress = m_analysisProgress;
     m_progressPoll.start();
     m_analysis.setFuture(QtConcurrent::run([path, forced, cancel, progress] {
-        return ByteEncodingAnalyzer::load(path, forced, cancel, [progress](double fraction) { progress->store(std::max(1, int(fraction * 1000))); });
+        return ByteEncodingAnalyzer::load(path, forced, cancel, [progress](const double fraction) { progress->store(std::max(1, static_cast<int>(fraction * 1000))); });
     }));
     refreshCards(); refresh();
 }
@@ -171,10 +169,10 @@ void TextFileRecoveryPage::exportCopy(const QString& destination) {
     if (selected == RecoveryWorkspace::LocalSlots) {
         // The AI text is saved like a candidate; the source checks stay the same.
         FileCandidate ai; ai.text = m_ai->text(); ai.reversible = false;
-        snapshot.candidates.append(ai); index = int(snapshot.candidates.size()) - 1;
+        snapshot.candidates.append(ai); index = static_cast<int>(snapshot.candidates.size()) - 1;
     }
     const auto encoding = outputEncoding();
-    const bool bom = m_bom->isEnabled() && m_bom->isChecked(); const auto newlines = Newlines(m_newlines->currentData().toInt());
+    const bool bom = m_bom->isEnabled() && m_bom->isChecked(); const auto newlines = static_cast<Newlines>(m_newlines->currentData().toInt());
     m_pendingDestination = destination; m_savedPath.clear(); m_saveError.clear();
     m_export.setFuture(QtConcurrent::run([snapshot, index, destination, encoding, bom, newlines] {
         return RecoveryOperation::saveCopy(snapshot, index, destination, encoding, bom, newlines);
@@ -193,7 +191,7 @@ void TextFileRecoveryPage::refreshCards() {
             w.subtitle = aliases.size() > 1 ? tr("Same text as %1").arg(aliases.join(", ")) : tr("Plain decoding, no repair");
             if (i == 0) w.badge = tr("Recommended");
         } else {
-            Candidate repaired{c.text, c.repairPath, c.score, c.anomalies, c.reversible, c.evidence, c.lossy};
+            Candidate repaired{.text = c.text, .path = c.repairPath, .score = c.score, .anomalies = c.anomalies, .reversible = c.reversible, .evidence = c.evidence, .lossy = c.lossy};
             w = MojibakePage::describe(repaired, i == 0);
         }
         cards << w;
@@ -211,7 +209,7 @@ void TextFileRecoveryPage::refresh() {
     const bool busy = m_analysis.isRunning() || m_export.isRunning();
     const int selected = m_workspace->selected();
     const bool local = selected >= 0 && selected < m_result.candidates.size();
-    m_report->setReport(busy ? DiagnosticReport{} : DiagnosticReport::file(m_result, local ? selected : (m_result.candidates.isEmpty() ? -1 : 0)));
+    m_report->setReport(busy ? DiagnosticReport{} : DiagnosticReport::file(m_result, local ? selected : m_result.candidates.isEmpty() ? -1 : 0));
     m_open->setEnabled(!busy); m_source->setEnabled(!busy); m_analyze->setEnabled(!busy && !m_path.isEmpty());
     m_save->setEnabled(!busy && (local || (selected == RecoveryWorkspace::LocalSlots && m_ai->hasResult())));
     m_output->setEnabled(!busy); m_newlines->setEnabled(!busy);
@@ -238,7 +236,7 @@ void TextFileRecoveryPage::showSelection() {
     if (selected == RecoveryWorkspace::LocalSlots) { m_details->setPlainText(m_ai->explanation().join('\n')); updateAiControls(); return; }
     if (selected < 0 || selected >= m_result.candidates.size()) { m_details->clear(); updateAiControls(); return; }
     const auto& c = m_result.candidates[selected];
-    QStringList aliases; for (auto e : c.aliases) aliases << EncodingConverter::name(e);
+    QStringList aliases; for (const auto e : c.aliases) aliases << EncodingConverter::name(e);
     const auto crlf = c.text.count("\r\n"), lf = c.text.count('\n') - crlf, cr = c.text.count('\r') - crlf;
     QStringList details{
         tr("Source bytes: %1; decoded characters: %2.").arg(m_result.bytes.size()).arg(c.text.size()),
@@ -247,7 +245,7 @@ void TextFileRecoveryPage::showSelection() {
         tr("Newlines: CRLF %1, LF %2, CR %3.").arg(crlf).arg(lf).arg(cr),
         tr("Exact inverse verified: %1").arg(c.reversible ? tr("Yes") : tr("No; partial recovery"))};
     if (m_result.preferredEncoding) details << tr("Byte evidence prefers %1. This does not prove the original meaning.").arg(EncodingConverter::name(*m_result.preferredEncoding));
-    if (lossy(c)) details << MojibakePage::processLines(Candidate{c.text, c.repairPath, c.score, c.anomalies, c.reversible, c.evidence, c.lossy}, 0, false);
+    if (lossy(c)) details << MojibakePage::processLines(Candidate{.text = c.text, .path = c.repairPath, .score = c.score, .anomalies = c.anomalies, .reversible = c.reversible, .evidence = c.evidence, .lossy = c.lossy}, 0, false);
     else for (const auto& step : c.repairPath) details << tr("Text repair: encode as %1, then decode as %2.").arg(EncodingConverter::name(step.encodeAs), EncodingConverter::name(step.decodeAs));
     if (c.text.contains(QChar(0xfffd)) || !c.reversible) details << tr("Possible missing information. Unknown characters cannot be uniquely restored.");
     if (m_result.inverseRepairSkipped) details << tr("For large text, only byte encoding detection was performed; further mojibake search is limited to 1 MiB.");
@@ -264,9 +262,9 @@ void TextFileRecoveryPage::requestAi() {
         return;
     }
     QList<Candidate> candidates;
-    for (const auto& c : m_result.candidates) candidates << Candidate{c.text, c.repairPath, c.score, c.anomalies, c.reversible};
+    for (const auto& c : m_result.candidates) candidates << Candidate{.text = c.text, .path = c.repairPath, .score = c.score, .anomalies = c.anomalies, .reversible = c.reversible};
     // The plain decoding is what the user would see when opening the file.
-    const auto plain = std::find_if(m_result.candidates.begin(), m_result.candidates.end(), [](const auto& c) { return c.repairPath.isEmpty(); });
+    const auto plain = std::ranges::find_if(m_result.candidates, [](const auto& c) { return c.repairPath.isEmpty(); });
     const auto original = plain != m_result.candidates.end() ? plain->text : m_result.candidates.first().text;
     m_ai->suggest(original, candidates, original.contains(QChar(0xfffd)));
 }
@@ -285,7 +283,7 @@ void TextFileRecoveryPage::updateAiControls() {
     const bool configured = m_ai->configured(), busy = m_ai->busy();
     const bool lossyFile = lossyTop();
     const int chunks = lossyFile ? MojibakeAi::chunkCount(*m_result.candidates.first().lossy) : 0;
-    const auto plain = std::find_if(m_result.candidates.begin(), m_result.candidates.end(), [](const auto& c) { return c.repairPath.isEmpty(); });
+    const auto plain = std::ranges::find_if(m_result.candidates, [](const auto& c) { return c.repairPath.isEmpty(); });
     const bool small = !m_result.candidates.isEmpty() &&
         (plain != m_result.candidates.end() ? plain->text : m_result.candidates.first().text).toUtf8().size() <= MaxSuggestionBytes;
     m_aiAnalyze->setText(lossyFile ? MojibakePage::tr("AI refinement (%n chunk(s))", nullptr, chunks) : MojibakePage::tr("AI deep analysis"));

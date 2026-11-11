@@ -28,8 +28,8 @@ struct WavInfo {
     quint16 bitsPerSample = 0;
     quint32 dataBytes = 0;
     qint64 durationMs() const {
-        const quint64 bytesPerSecond = quint64(sampleRate) * channels * (bitsPerSample / 8);
-        return bytesPerSecond ? qint64(quint64(dataBytes) * 1000 / bytesPerSecond) : 0;
+        const quint64 bytesPerSecond = static_cast<quint64>(sampleRate) * channels * (bitsPerSample / 8);
+        return bytesPerSecond ? static_cast<qint64>(static_cast<quint64>(dataBytes) * 1000 / bytesPerSecond) : 0;
     }
 };
 enum class VoiceDesignError {

@@ -52,6 +52,10 @@ if(WIN32 AND NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR
     endif()
 endif()
 
+# The vendored Ela controls use Qt's private widget headers, so the app is tied to
+# the exact Qt build it was compiled against. The kit is shipped with the app, so
+# that is accepted here rather than repeated as a warning on every configure.
+set(QT_NO_PRIVATE_MODULE_WARNING ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets WidgetsPrivate LinguistTools)
 message(STATUS "Using Qt ${Qt6_VERSION} from ${Qt6_DIR}")
 

@@ -13,7 +13,7 @@ MojibakeAi::MojibakeAi(AppSettings* settings, QObject* parent) : QObject(parent)
         connect(service, &ai::AiService::completed, this, [this, i](const ai::Reply& reply) { finishChunk(i, reply); });
         connect(service, &ai::AiService::failed, this, [this, i](const QString& error) { failChunk(i, error); });
         connect(service, &ai::AiService::cancelled, this, [this, i] { m_running[i] = -1; });
-        connect(service, &ai::AiService::progress, this, [this](bool thinking, int characters) {
+        connect(service, &ai::AiService::progress, this, [this](const bool thinking, const int characters) {
             if (m_refining) return;
             m_thinking = thinking; m_characters = characters; updateStatus(); emit changed();
         });
@@ -22,7 +22,7 @@ MojibakeAi::MojibakeAi(AppSettings* settings, QObject* parent) : QObject(parent)
     connect(&m_ticker, &QTimer::timeout, this, [this] { updateStatus(); emit changed(); });
 }
 MojibakeAi::~MojibakeAi() {
-    for (auto* service : m_services) { service->disconnect(this); service->cancel(); }
+    for (auto* service : m_services) { static_cast<void>(service->disconnect(this)); service->cancel(); }
 }
 bool MojibakeAi::configured() const { return m_settings && ai::AiService::validate(m_settings->aiConfiguration()).isEmpty(); }
 QString MojibakeAi::target() const {
@@ -35,7 +35,7 @@ int MojibakeAi::chunkCount(const LossyRecovery& local) {
     for (const auto& span : local.spans) {
         length += span.textEnd - span.textBegin; open = true;
         const auto marks = local.evidence.mid(span.textBegin, span.textEnd - span.textBegin);
-        needed = needed || marks.contains(char(CharEvidence::Partial)) || marks.contains(char(CharEvidence::Unknown));
+        needed = needed || marks.contains(static_cast<char>(CharEvidence::Partial)) || marks.contains(static_cast<char>(CharEvidence::Unknown));
         if (length >= ChunkCharacters) { count += needed; length = 0; open = false; needed = false; }
     }
     return count + (open && needed);
@@ -83,7 +83,7 @@ void MojibakeAi::suggest(const QString& original, const QList<Candidate>& candid
     m_services[0]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
     if (generation == m_generation && m_busy) emit changed();  // A synchronous failure has already reported.
 }
-void MojibakeAi::refine(std::shared_ptr<const LossyRecovery> local) {
+void MojibakeAi::refine(const std::shared_ptr<const LossyRecovery>& local) {
     if (!configured() || m_busy || !local || !local->success) return;
     if (m_refining && m_local == local) {
         // Continue: keep verified chunks, retry the rest.
@@ -92,15 +92,15 @@ void MojibakeAi::refine(std::shared_ptr<const LossyRecovery> local) {
         reset();
         m_refining = true; m_local = local;
         Chunk chunk; bool open = false;
-        for (const auto& span : local->spans) {
-            if (!open) { chunk = {span.damagedBegin, span.damagedEnd, span.textBegin, span.textEnd}; open = true; }
-            else { chunk.damagedEnd = span.damagedEnd; chunk.textEnd = span.textEnd; }
+        for (const auto& [damagedBegin, damagedEnd, textBegin, textEnd] : local->spans) {
+            if (!open) { chunk = {.damagedBegin = damagedBegin, .damagedEnd = damagedEnd, .textBegin = textBegin, .textEnd = textEnd}; open = true; }
+            else { chunk.damagedEnd = damagedEnd; chunk.textEnd = textEnd; }
             if (chunk.textEnd - chunk.textBegin >= ChunkCharacters) { m_chunks.push_back(chunk); open = false; }
         }
         if (open) m_chunks.push_back(chunk);
         for (auto& c : m_chunks) {
             const auto marks = local->evidence.mid(c.textBegin, c.textEnd - c.textBegin);
-            c.needed = marks.contains(char(CharEvidence::Partial)) || marks.contains(char(CharEvidence::Unknown));
+            c.needed = marks.contains(static_cast<char>(CharEvidence::Partial)) || marks.contains(static_cast<char>(CharEvidence::Unknown));
             m_needed += c.needed;
         }
         rebuild();
@@ -116,20 +116,20 @@ void MojibakeAi::dispatch() {
     for (int i = 0; i < Parallel; ++i) {
         if (m_running[i] >= 0 || m_services[i]->isBusy()) continue;
         int next = -1;
-        for (int k = 0; k < int(m_chunks.size()); ++k)
+        for (int k = 0; k < static_cast<int>(m_chunks.size()); ++k)
             if (m_chunks[k].needed && m_chunks[k].state == Chunk::Pending) { next = k; break; }
         if (next < 0) break;
         auto& chunk = m_chunks[next];
         chunk.state = Chunk::Running; m_running[i] = next;
         const QJsonObject context{{"task", "lossy_gbk_refine"}, {"draft", LossyGbkRecovery::markup(*m_local, chunk.textBegin, chunk.textEnd, Options)},
-                                  {"chunk", next + 1}, {"chunks", int(m_chunks.size())},
+                                  {"chunk", next + 1}, {"chunks", static_cast<int>(m_chunks.size())},
                                   {"lost_count_exact", m_local->replacement == Utf8Replacement::PerByte}};
         m_services[i]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
         if (!m_busy) return;  // A synchronous failure stopped the run.
     }
     finish();
 }
-void MojibakeAi::finishChunk(int service, const ai::Reply& reply) {
+void MojibakeAi::finishChunk(const int service, const ai::Reply& reply) {
     const int index = m_running[service];
     m_running[service] = -1;
     if (index < 0 || !m_busy) return;
@@ -156,17 +156,17 @@ void MojibakeAi::finishChunk(int service, const ai::Reply& reply) {
     auto* watcher = new QFutureWatcher<LossyRecovery>(this);
     connect(watcher, &QFutureWatcher<LossyRecovery>::finished, this, [this, watcher, index, generation] {
         watcher->deleteLater(); --m_verifying;
-        if (generation != m_generation || index >= int(m_chunks.size())) return;
-        auto& chunk = m_chunks[index];
-        const auto result = watcher->result();
-        if (result.success && chunk.state == Chunk::Running) { chunk.result = result; chunk.state = Chunk::Done; ++m_done; }
-        else if (chunk.state == Chunk::Running) { chunk.state = Chunk::Failed; ++m_failed; }
+        if (generation != m_generation || index >= static_cast<int>(m_chunks.size())) return;
+        auto& verified = m_chunks[index];
+        if (const auto result = watcher->result(); result.success && verified.state == Chunk::Running) {
+            verified.result = result; verified.state = Chunk::Done; ++m_done;
+        } else if (verified.state == Chunk::Running) { verified.state = Chunk::Failed; ++m_failed; }
         rebuild(); finish(); updateStatus(); emit changed();
     });
     watcher->setFuture(QtConcurrent::run([damaged, guide, replacement] { return LossyGbkRecovery::guided(damaged, guide, replacement); }));
     QMetaObject::invokeMethod(this, &MojibakeAi::dispatch, Qt::QueuedConnection);
 }
-void MojibakeAi::failChunk(int service, const QString& error) {
+void MojibakeAi::failChunk(const int service, const QString& error) {
     const int index = m_running[service];
     m_running[service] = -1;
     if (!m_busy) return;

@@ -28,7 +28,7 @@ public:
     bool busy() const { return m_busy; }
     static int chunkCount(const mojibake::LossyRecovery& local);
     void suggest(const QString& original, const QList<mojibake::Candidate>& candidates, bool possibleLoss);
-    void refine(std::shared_ptr<const mojibake::LossyRecovery> local);
+    void refine(const std::shared_ptr<const mojibake::LossyRecovery>& local);
     void cancel();
     void reset();  // cancel and forget any result
     bool hasResult() const { return !m_text.isEmpty(); }

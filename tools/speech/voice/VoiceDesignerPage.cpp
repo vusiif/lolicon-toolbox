@@ -73,18 +73,18 @@ VoiceDesignerPage::VoiceDesignerPage(QWidget* parent, AppSettings* settings)
     layout->addLayout(playback); layout->addWidget(m_noticeLabel); layout->addStretch();
     connect(m_play, &ElaPushButton::clicked, this, &VoiceDesignerPage::togglePlayback);
     connect(m_stop, &ElaPushButton::clicked, this, [this] { if (m_player) m_player->stop(); refresh(); });
-    connect(m_position, &QSlider::sliderMoved, this, [this](int value) { if (m_player && m_sourceLoaded) m_player->setPosition(value); });
+    connect(m_position, &QSlider::sliderMoved, this, [this](const int value) { if (m_player && m_sourceLoaded) m_player->setPosition(value); });
     connect(m_save, &ElaPushButton::clicked, this, [this] {
         if (!resultIsCurrent()) return;
-        const auto path = QFileDialog::getSaveFileName(this, tr("Save WAV"), "voice-preview.wav", tr("WAV audio (*.wav)"), nullptr, QFileDialog::DontConfirmOverwrite);
-        if (!path.isEmpty()) saveWav(path);
+        if (const auto path = QFileDialog::getSaveFileName(this, tr("Save WAV"), "voice-preview.wav", tr("WAV audio (*.wav)"), nullptr, QFileDialog::DontConfirmOverwrite);
+            !path.isEmpty()) saveWav(path);
     });
     connect(m_description, &ElaPlainTextEdit::textChanged, this, &VoiceDesignerPage::invalidate);
     connect(m_preview, &ElaPlainTextEdit::textChanged, this, &VoiceDesignerPage::invalidate);
     connect(m_generate, &ElaPushButton::clicked, this, &VoiceDesignerPage::generate);
     connect(m_cancel, &ElaPushButton::clicked, this, &VoiceDesignerPage::cancel);
     connect(m_clear, &ElaPushButton::clicked, this, [this] {
-        const QSignalBlocker description(m_description), preview(m_preview);
+        const QSignalBlocker blockDescription(m_description), blockPreview(m_preview);
         m_description->clear(); m_preview->clear(); m_result.reset(); m_wav.reset(); invalidate();
     });
     if (settings) {
@@ -98,11 +98,11 @@ VoiceDesignerPage::VoiceDesignerPage(QWidget* parent, AppSettings* settings)
         m_result = result; m_wav = speech::MiMoTtsService::wavInfo(result.audioData);
         m_state = State::Success; m_timer.stop(); refresh();
     });
-    connect(m_service, &speech::MiMoTtsService::failed, this, [this](speech::VoiceDesignError, const QString& error, quint64 revision) {
+    connect(m_service, &speech::MiMoTtsService::failed, this, [this](speech::VoiceDesignError, const QString& error, const quint64 revision) {
         if (revision != m_revision) return;
         m_error = error; m_state = State::Error; m_timer.stop(); refresh();
     });
-    connect(m_service, &speech::MiMoTtsService::cancelled, this, [this](quint64 revision) {
+    connect(m_service, &speech::MiMoTtsService::cancelled, this, [this](const quint64 revision) {
         if (revision != m_revision) return;
         m_state = State::Cancelled; m_timer.stop(); refresh();
     });
@@ -111,16 +111,16 @@ VoiceDesignerPage::VoiceDesignerPage(QWidget* parent, AppSettings* settings)
 }
 speech::VoiceDesignRequest VoiceDesignerPage::input() const {
     // toRawText retains NBSP; paragraph separators represent editor line breaks.
-    const auto text = [](ElaPlainTextEdit* editor) {
+    const auto text = [](const ElaPlainTextEdit* editor) {
         auto value = editor->document()->toRawText();
         value.replace(QChar::ParagraphSeparator, '\n'); value.replace("\r\n", "\n"); value.replace('\r', '\n');
         return value;
     };
-    return {text(m_description), text(m_preview), m_revision};
+    return {.voiceDescription = text(m_description), .previewText = text(m_preview), .revision = m_revision};
 }
 VoiceDesignerPage::~VoiceDesignerPage() {
     // Release the buffer while the widgets still exist, without refreshing a half-destroyed page.
-    if (m_player) { m_player->disconnect(this); unloadPlayback(); }
+    if (m_player) { static_cast<void>(m_player->disconnect(this)); unloadPlayback(); }
 }
 void VoiceDesignerPage::invalidate() {
     ++m_revision; m_state = State::Ready; m_error.clear(); m_timer.stop();
@@ -142,7 +142,7 @@ void VoiceDesignerPage::onDeactivated() {
     cancel();
 }
 namespace {
-QString formatClock(qint64 ms) {
+QString formatClock(const qint64 ms) {
     const auto seconds = qMax<qint64>(0, ms) / 1000;
     return QStringLiteral("%1:%2").arg(seconds / 60).arg(seconds % 60, 2, 10, QLatin1Char('0'));
 }
@@ -155,11 +155,11 @@ void VoiceDesignerPage::ensurePlayer() {
     m_player->setAudioOutput(m_audioOutput);
     m_buffer = new QBuffer(m_player); // Owned by the player so it can never outlive or predecease it.
     connect(m_player, &QMediaPlayer::playbackStateChanged, this, &VoiceDesignerPage::refresh);
-    connect(m_player, &QMediaPlayer::positionChanged, this, [this](qint64 position) {
-        if (!m_position->isSliderDown()) { const QSignalBlocker blocker(m_position); m_position->setValue(int(position)); }
+    connect(m_player, &QMediaPlayer::positionChanged, this, [this](const qint64 position) {
+        if (!m_position->isSliderDown()) { const QSignalBlocker blocker(m_position); m_position->setValue(static_cast<int>(position)); }
         refresh();
     });
-    connect(m_player, &QMediaPlayer::errorOccurred, this, [this](QMediaPlayer::Error error) {
+    connect(m_player, &QMediaPlayer::errorOccurred, this, [this](const QMediaPlayer::Error error) {
         if (error == QMediaPlayer::NoError) return;
         // Backend messages may be untranslated or technical; the WAV itself is already validated.
         setNotice(tr("This system could not play the audio. You can still save the WAV and open it in another player."), true);
@@ -188,7 +188,7 @@ void VoiceDesignerPage::togglePlayback() {
     setNotice({}, false);
     m_player->play();
 }
-void VoiceDesignerPage::setNotice(const QString& text, bool error) { m_notice = text; m_noticeError = error; }
+void VoiceDesignerPage::setNotice(const QString& text, const bool error) { m_notice = text; m_noticeError = error; }
 bool VoiceDesignerPage::saveWav(const QString& path) {
     if (!resultIsCurrent()) return false;
     QFile file(path);
@@ -237,7 +237,7 @@ void VoiceDesignerPage::refresh() {
     m_play->setEnabled(audio); m_save->setEnabled(audio); m_position->setEnabled(audio && m_sourceLoaded);
     m_stop->setEnabled(audio && m_player && m_player->playbackState() != QMediaPlayer::StoppedState);
     m_play->setText(playing ? tr("Pause") : tr("Play"));
-    if (m_position->maximum() != duration) { const QSignalBlocker blocker(m_position); m_position->setRange(0, int(qMin<qint64>(duration, INT_MAX))); }
+    if (m_position->maximum() != duration) { const QSignalBlocker blocker(m_position); m_position->setRange(0, static_cast<int>(qMin<qint64>(duration, INT_MAX))); }
     const auto position = audio && m_player && m_sourceLoaded ? m_player->position() : 0;
     m_time->setText(QStringLiteral("%1 / %2").arg(formatClock(position), formatClock(duration)));
     m_noticeLabel->setVisible(!m_notice.isEmpty()); m_noticeLabel->setText(m_notice);

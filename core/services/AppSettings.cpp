@@ -32,7 +32,7 @@ AppSettings::AppSettings(const QString& path, QObject* parent) : QObject(parent)
         : m_store->value("Appearance/theme").toString() == "light" ? ElaThemeType::Light : ElaThemeType::Dark;
     const auto preference = localePreference();
     applyLocale(preference == "system" ? localeForUiLanguages(QLocale::system().uiLanguages()) : preference);
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this]() {
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this] {
         if (!followsSystemTheme()) return;
         const auto mode = systemTheme();
         if (mode == m_themeMode) return;
@@ -56,7 +56,7 @@ bool AppSettings::followsSystemTheme() const
     const auto choice = m_store->value("Appearance/theme").toString();
     return choice != "light" && choice != "dark";
 }
-void AppSettings::setThemeMode(ElaThemeType::ThemeMode mode)
+void AppSettings::setThemeMode(const ElaThemeType::ThemeMode mode)
 {
     if (mode != ElaThemeType::Light && mode != ElaThemeType::Dark) return;
     m_store->setValue("Appearance/theme", mode == ElaThemeType::Light ? "light" : "dark");
@@ -82,8 +82,8 @@ QString AppSettings::localeForUiLanguages(const QStringList& languages)
 bool AppSettings::setLocale(const QString& preference)
 {
     if (preference != "system" && preference != "en" && preference != "zh_CN" && preference != "zh_TW") return false;
-    const auto locale = preference == "system" ? localeForUiLanguages(QLocale::system().uiLanguages()) : preference;
-    if (!applyLocale(locale)) return false;
+    if (const auto locale = preference == "system" ? localeForUiLanguages(QLocale::system().uiLanguages()) : preference;
+        !applyLocale(locale)) return false;
     m_store->setValue("Appearance/locale", preference);
     emit localeChanged();
     return true;
@@ -93,8 +93,7 @@ bool AppSettings::applyLocale(const QString& locale)
     if (locale == m_locale) return true;
     // Load before removing the active translation, preserving it on failure.
     auto candidate = std::make_unique<QTranslator>();
-    const auto path = QString(":/i18n/%1.qm").arg(locale);
-    if (locale != "en" && !candidate->load(path)) return false;
+    if (const auto path = QString(":/i18n/%1.qm").arg(locale); locale != "en" && !candidate->load(path)) return false;
     if (qApp && m_translator) qApp->removeTranslator(m_translator.get());
     m_translator.reset();
     if (locale != "en") {
@@ -107,8 +106,8 @@ bool AppSettings::applyLocale(const QString& locale)
 void AppSettings::refreshSystemLocale()
 {
     if (localePreference() != "system") return;
-    const auto locale = localeForUiLanguages(QLocale::system().uiLanguages());
-    if (locale != m_locale && applyLocale(locale)) emit localeChanged();
+    if (const auto locale = localeForUiLanguages(QLocale::system().uiLanguages()); locale != m_locale && applyLocale(locale))
+        emit localeChanged();
 }
 bool AppSettings::eventFilter(QObject* watched, QEvent* event)
 {
@@ -117,18 +116,18 @@ bool AppSettings::eventFilter(QObject* watched, QEvent* event)
     return QObject::eventFilter(watched, event);
 }
 QByteArray AppSettings::windowGeometry() const { return m_store->value("Window/geometry").toByteArray(); }
-void AppSettings::setWindowGeometry(const QByteArray& value) { m_store->setValue("Window/geometry", value); }
+void AppSettings::setWindowGeometry(const QByteArray& geometry) { m_store->setValue("Window/geometry", geometry); }
 QString AppSettings::lastPage() const { return m_store->value("Window/page", "encoding.base64").toString(); }
-void AppSettings::setLastPage(const QString& value) { m_store->setValue("Window/page", value); }
+void AppSettings::setLastPage(const QString& id) { m_store->setValue("Window/page", id); }
 bool AppSettings::navigationExpanded() const { return m_store->value("Window/navigationExpanded", true).toBool(); }
-void AppSettings::setNavigationExpanded(bool value) { m_store->setValue("Window/navigationExpanded", value); }
+void AppSettings::setNavigationExpanded(const bool expanded) { m_store->setValue("Window/navigationExpanded", expanded); }
 void AppSettings::sync() { m_store->sync(); }
 namespace {
 QString unprotectKey(QByteArray encrypted) {
     QString key;
 #ifdef Q_OS_WIN
     if (!encrypted.isEmpty()) {
-        DATA_BLOB input{DWORD(encrypted.size()), reinterpret_cast<BYTE*>(encrypted.data())}, output{};
+        DATA_BLOB input{.cbData = static_cast<DWORD>(encrypted.size()), .pbData = reinterpret_cast<BYTE*>(encrypted.data())}, output{};
         if (CryptUnprotectData(&input, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output)) {
             key = QString::fromUtf8(reinterpret_cast<char*>(output.pbData), output.cbData);
             SecureZeroMemory(output.pbData, output.cbData); LocalFree(output.pbData);
@@ -143,7 +142,7 @@ bool protectKey(const QString& key, QByteArray& encrypted) {
     if (key.isEmpty()) return true;
 #ifdef Q_OS_WIN
     auto bytes = key.toUtf8();
-    DATA_BLOB input{DWORD(bytes.size()), reinterpret_cast<BYTE*>(bytes.data())}, output{};
+    DATA_BLOB input{.cbData = static_cast<DWORD>(bytes.size()), .pbData = reinterpret_cast<BYTE*>(bytes.data())}, output{};
     const auto success = CryptProtectData(&input, L"Toolbox API key", nullptr, nullptr, nullptr, CRYPTPROTECT_UI_FORBIDDEN, &output);
     SecureZeroMemory(bytes.data(), bytes.size());
     if (!success) return false;

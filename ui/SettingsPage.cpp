@@ -8,7 +8,6 @@
 #include <QFormLayout>
 #include "ai/AiService.h"
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QFrame>
 #include <QLabel>
 #include <QEvent>
@@ -21,7 +20,7 @@ bool looksLikeVoiceDesign(const QString& id) {
     return folded.contains("voicedesign");
 }
 }
-ai::Configuration SettingsPage::ApiForm::input() const { return {url->text(), model->currentText(), key->text()}; }
+ai::Configuration SettingsPage::ApiForm::input() const { return {.baseUrl = url->text(), .model = model->currentText(), .apiKey = key->text()}; }
 SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(parent), m_settings(settings)
 {
     setObjectName("settingsPage");
@@ -65,7 +64,7 @@ SettingsPage::SettingsPage(AppSettings& settings, QWidget* parent) : QWidget(par
     layout->addStretch();
     retranslate();
     synchronize();
-    connect(m_language, &QComboBox::currentIndexChanged, this, [this]() {
+    connect(m_language, &QComboBox::currentIndexChanged, this, [this] {
         if (!m_settings.setLocale(m_language->currentData().toString())) {
             m_error->setText(tr("Could not load translation."));
             synchronize();
@@ -130,26 +129,25 @@ QWidget* SettingsPage::buildApiForm(ApiForm& apiForm, Api api, const char* prefi
     });
     return card;
 }
-void SettingsPage::saveApi(Api api)
+void SettingsPage::saveApi(const Api api)
 {
-    auto& apiForm = form(api);
+    const auto& apiForm = form(api);
     const auto config = apiForm.input();
-    const auto error = ai::AiService::validate(config);
-    if (!error.isEmpty()) { apiForm.status->setText(error); return; }
+    if (const auto error = ai::AiService::validate(config); !error.isEmpty()) { apiForm.status->setText(error); return; }
     const bool saved = api == Api::Text ? m_settings.setAiConfiguration(config) : m_settings.setVoiceConfiguration(config);
     apiForm.status->setText(saved ? tr("API settings saved. No network request was sent.") : tr("Could not securely save the API settings."));
     if (saved && api == Api::Voice) retranslate(); // The "not saved yet" note no longer applies.
 }
-void SettingsPage::modelsListed(Api api, const QStringList& listed)
+void SettingsPage::modelsListed(const Api api, const QStringList& listed)
 {
-    auto& apiForm = form(api);
+    const auto& apiForm = form(api);
     if (apiForm.stale) { updateFetchButton(api); return; }
     auto current = apiForm.model->currentText();
     auto models = listed;
     QString picked;
     if (api == Api::Voice) {
         // Voice design models first; pick one unless the entered model is offered by this endpoint.
-        std::stable_partition(models.begin(), models.end(), looksLikeVoiceDesign);
+        std::ranges::stable_partition(models, looksLikeVoiceDesign);
         if (!models.isEmpty() && looksLikeVoiceDesign(models.first()) && !models.contains(current)) picked = current = models.first();
     }
     {
@@ -185,7 +183,7 @@ void SettingsPage::retranslate()
         ? tr("Used by Voice Designer. Requests are sent only when you click Generate preview. The API key is encrypted for your Windows account.")
         : tr("Used by Voice Designer. Not saved yet: it currently uses the text API address and key. Fetch models to find the voice design model, then save."));
     for (const auto api : {Api::Text, Api::Voice}) {
-        auto& apiForm = form(api);
+        const auto& apiForm = form(api);
         apiForm.urlLabel->setText(tr("API base URL")); apiForm.modelLabel->setText(tr("Model ID")); apiForm.keyLabel->setText(tr("API key"));
         apiForm.model->setToolTip(tr("Use the exact model ID, not the provider's product name."));
         apiForm.save->setText(tr("Save API settings"));
@@ -196,23 +194,25 @@ void SettingsPage::retranslate()
     m_voice.url->setPlaceholderText(AppSettings::defaultVoiceBaseUrl());
     m_voice.model->lineEdit()->setPlaceholderText(AppSettings::defaultVoiceModel());
 }
-void SettingsPage::updateFetchButton(Api api) {
-    auto& apiForm = form(api);
+void SettingsPage::updateFetchButton(const Api api) {
+    const auto& apiForm = form(api);
     apiForm.fetch->setText(apiForm.models->isBusy() ? tr("Cancel") : tr("Fetch models"));
 }
-void SettingsPage::invalidateModels(Api api) {
+void SettingsPage::invalidateModels(const Api api) {
     auto& apiForm = form(api);
     apiForm.stale = true; apiForm.models->cancel();
-    const auto current = apiForm.model->currentText();
-    { const QSignalBlocker blocker(apiForm.model); apiForm.model->clear(); apiForm.model->setEditText(current); }
+    {
+        const auto current = apiForm.model->currentText();
+        const QSignalBlocker blocker(apiForm.model); apiForm.model->clear(); apiForm.model->setEditText(current);
+    }
     apiForm.status->clear(); updateFetchButton(api);
 }
-void SettingsPage::fetchModels(Api api) {
+void SettingsPage::fetchModels(const Api api) {
     auto& apiForm = form(api);
     if (apiForm.models->isBusy()) { apiForm.models->cancel(); return; }
     apiForm.stale = false;
     apiForm.status->setText(tr("Fetching models from the entered address. Only the API key is sent; no text is uploaded."));
-    apiForm.models->listModels({apiForm.url->text(), {}, apiForm.key->text()});
+    apiForm.models->listModels({.baseUrl = apiForm.url->text(), .model = {}, .apiKey = apiForm.key->text()});
     updateFetchButton(api);
 }
 void SettingsPage::changeEvent(QEvent* event)

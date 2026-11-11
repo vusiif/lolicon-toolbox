@@ -32,7 +32,7 @@ struct Control {
 };
 class Random {
 public:
-    explicit Random(uint64_t seed, std::function<void()> check = {}) : m_state(seed), m_check(std::move(check)) {}
+    explicit Random(const uint64_t seed, std::function<void()> check = {}) : m_state(seed), m_check(std::move(check)) {}
     uint64_t next();
     uint64_t bounded(uint64_t bound);
     bool gate(int rate);
@@ -53,10 +53,10 @@ public:
     static constexpr qsizetype MaxInputBytes = 256 * 1024, MaxInputUnits = 524288;
     static constexpr qsizetype MaxOutputBytes = 2 * 1024 * 1024, MaxOutputUnits = 2097152;
     static QString normalize(QString text);
-    static bool seed(const QString& text, uint64_t& value);
-    static bool userSeed(const QString& text, UserSeed& result);
+    static bool seed(const QString& input, uint64_t& value);
+    static bool userSeed(const QString& input, UserSeed& result);
     static Result transform(const QString& input, std::shared_ptr<const Definition> style, const QString& preset, uint64_t seed, const Control& control = {});
 };
-bool white(char32_t scalar);
+bool white(char32_t c);
 QString errorName(Error error);
 }

@@ -1,4 +1,4 @@
-#include <QtTest>
+#include <QTest>
 #include <ElaApplication.h>
 #include <ElaTheme.h>
 #include <ElaAppBar.h>
@@ -12,7 +12,6 @@
 #include "TestHttpServer.h"
 #include <QTemporaryDir>
 #include <QLabel>
-#include <QClipboard>
 #include <QStyleHints>
 #include <QSettings>
 #include <QLocale>
@@ -36,7 +35,6 @@
 #include "CharacterArtPage.h"
 #include <ElaSpinBox.h>
 #include <QSemaphore>
-#include <QCryptographicHash>
 #include <QJsonDocument>
 #include <QMimeData>
 #include <QTextDocument>
@@ -51,6 +49,7 @@
 #include <windows.h>
 #endif
 
+namespace {
 class TestUi : public QObject
 {
     Q_OBJECT
@@ -122,7 +121,7 @@ void TestUi::systemDefaults()
 }
 void TestUi::settingsPersistence()
 {
-    QTemporaryDir dir;
+    const QTemporaryDir dir;
     QVERIFY(dir.isValid());
     const auto file = dir.filePath("settings.ini");
     {
@@ -156,18 +155,18 @@ void TestUi::groupedNavigation()
         QVERIFY(tools.registerTool(tool));
     }
     NavigationManager config;
-    QVERIFY(config.addGroup({"later", "Later", 20}));
-    QVERIFY(config.addGroup({"first", "First", 10}));
-    QVERIFY(config.addGroup({"empty", "Empty", 0}));
-    QVERIFY(!config.addGroup({"first", "Duplicate", 0}));
-    QVERIFY(!config.addGroup({"", "Invalid", 0}));
-    QVERIFY(!config.addItem({"a", "missing", 0}));
-    QVERIFY(config.addItem({"a", "later", 0}));
-    QVERIFY(!config.addItem({"a", "first", 0}));
-    QVERIFY(config.addItem({"b", "first", 20}));
-    QVERIFY(config.addItem({"c", "first", 10}));
-    QVERIFY(config.addItem({"hidden", "first", 0, false}));
-    QVERIFY(config.addItem({"unregistered", "empty", 0}));
+    QVERIFY(config.addGroup({.id = "later", .name = "Later", .order = 20}));
+    QVERIFY(config.addGroup({.id = "first", .name = "First", .order = 10}));
+    QVERIFY(config.addGroup({.id = "empty", .name = "Empty", .order = 0}));
+    QVERIFY(!config.addGroup({.id = "first", .name = "Duplicate", .order = 0}));
+    QVERIFY(!config.addGroup({.id = "", .name = "Invalid", .order = 0}));
+    QVERIFY(!config.addItem({.toolId = "a", .groupId = "missing", .order = 0}));
+    QVERIFY(config.addItem({.toolId = "a", .groupId = "later", .order = 0}));
+    QVERIFY(!config.addItem({.toolId = "a", .groupId = "first", .order = 0}));
+    QVERIFY(config.addItem({.toolId = "b", .groupId = "first", .order = 20}));
+    QVERIFY(config.addItem({.toolId = "c", .groupId = "first", .order = 10}));
+    QVERIFY(config.addItem({.toolId = "hidden", .groupId = "first", .order = 0, .visible = false}));
+    QVERIFY(config.addItem({.toolId = "unregistered", .groupId = "empty", .order = 0}));
     const auto sections = config.sections(tools);
     QCOMPARE(sections.size(), 2);
     QCOMPARE(sections[0].group.id, QString("first"));
@@ -178,11 +177,11 @@ void TestUi::groupedNavigation()
     QCOMPARE(sections[1].items[0].toolId, QString("a"));
     // Equal priorities have deterministic ID ordering, independent of insertion.
     NavigationManager ties;
-    QVERIFY(ties.addGroup({"z", "Z", 0}));
-    QVERIFY(ties.addGroup({"a", "A", 0}));
-    QVERIFY(ties.addItem({"c", "a", 0}));
-    QVERIFY(ties.addItem({"b", "a", 0}));
-    QVERIFY(ties.addItem({"a", "z", 0}));
+    QVERIFY(ties.addGroup({.id = "z", .name = "Z", .order = 0}));
+    QVERIFY(ties.addGroup({.id = "a", .name = "A", .order = 0}));
+    QVERIFY(ties.addItem({.toolId = "c", .groupId = "a", .order = 0}));
+    QVERIFY(ties.addItem({.toolId = "b", .groupId = "a", .order = 0}));
+    QVERIFY(ties.addItem({.toolId = "a", .groupId = "z", .order = 0}));
     QCOMPARE(ties.sections(tools)[0].group.id, QString("a"));
     QCOMPARE(ties.sections(tools)[0].items[0].toolId, QString("b"));
     QTemporaryDir dir;
@@ -221,8 +220,8 @@ void TestUi::mojibakeWorkflow()
     descriptor.factory = [](QWidget* parent) { return new MojibakePage(parent); };
     QVERIFY(tools.registerTool(descriptor));
     NavigationManager config;
-    QVERIFY(config.addGroup({"encoding", "Text and Encoding", 10}));
-    QVERIFY(config.addItem({descriptor.id, "encoding", 20}));
+    QVERIFY(config.addGroup({.id = "encoding", .name = "Text and Encoding", .order = 10}));
+    QVERIFY(config.addItem({.toolId = descriptor.id, .groupId = "encoding", .order = 20}));
     MainWindow window(settings, tools, config);
     window.setAttribute(Qt::WA_DontShowOnScreen);
     window.show(); QTest::qWait(50);
@@ -354,7 +353,7 @@ void TestUi::lossyRecoveryWorkflow()
     QStringEncoder gbk("GBK"); QStringDecoder utf8(QStringConverter::Utf8);
     const QString damaged = utf8(gbk(truth));
     server.response = TestHttpServer::success(truth);
-    QVERIFY(settings.setAiConfiguration({server.url(), "test-model", "test-only-key"}));
+    QVERIFY(settings.setAiConfiguration({.baseUrl = server.url(), .model = "test-model", .apiKey = "test-only-key"}));
     MojibakePage page(nullptr, &settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1100, 1000); page.show();
     auto* input = page.findChild<ElaPlainTextEdit*>("mojibakeInput");
     auto* analyze = page.findChild<ElaPushButton*>("mojibakeAnalyze");
@@ -507,8 +506,9 @@ void TestUi::filenameRecoveryWorkflow()
     const auto folder = tree->model()->index(0, 0); QCOMPARE(folder.data().toString(), QString("浣犲ソ"));
     auto choose = [&page](const QString& name) {
         for (int i = 1; i <= 5; ++i) {
-            auto* b = page.findChild<ElaPushButton*>(QString("filenameCandidate%1").arg(i));
-            if (b->isEnabled() && b->toolTip() == name) { b->click(); return true; }
+            if (auto* b = page.findChild<ElaPushButton*>(QString("filenameCandidate%1").arg(i)); b->isEnabled() && b->toolTip() == name) {
+                b->click(); return true;
+            }
         }
         return false;
     };
@@ -616,7 +616,7 @@ void TestUi::textStyleWorkflow()
     QTemporaryDir dir; AppSettings settings(dir.filePath("style-ui.ini")); QVERIFY(settings.setLocale("en"));
     ToolRegistry tools; ToolDescriptor descriptor; descriptor.id = "text.style_converter"; descriptor.name = "Text Style Converter";
     int loads = 0; descriptor.factory = [&](QWidget* parent) { ++loads; return new TextStylePage(parent, &settings); }; QVERIFY(tools.registerTool(descriptor));
-    NavigationManager navigation; QVERIFY(navigation.addGroup({"encoding", "Text and Encoding", 10})); QVERIFY(navigation.addItem({descriptor.id, "encoding", 30}));
+    NavigationManager navigation; QVERIFY(navigation.addGroup({.id = "encoding", .name = "Text and Encoding", .order = 10})); QVERIFY(navigation.addItem({.toolId = descriptor.id, .groupId = "encoding", .order = 30}));
     MainWindow window(settings,tools,navigation); window.setAttribute(Qt::WA_DontShowOnScreen); window.resize(1100,900); window.show();
     auto* page = window.findChild<TextStylePage*>(); QVERIFY(page); QCOMPARE(loads,1);
     QString copiedPayload; page->setClipboardWriter([&](const QString& value) { copiedPayload = value; return true; });
@@ -668,16 +668,16 @@ void TestUi::textStyleWorkflow()
     input->setPlainText("<script>&ABC🙂</script>"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().contains("<script>&ABC🙂</script>"));
     input->setPlainText(QString(100*1024,'x')); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); copy->click(); QCOMPARE(copiedPayload,output->document()->toRawText()); QVERIFY(copiedPayload.size()>=100*1024);
     auto entered = std::make_shared<QSemaphore>(), release = std::make_shared<QSemaphore>();
-    page->setRunner([entered,release](const QString& text, auto style, const QString& preset, uint64_t s, const textstyle::Control&) {
-        entered->release(); release->acquire(); return textstyle::Engine::transform(text,style,preset,s);
+    page->setRunner([entered,release](const QString& text, auto style, const QString& preset, const uint64_t s, const textstyle::Control&) {
+        entered->release(); release->acquire(); return textstyle::Engine::transform(text,std::move(style),preset,s);
     });
     input->setPlainText("late old input"); convert->click(); QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); input->setPlainText("new current input");
     release->release(); QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().isEmpty()); QCOMPARE(input->toPlainText(),QString("new current input"));
     convert->click(); QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); page->findChild<ElaPushButton*>("textStyleCancel")->click(); release->release();
     QTRY_VERIFY_WITH_TIMEOUT(convert->isEnabled(),5000); QVERIFY(output->toPlainText().isEmpty()); QVERIFY(!copy->isEnabled());
     auto ended = std::make_shared<QSemaphore>(); auto* closing = new TextStylePage();
-    closing->setRunner([entered,release,ended](const QString& text, auto style, const QString& preset, uint64_t s, const textstyle::Control& control) {
-        entered->release(); release->acquire(); auto result = textstyle::Engine::transform(text,style,preset,s,control); ended->release(); return result;
+    closing->setRunner([entered,release,ended](const QString& text, auto style, const QString& preset, const uint64_t s, const textstyle::Control& control) {
+        entered->release(); release->acquire(); auto result = textstyle::Engine::transform(text,std::move(style),preset,s,control); ended->release(); return result;
     });
     closing->findChild<ElaPlainTextEdit*>("textStyleInput")->setPlainText("close while running"); closing->findChild<ElaPushButton*>("textStyleConvert")->click();
     QTRY_VERIFY_WITH_TIMEOUT(entered->available()>0,5000); entered->acquire(); delete closing; release->release(); QTRY_VERIFY_WITH_TIMEOUT(ended->available()>0,5000);
@@ -727,7 +727,7 @@ void TestUi::characterArtWorkflow()
 void TestUi::voiceDesignerWorkflow()
 {
     QTemporaryDir dir; TestHttpServer server; AppSettings settings(dir.filePath("voice.ini"));
-    QVERIFY(settings.setLocale("en")); QVERIFY(settings.setAiConfiguration({server.url(), "text-model", "test-only-key"}));
+    QVERIFY(settings.setLocale("en")); QVERIFY(settings.setAiConfiguration({.baseUrl = server.url(), .model = "text-model", .apiKey = "test-only-key"}));
     ToolRegistry tools; ToolDescriptor descriptor;
     descriptor.id = "speech.voice_designer"; descriptor.name = "Voice Designer";
     int loads = 0;
@@ -796,17 +796,17 @@ void TestUi::voiceDesignerWorkflow()
     preview->appendPlainText("edit during request"); QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QVERIFY(!page->resultIsCurrent());
     generate->click(); QTRY_COMPARE(server.requests, 3); cancel->click(); QTRY_VERIFY(generate->isEnabled()); QVERIFY(status->text().contains("cancelled"));
     generate->click(); QTRY_COMPARE(server.requests, 4);
-    QVERIFY(settings.setAiConfiguration({server.url(), "another-text-model", "other-test-key"}));
+    QVERIFY(settings.setAiConfiguration({.baseUrl = server.url(), .model = "another-text-model", .apiKey = "other-test-key"}));
     QTRY_VERIFY(generate->isEnabled()); QVERIFY(!cancel->isEnabled()); QCOMPARE(server.requests, 4);
     // Once saved, the voice API is independent: its own model and key, unaffected by text API changes.
-    QVERIFY(settings.setVoiceConfiguration({server.url(), "custom-voicedesign", "voice-test-key"}));
+    QVERIFY(settings.setVoiceConfiguration({.baseUrl = server.url(), .model = "custom-voicedesign", .apiKey = "voice-test-key"}));
     QVERIFY(connection->text().contains("custom-voicedesign")); QVERIFY(!connection->text().contains("not saved"));
     generate->click(); QTRY_COMPARE(server.requests, 5);
     QCOMPARE(QJsonDocument::fromJson(server.lastBody).object()["model"].toString(), QString("custom-voicedesign"));
     QVERIFY(server.lastHeaders.contains("Bearer voice-test-key"));
-    QVERIFY(settings.setAiConfiguration({server.url(), "text-again", "text-test-key"})); QCoreApplication::processEvents();
+    QVERIFY(settings.setAiConfiguration({.baseUrl = server.url(), .model = "text-again", .apiKey = "text-test-key"})); QCoreApplication::processEvents();
     QVERIFY(cancel->isEnabled());
-    QVERIFY(settings.setVoiceConfiguration({server.url(), "custom-voicedesign", "voice-test-key"}));
+    QVERIFY(settings.setVoiceConfiguration({.baseUrl = server.url(), .model = "custom-voicedesign", .apiKey = "voice-test-key"}));
     QTRY_VERIFY(!cancel->isEnabled()); QVERIFY(generate->isEnabled());
     generate->click(); QTRY_COMPARE(server.requests, 6); lazy.hide(); QTRY_VERIFY(!cancel->isEnabled());
     lazy.show(); QCOMPARE(loads, 1); QCOMPARE(server.requests, 6);
@@ -823,7 +823,7 @@ void TestUi::voiceDesignerWorkflow()
 void TestUi::textStyleRestoreAiWorkflow()
 {
     QTemporaryDir dir; TestHttpServer server; AppSettings settings(dir.filePath("style-ai.ini")); QVERIFY(settings.setLocale("en"));
-    QVERIFY(settings.setAiConfiguration({server.url(),"model","test-only-key"}));
+    QVERIFY(settings.setAiConfiguration({.baseUrl = server.url(), .model = "model", .apiKey = "test-only-key"}));
     TextStylePage page(nullptr,&settings); page.setAttribute(Qt::WA_DontShowOnScreen); page.resize(1100,850); page.show();
     auto* input=page.findChild<ElaPlainTextEdit*>("textStyleInput"); auto* output=page.findChild<ElaPlainTextEdit*>("textStyleOutput");
     auto* run=page.findChild<ElaPushButton*>("textStyleConvert"); auto* aiRun=page.findChild<ElaPushButton*>("textStyleAiRun");
@@ -881,10 +881,10 @@ void TestUi::windowWorkflow()
     tool.factory = [&secondLoads](QWidget* parent) { ++secondLoads; return new Base64Page(parent); };
     QVERIFY(tools.registerTool(tool));
     NavigationManager navigationConfig;
-    QVERIFY(navigationConfig.addGroup({"encoding", "Text and Encoding", 10}));
-    QVERIFY(navigationConfig.addGroup({"test", "Test Tools", 20}));
-    QVERIFY(navigationConfig.addItem({"encoding.base64", "encoding", 10}));
-    QVERIFY(navigationConfig.addItem({"test.second", "test", 10}));
+    QVERIFY(navigationConfig.addGroup({.id = "encoding", .name = "Text and Encoding", .order = 10}));
+    QVERIFY(navigationConfig.addGroup({.id = "test", .name = "Test Tools", .order = 20}));
+    QVERIFY(navigationConfig.addItem({.toolId = "encoding.base64", .groupId = "encoding", .order = 10}));
+    QVERIFY(navigationConfig.addItem({.toolId = "test.second", .groupId = "test", .order = 10}));
     MainWindow window(settings, tools, navigationConfig);
     window.setAttribute(Qt::WA_DontShowOnScreen);
     QCOMPARE(firstLoads, 0);
@@ -1045,9 +1045,10 @@ void TestUi::windowWorkflow()
     QCOMPARE(restored.themeMode(), ElaThemeType::Light);
     reopened.close();
 }
+}  // namespace
 int main(int argc, char** argv)
 {
-    QApplication app(argc, argv);
+    const QApplication app(argc, argv);
     eApp->init();
     ui::initializeTheme(&app);
     TestUi test;

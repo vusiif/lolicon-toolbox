@@ -7,15 +7,15 @@
 #include <stdexcept>
 namespace textstyle {
 uint64_t Random::next() { if (m_check) m_check(); ++m_calls; m_state += UINT64_C(0x9E3779B97F4A7C15); auto z = m_state; z = (z ^ (z >> 30)) * UINT64_C(0xBF58476D1CE4E5B9); z = (z ^ (z >> 27)) * UINT64_C(0x94D049BB133111EB); return z ^ (z >> 31); }
-uint64_t Random::sample(uint64_t b, const std::function<uint64_t()>& raw) { if (!b) throw std::invalid_argument("zero random bound"); const auto threshold = (uint64_t(0) - b) % b; for (;;) { const auto x = raw(); if (x >= threshold) return x % b; } }
-uint64_t Random::bounded(uint64_t b) { return sample(b, [this] { return next(); }); }
-bool Random::gate(int rate) { return rate == 10000 || (rate > 0 && bounded(10000) < uint64_t(rate)); }
-int Random::choose(const QList<uint64_t>& weights) { if (weights.size() == 1) return 0; uint64_t sum = 0; for (auto weight : weights) sum += weight; auto n = bounded(sum); for (int i = 0; i < weights.size(); ++i) { if (n < weights[i]) return i; n -= weights[i]; } throw std::logic_error("invalid weights"); }
+uint64_t Random::sample(const uint64_t b, const std::function<uint64_t()>& raw) { if (!b) throw std::invalid_argument("zero random bound"); const auto threshold = (static_cast<uint64_t>(0) - b) % b; for (;;) { if (const auto x = raw(); x >= threshold) return x % b; } }
+uint64_t Random::bounded(const uint64_t b) { return sample(b, [this] { return next(); }); }
+bool Random::gate(const int rate) { return rate == 10000 || (rate > 0 && bounded(10000) < static_cast<uint64_t>(rate)); }
+int Random::choose(const QList<uint64_t>& weights) { if (weights.size() == 1) return 0; uint64_t sum = 0; for (const auto weight : weights) sum += weight; auto n = bounded(sum); for (int i = 0; i < weights.size(); ++i) { if (n < weights[i]) return i; n -= weights[i]; } throw std::logic_error("invalid weights"); }
 QString Engine::normalize(QString text) { return text.replace("\r\n", "\n").replace('\r', '\n').replace(QChar::LineSeparator, '\n').replace(QChar::ParagraphSeparator, '\n'); }
 bool Engine::seed(const QString& input, uint64_t& value) {
     auto text = input; while (text.startsWith(' ')) text.remove(0, 1); while (text.endsWith(' ')) text.chop(1); if (text.isEmpty()) return false;
     uint64_t result = 0;
-    for (auto c : text) { if (c < '0' || c > '9') return false; const auto digit = uint64_t(c.unicode() - '0'); if (result > (UINT64_MAX - digit) / 10) return false; result = result * 10 + digit; }
+    for (auto c : text) { if (c < '0' || c > '9') return false; const auto digit = static_cast<uint64_t>(c.unicode() - '0'); if (result > (UINT64_MAX - digit) / 10) return false; result = result * 10 + digit; }
     value = result; return true;
 }
 bool Engine::userSeed(const QString& input, UserSeed& result) {
@@ -38,7 +38,7 @@ bool Engine::userSeed(const QString& input, UserSeed& result) {
     }
     result = std::move(parsed); return true;
 }
-QString errorName(Error e) { switch(e) {
+QString errorName(const Error e) { switch(e) {
     case Error::None: return "None"; case Error::StyleUnavailable: return "StyleUnavailable"; case Error::InvalidStyle: return "InvalidStyle";
     case Error::UnsupportedSchema: return "UnsupportedSchema"; case Error::InvalidPreset: return "InvalidPreset"; case Error::InvalidSeed: return "InvalidSeed";
     case Error::InvalidUnicodeInput: return "InvalidUnicodeInput"; case Error::InputTooLarge: return "InputTooLarge"; case Error::OutputTooLarge: return "OutputTooLarge";
@@ -57,7 +57,7 @@ Result Engine::transform(const QString& input, std::shared_ptr<const Definition>
         QList<const Decorator*> wrappers; QList<uint64_t> wrapperWeights;
         for (const auto& id : preset.decorators) for (const auto& d : style->decorators) if (d.id == id) { wrappers.append(&d); wrapperWeights.append(d.weight); break; }
         Random random(seedValue, check); Result result; result.stats.inputBytes = utf8.size(); qsizetype outBytes = 0, outUnits = 0;
-        auto append = [&](QString& buffer, QStringView chunk) { const auto bytes = chunk.toUtf8().size(); if (outBytes + bytes > MaxOutputBytes || outUnits + chunk.size() > MaxOutputUnits) throw Error::OutputTooLarge; buffer.append(chunk); outBytes += bytes; outUnits += chunk.size(); };
+        auto append = [&](QString& buffer, const QStringView chunk) { const auto bytes = chunk.toUtf8().size(); if (outBytes + bytes > MaxOutputBytes || outUnits + chunk.size() > MaxOutputUnits) throw Error::OutputTooLarge; buffer.append(chunk); outBytes += bytes; outUnits += chunk.size(); };
         qsizetype start = 0;
         do {
             check(); const auto newline = text.indexOf('\n', start); const auto end = newline < 0 ? text.size() : newline;
@@ -69,10 +69,9 @@ Result Engine::transform(const QString& input, std::shared_ptr<const Definition>
             append(leading, QStringView(line).left(bodyStart));
             int token = first;
             while (token < last) {
-                check(); const auto pos = boundaries[token]; const auto scalar = QChar::isHighSurrogate(line[pos].unicode()) ? QChar::surrogateToUcs4(line[pos], line[pos + 1]) : char32_t(line[pos].unicode());
+                check(); const auto pos = boundaries[token]; const auto scalar = QChar::isHighSurrogate(line[pos].unicode()) ? QChar::surrogateToUcs4(line[pos], line[pos + 1]) : static_cast<char32_t>(line[pos].unicode());
                 const Rule* match = nullptr;
-                const auto rules = index.constFind(scalar);
-                if (rules != index.cend()) for (auto* rule : *rules) { check(); const auto stop = pos + rule->source.size(); if (stop <= bodyEnd && ends.contains(stop) && QStringView(line).mid(pos, rule->source.size()) == rule->source) { match = rule; break; } }
+                if (const auto rules = index.constFind(scalar); rules != index.cend()) for (auto* rule : *rules) { check(); if (const auto stop = pos + rule->source.size(); stop <= bodyEnd && ends.contains(stop) && QStringView(line).mid(pos, rule->source.size()) == rule->source) { match = rule; break; } }
                 if (!match) { append(body, QStringView(line).mid(pos, boundaries[token + 1] - pos)); ++token; continue; }
                 ++result.stats.matched;
                 if (random.gate(preset.replaceRate)) { QList<uint64_t> weights; for (const auto& c : match->choices) weights.append(c.weight); append(body, match->choices[random.choose(weights)].text); ++result.stats.replaced; }

@@ -6,7 +6,6 @@
 #include <ElaPushButton.h>
 #include <ElaPlainTextEdit.h>
 #include <ElaTheme.h>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QApplication>
@@ -34,7 +33,7 @@ ClipboardSourcePage::ClipboardSourcePage(QWidget* parent) : QWidget(parent) {
     m_read = button("clipboardRead"); ui::primaryButton(m_read); m_clear = button("clipboardClear");
     m_plain = button("clipboardPlain"); m_html = button("clipboardHtml"); m_use = button("clipboardUse");
     m_plain->setCheckable(true); m_html->setCheckable(true);
-    auto edit = [content](const char* name, int height) {
+    auto edit = [content](const char* name, const int height) {
         auto* widget = new ElaPlainTextEdit(content); widget->setObjectName(name); widget->setReadOnly(true); widget->setMinimumHeight(height); return widget;
     };
     m_formats = edit("clipboardFormats", 80); m_formats->setMaximumHeight(110);
@@ -49,9 +48,8 @@ ClipboardSourcePage::ClipboardSourcePage(QWidget* parent) : QWidget(parent) {
     layout->addWidget(m_title); layout->addWidget(m_description); layout->addLayout(actions); layout->addWidget(m_status);
     layout->addWidget(m_formats); layout->addLayout(sources); layout->addWidget(m_report); layout->addWidget(m_details); layout->addWidget(m_use, 0, Qt::AlignLeft); layout->addStretch();
     connect(m_read, &ElaPushButton::clicked, this, [this] {
-        const auto* mime = QApplication::clipboard()->mimeData(QClipboard::Clipboard);
-        if (mime) inspect(*mime);
-        else { QMimeData empty; inspect(empty); }
+        if (const auto* mime = QApplication::clipboard()->mimeData(QClipboard::Clipboard)) inspect(*mime);
+        else { const QMimeData empty; inspect(empty); }
     });
     connect(m_plain, &ElaPushButton::clicked, this, [this] { m_selected = 0; refresh(); });
     connect(m_html, &ElaPushButton::clicked, this, [this] { m_selected = 1; refresh(); });
@@ -103,7 +101,7 @@ void ClipboardSourcePage::refresh() {
     m_plainPreview->setPlainText(preview(capture.plain)); m_htmlPreview->setPlainText(preview(m_snapshot.htmlText));
     QStringList details;
     if (m_readOnce && !busy) {
-        auto describe = [this, &details](const QString& label, const QString& text, bool present, bool oversized, bool invalid) {
+        auto describe = [&details](const QString& label, const QString& text, const bool present, const bool oversized, const bool invalid) {
             if (!present) details << tr("%1: not provided.").arg(label);
             else if (oversized) details << tr("%1: exceeds the 1 MiB limit; not loaded.").arg(label);
             else if (invalid) details << tr("%1: invalid Unicode; not loaded.").arg(label);

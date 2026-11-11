@@ -1,10 +1,11 @@
-#include <QtTest>
+#include <QTest>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QElapsedTimer>
 #include "ByteEncodingAnalyzer.h"
 #include "RecoveryOperation.h"
 using namespace mojibake;
+namespace {
 class TestFileRecovery : public QObject {
     Q_OBJECT
 private slots:
@@ -25,15 +26,15 @@ void TestFileRecovery::unicodeBytes() {
         QCOMPARE(*RecoveryOperation::output(result.candidates.first().text, e, true, Newlines::Preserve), fileBytes);
     }
     const QString text = "你好";
-    for (const auto& pair : {std::pair{Encoding::Utf16LE, "604f7d59"}, std::pair{Encoding::Utf16BE, "4f60597d"},
-                            std::pair{Encoding::Utf32LE, "604f00007d590000"}, std::pair{Encoding::Utf32BE, "00004f600000597d"}}) {
-        const auto bytes = EncodingConverter::encode(text, pair.first); QVERIFY(bytes);
-        QCOMPARE(*bytes, QByteArray::fromHex(pair.second));
-        QCOMPARE(*EncodingConverter::decode(*bytes, pair.first), text);
-        const auto result = ByteEncodingAnalyzer::analyze(ByteEncodingAnalyzer::bom(pair.first) + *bytes);
-        QCOMPARE(result.bomEncoding, std::optional<Encoding>(pair.first));
+    for (const auto& [encoding, hex] : {std::pair{Encoding::Utf16LE, "604f7d59"}, std::pair{Encoding::Utf16BE, "4f60597d"},
+                                       std::pair{Encoding::Utf32LE, "604f00007d590000"}, std::pair{Encoding::Utf32BE, "00004f600000597d"}}) {
+        const auto bytes = EncodingConverter::encode(text, encoding); QVERIFY(bytes);
+        QCOMPARE(*bytes, QByteArray::fromHex(hex));
+        QCOMPARE(*EncodingConverter::decode(*bytes, encoding), text);
+        const auto result = ByteEncodingAnalyzer::analyze(ByteEncodingAnalyzer::bom(encoding) + *bytes);
+        QCOMPARE(result.bomEncoding, std::optional(encoding));
         QVERIFY(!result.candidates.isEmpty()); QCOMPARE(result.candidates.first().text, text);
-        QCOMPARE(result.candidates.first().encoding, pair.first);
+        QCOMPARE(result.candidates.first().encoding, encoding);
     }
     QVERIFY(!EncodingConverter::decode(QByteArray::fromHex("00d8"), Encoding::Utf16LE));
     QVERIFY(!EncodingConverter::decode(QByteArray::fromHex("41"), Encoding::Utf16LE));
@@ -70,13 +71,13 @@ void TestFileRecovery::damagedAndBinary() {
     QVERIFY(ByteEncodingAnalyzer::analyze(QByteArray(64, '\0')).probablyBinary);
     QVERIFY(ByteEncodingAnalyzer::analyze("MZ is also valid text.").candidates.size() > 0);
     QCOMPARE(ByteEncodingAnalyzer::analyze(QString("正常文本�").toUtf8()).candidates.first().text, QString("正常文本�"));
-    auto cancel = std::make_shared<std::atomic_bool>(true);
+    const auto cancel = std::make_shared<std::atomic_bool>(true);
     QVERIFY(ByteEncodingAnalyzer::analyze("text", {}, cancel).cancelled);
     QVERIFY(ByteEncodingAnalyzer::analyze(QByteArray(ByteEncodingAnalyzer::MaxFileBytes + 1, 'a')).tooLarge);
     QVERIFY(ByteEncodingAnalyzer::analyze(QByteArray::fromHex("fffe604f"), Encoding::Utf8).invalidBom);
 }
 void TestFileRecovery::saveSafety() {
-    QTemporaryDir dir; const auto source = dir.filePath("source.txt"), destination = dir.filePath("copy.txt");
+    const QTemporaryDir dir; const auto source = dir.filePath("source.txt"), destination = dir.filePath("copy.txt");
     const QByteArray original = QString("你好\r\nNBSP \rthird\n").toUtf8();
     { QFile f(source); QVERIFY(f.open(QIODevice::WriteOnly)); QCOMPARE(f.write(original), original.size()); }
     const auto snapshot = ByteEncodingAnalyzer::load(source);
@@ -106,5 +107,6 @@ void TestFileRecovery::performance() {
         qInfo() << "file bytes" << size << "ms" << timer.elapsed();
     }
 }
+}  // namespace
 QTEST_GUILESS_MAIN(TestFileRecovery)
 #include "TestFileRecovery.moc"

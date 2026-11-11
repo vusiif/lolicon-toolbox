@@ -1,6 +1,7 @@
-#include <QtTest>
+#include <QTest>
 #include "Base64Codec.h"
 
+namespace {
 class TestBase64Codec : public QObject
 {
     Q_OBJECT
@@ -39,34 +40,34 @@ void TestBase64Codec::encodeHelloWorld()
 
 void TestBase64Codec::encodeUtf8()
 {
-    std::string result = Base64Codec::encode("你好");
+    const std::string result = Base64Codec::encode("你好");
     QCOMPARE(result, "5L2g5aW9");
 }
 
 void TestBase64Codec::decodeEmpty()
 {
-    auto result = Base64Codec::decode("");
+    const auto result = Base64Codec::decode("");
     QVERIFY(result.has_value());
     QCOMPARE(result.value(), "");
 }
 
 void TestBase64Codec::decodeHello()
 {
-    auto result = Base64Codec::decode("SGVsbG8=");
+    const auto result = Base64Codec::decode("SGVsbG8=");
     QVERIFY(result.has_value());
     QCOMPARE(result.value(), "Hello");
 }
 
 void TestBase64Codec::decodeHelloWorld()
 {
-    auto result = Base64Codec::decode("aGVsbG8gd29ybGQ=");
+    const auto result = Base64Codec::decode("aGVsbG8gd29ybGQ=");
     QVERIFY(result.has_value());
     QCOMPARE(result.value(), "hello world");
 }
 
 void TestBase64Codec::decodeUtf8()
 {
-    auto result = Base64Codec::decode("5L2g5aW9");
+    const auto result = Base64Codec::decode("5L2g5aW9");
     QVERIFY(result.has_value());
     QCOMPARE(result.value(), "你好");
 }
@@ -89,7 +90,7 @@ void TestBase64Codec::decodeInvalid()
     QFETCH(QString, description);
     Q_UNUSED(description);
 
-    auto result = Base64Codec::decode(input.toStdString());
+    const auto result = Base64Codec::decode(input.toStdString());
     QVERIFY(!result.has_value());
 }
 
@@ -112,5 +113,6 @@ void TestBase64Codec::encodeDecodeRoundtrip()
     }
 }
 
+}  // namespace
 QTEST_MAIN(TestBase64Codec)
 #include "TestBase64Codec.moc"

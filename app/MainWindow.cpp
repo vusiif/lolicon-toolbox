@@ -7,7 +7,6 @@
 #include <ElaTheme.h>
 #include <ElaNavigationBar.h>
 #include <QHBoxLayout>
-#include <QEvent>
 #include <QCloseEvent>
 #include <QStyle>
 
@@ -36,30 +35,29 @@ MainWindow::MainWindow(AppSettings& settings, const ToolRegistry& tools, const N
     auto* box = bar ? qobject_cast<QHBoxLayout*>(bar->layout()) : nullptr;
     auto* last = box && box->count() > 0 ? box->itemAt(box->count() - 1) : nullptr;
     auto* right = last ? qobject_cast<QHBoxLayout*>(last->layout()) : nullptr;
-    auto* first = right && right->count() > 1 ? right->itemAt(0) : nullptr;
-    if (first && first->layout()) right->insertLayout(1, right->takeAt(0)->layout());
+    if (auto* first = right && right->count() > 1 ? right->itemAt(0) : nullptr; first && first->layout()) right->insertLayout(1, right->takeAt(0)->layout());
     else qWarning("Toolbox: ElaAppBar layout changed; keeping the default title bar button order.");
-    connect(eTheme, &ElaTheme::themeModeChanged, &settings, [&settings](ElaThemeType::ThemeMode mode) {
+    connect(eTheme, &ElaTheme::themeModeChanged, &settings, [&settings](const ElaThemeType::ThemeMode mode) {
         // System-driven changes already updated settings; only user toggles are overrides.
         if (mode != settings.themeMode()) settings.setThemeMode(mode);
     });
-    connect(&settings, &AppSettings::themeChanged, this, [](ElaThemeType::ThemeMode mode) {
+    connect(&settings, &AppSettings::themeChanged, this, [](const ElaThemeType::ThemeMode mode) {
         if (eTheme->getThemeMode() != mode) eTheme->setThemeMode(mode);
     });
     QString firstPageKey;
-    for (const auto& section : navigationConfig.sections(tools)) {
+    for (const auto& [group, items] : navigationConfig.sections(tools)) {
         QString groupKey;
-        const auto title = QCoreApplication::translate("Navigation", section.group.name.toUtf8().constData());
-        if (addExpanderNode(title, groupKey, ElaIconType::Folder) != ElaNavigationType::Success) continue;
-        m_groupKeys.insert(section.group.id, groupKey);
-        m_groupNames.insert(section.group.id, section.group.name);
-        for (const auto& item : section.items) {
+        if (const auto title = QCoreApplication::translate("Navigation", group.name.toUtf8().constData());
+            addExpanderNode(title, groupKey, ElaIconType::Folder) != ElaNavigationType::Success) continue;
+        m_groupKeys.insert(group.id, groupKey);
+        m_groupNames.insert(group.id, group.name);
+        for (const auto& item : items) {
             const auto tool = tools.findTool(item.toolId);
             if (!tool) continue;
             auto* page = new LazyToolPage(*tool, this);
             page->setObjectName(tool->id);
-            const auto toolTitle = QCoreApplication::translate("Tools", tool->name.toUtf8().constData());
-            if (addPageNode(toolTitle, page, groupKey, tool->icon) == ElaNavigationType::Success) {
+            if (const auto toolTitle = QCoreApplication::translate("Tools", tool->name.toUtf8().constData());
+                addPageNode(toolTitle, page, groupKey, tool->icon) == ElaNavigationType::Success) {
                 const auto key = page->property("ElaPageKey").toString();
                 m_pageKeys.insert(tool->id, key);
                 m_toolNames.insert(tool->id, tool->name);
@@ -72,12 +70,10 @@ MainWindow::MainWindow(AppSettings& settings, const ToolRegistry& tools, const N
     QString key;
     addFooterNode(tr("Settings"), m_settingsPage, key, 0, ElaIconType::Gear);
     m_pageKeys.insert("settings", key);
-    connect(this, &ElaWindow::navigationNodeClicked, this, [this](ElaNavigationType::NavigationNodeType, const QString& key) {
-        const auto id = m_pageKeys.key(key);
-        if (!id.isEmpty()) m_settings.setLastPage(id);
+    connect(this, &ElaWindow::navigationNodeClicked, this, [this](ElaNavigationType::NavigationNodeType, const QString& nodeKey) {
+        if (const auto id = m_pageKeys.key(nodeKey); !id.isEmpty()) m_settings.setLastPage(id);
     });
-    const auto savedGeometry = settings.windowGeometry();
-    if (!savedGeometry.isEmpty()) restoreGeometry(savedGeometry);
+    if (const auto savedGeometry = settings.windowGeometry(); !savedGeometry.isEmpty()) restoreGeometry(savedGeometry);
     auto savedKey = pageKey(settings.lastPage());
     if (savedKey.isEmpty()) savedKey = firstPageKey.isEmpty() ? pageKey("settings") : firstPageKey;
     if (!savedKey.isEmpty()) {
@@ -105,8 +101,7 @@ void MainWindow::changeEvent(QEvent* event)
 void MainWindow::closeEvent(QCloseEvent* event)
 {
     m_settings.setWindowGeometry(saveGeometry());
-    const auto* nav = findChild<ElaNavigationBar*>();
-    if (nav) m_settings.setNavigationExpanded(nav->getDisplayMode() == ElaNavigationType::Maximal);
+    if (const auto* nav = findChild<ElaNavigationBar*>()) m_settings.setNavigationExpanded(nav->getDisplayMode() == ElaNavigationType::Maximal);
     m_settings.sync();
     ElaWindow::closeEvent(event);
 }

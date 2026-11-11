@@ -7,7 +7,6 @@
 #include <ElaLineEdit.h>
 #include <ElaPlainTextEdit.h>
 #include <ElaTheme.h>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QStandardItemModel>
@@ -56,8 +55,7 @@ FilenameRecoveryPage::FilenameRecoveryPage(QWidget* parent) : QWidget(parent) {
     layout->addWidget(m_status); layout->addWidget(m_tree); layout->addLayout(candidatesRow); layout->addLayout(nameRow);
     layout->addWidget(m_report); layout->addWidget(m_details); layout->addWidget(m_export, 0, Qt::AlignLeft); layout->addStretch();
     connect(m_open, &ElaPushButton::clicked, this, [this] {
-        const auto path = QFileDialog::getExistingDirectory(this, tr("Choose the source directory"));
-        if (!path.isEmpty()) scanDirectory(path);
+        if (const auto path = QFileDialog::getExistingDirectory(this, tr("Choose the source directory")); !path.isEmpty()) scanDirectory(path);
     });
     connect(m_rescan, &ElaPushButton::clicked, this, [this] { scanDirectory(m_directory); });
     connect(m_cancel, &ElaPushButton::clicked, this, [this] { if (m_cancelToken) m_cancelToken->store(true); });
@@ -109,7 +107,7 @@ void FilenameRecoveryPage::rebuildTree() {
         const auto& e = m_plan.entries[i];
         auto* item = new QStandardItem(e.relativePath.section('/', -1)); item->setData(i, Qt::UserRole);
         auto font = item->font(); font.setBold(e.directory); item->setFont(font);
-        QList<QStandardItem*> row{item, new QStandardItem(e.selectedName), new QStandardItem(), new QStandardItem(e.directory ? tr("Folder") : tr("File"))};
+        QList row{item, new QStandardItem(e.selectedName), new QStandardItem(), new QStandardItem(e.directory ? tr("Folder") : tr("File"))};
         if (e.parent >= 0) m_rows[e.parent]->appendRow(row); else m_model->appendRow(row);
         m_rows.append(item);
     }
@@ -120,7 +118,7 @@ void FilenameRecoveryPage::rebuildTree() {
 void FilenameRecoveryPage::refreshPlan() {
     const auto validation = FilenameRecovery::validate(m_plan);
     for (int i = 0; i < m_rows.size(); ++i) {
-        const auto& e = m_plan.entries[i]; auto* parent = m_rows[i]->parent();
+        const auto& e = m_plan.entries[i]; const auto* parent = m_rows[i]->parent();
         auto* name = parent ? parent->child(m_rows[i]->row(), 1) : m_model->item(m_rows[i]->row(), 1);
         auto* status = parent ? parent->child(m_rows[i]->row(), 2) : m_model->item(m_rows[i]->row(), 2);
         name->setText(e.selectedName); name->setToolTip(validation.paths[i]);
@@ -133,7 +131,7 @@ void FilenameRecoveryPage::setName(const QString& name) {
     if (busy() || m_selected < 0) return;
     m_plan.entries[m_selected].selectedName = name; m_name->setText(name); m_copyResult = {}; refreshPlan(); refresh();
 }
-void FilenameRecoveryPage::selectEntry(int index) {
+void FilenameRecoveryPage::selectEntry(const int index) {
     m_selected = index;
     if (index >= 0 && index < m_plan.entries.size()) m_name->setText(m_plan.entries[index].selectedName);
     refresh();
@@ -146,8 +144,8 @@ void FilenameRecoveryPage::refresh() {
     const bool selected = m_selected >= 0 && m_selected < m_plan.entries.size();
     m_name->setEnabled(selected && !working); m_apply->setEnabled(selected && !working); m_original->setEnabled(selected && !working);
     m_path->setText(m_directory.isEmpty() ? tr("No directory selected.") : m_directory);
-    if (m_scanning) m_status->setText(tr("Scanning names and hashing file bytes locally: %1 entries, %2 MiB…").arg(m_progress->entries.load()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
-    else if (m_copying) m_status->setText(tr("Verifying and copying: %1 / %2 entries, %3 MiB written…").arg(m_progress->entries.load()).arg(m_plan.entries.size()).arg(double(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
+    if (m_scanning) m_status->setText(tr("Scanning names and hashing file bytes locally: %1 entries, %2 MiB…").arg(m_progress->entries.load()).arg(static_cast<double>(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
+    else if (m_copying) m_status->setText(tr("Verifying and copying: %1 / %2 entries, %3 MiB written…").arg(m_progress->entries.load()).arg(m_plan.entries.size()).arg(static_cast<double>(m_progress->bytes.load()) / (1024 * 1024), 0, 'f', 1));
     else if (!m_copyResult.error.isEmpty()) m_status->setText(m_copyResult.error + (m_copyResult.outputCreated ? tr(" Partial output remains at %1; it is not a completed recovery. Choose a new destination for another attempt.").arg(m_copyResult.destination) : QString()));
     else if (m_copyResult.success) m_status->setText(tr("Created directory copy: %1. Source names and file bytes were preserved.").arg(m_copyResult.destination));
     else if (!m_plan.error.isEmpty()) m_status->setText(m_plan.error);
@@ -155,7 +153,7 @@ void FilenameRecoveryPage::refresh() {
     else if (!m_plan.root.isEmpty()) {
         int changes = 0, errors = 0;
         for (int i = 0; i < m_plan.entries.size(); ++i) { changes += m_plan.entries[i].selectedName != m_plan.entries[i].relativePath.section('/', -1); errors += !validation.errors[i].isEmpty(); }
-        m_status->setText(tr("%1 entries, %2 MiB; %3 name changes, %4 errors. Review the plan before creating a copy.").arg(m_plan.entries.size()).arg(double(m_plan.totalBytes) / (1024 * 1024), 0, 'f', 1).arg(changes).arg(errors));
+        m_status->setText(tr("%1 entries, %2 MiB; %3 name changes, %4 errors. Review the plan before creating a copy.").arg(m_plan.entries.size()).arg(static_cast<double>(m_plan.totalBytes) / (1024 * 1024), 0, 'f', 1).arg(changes).arg(errors));
     } else m_status->setText(tr("Choose a small directory. All entries will be copied; only names selected in the plan change."));
     if (!selected) { m_name->clear(); m_details->clear(); }
     const NameEntry* entry = selected ? &m_plan.entries[m_selected] : nullptr;
@@ -200,7 +198,7 @@ void FilenameRecoveryPage::retranslate() {
     m_model->setHorizontalHeaderLabels({tr("Original name"), tr("Proposed name"), tr("Plan status"), tr("Type")});
     if (!m_rows.isEmpty()) {
         for (int i = 0; i < m_rows.size(); ++i) {
-            auto* parent = m_rows[i]->parent(); auto* type = parent ? parent->child(m_rows[i]->row(), 3) : m_model->item(m_rows[i]->row(), 3);
+            const auto* parent = m_rows[i]->parent(); auto* type = parent ? parent->child(m_rows[i]->row(), 3) : m_model->item(m_rows[i]->row(), 3);
             type->setText(m_plan.entries[i].directory ? tr("Folder") : tr("File"));
         }
         refreshPlan();

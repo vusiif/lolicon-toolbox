@@ -45,14 +45,14 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     art.factory = [](QWidget* parent) { return new CharacterArtPage(parent); };
     m_tools->registerTool(art);
     NavigationManager navigation;
-    navigation.addGroup({"encoding", QT_TRANSLATE_NOOP("Navigation", "Text and Encoding"), 10});
-    navigation.addItem({"encoding.base64", "encoding", 10, true});
-    navigation.addItem({"encoding.mojibake", "encoding", 20, true});
-    navigation.addItem({"text.style_converter", "encoding", 30, true});
-    navigation.addGroup({"speech", QT_TRANSLATE_NOOP("Navigation", "Audio and Speech"), 20});
-    navigation.addItem({"speech.voice_designer", "speech", 10, true});
-    navigation.addGroup({"image", QT_TRANSLATE_NOOP("Navigation", "Image Tools"), 30});
-    navigation.addItem({"image.character_art", "image", 10, true});
+    navigation.addGroup({.id = "encoding", .name = QT_TRANSLATE_NOOP("Navigation", "Text and Encoding"), .order = 10});
+    navigation.addItem({.toolId = "encoding.base64", .groupId = "encoding", .order = 10, .visible = true});
+    navigation.addItem({.toolId = "encoding.mojibake", .groupId = "encoding", .order = 20, .visible = true});
+    navigation.addItem({.toolId = "text.style_converter", .groupId = "encoding", .order = 30, .visible = true});
+    navigation.addGroup({.id = "speech", .name = QT_TRANSLATE_NOOP("Navigation", "Audio and Speech"), .order = 20});
+    navigation.addItem({.toolId = "speech.voice_designer", .groupId = "speech", .order = 10, .visible = true});
+    navigation.addGroup({.id = "image", .name = QT_TRANSLATE_NOOP("Navigation", "Image Tools"), .order = 30});
+    navigation.addItem({.toolId = "image.character_art", .groupId = "image", .order = 10, .visible = true});
     m_window = std::make_unique<MainWindow>(*m_settings, *m_tools, navigation);
     m_window->show();
 }

@@ -31,9 +31,9 @@ public:
     // Words for a candidate card; shared with the file page.
     static WorkspaceCandidate describe(const mojibake::Candidate& candidate, bool recommended);
     static QStringList processLines(const mojibake::Candidate& candidate, int examined, bool limited);
+    bool eventFilter(QObject* watched, QEvent* event) override;
 protected:
     void changeEvent(QEvent* event) override;
-    bool eventFilter(QObject* watched, QEvent* event) override;
 private:
     void analyze();
     void retranslate();

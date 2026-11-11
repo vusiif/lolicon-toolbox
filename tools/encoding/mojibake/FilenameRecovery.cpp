@@ -7,7 +7,6 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
-#include <QSet>
 #include <QHash>
 #include <algorithm>
 namespace mojibake {
@@ -19,18 +18,18 @@ bool containsPath(const QString& parent, const QString& child) {
     const auto a = QDir::cleanPath(parent), b = QDir::cleanPath(child);
     return a.compare(b, Qt::CaseInsensitive) == 0 || b.startsWith(a.endsWith('/') ? a : a + '/', Qt::CaseInsensitive);
 }
-QList<Candidate> candidates(const QString& name, bool directory, const Cancellation& cancel) {
+QList<Candidate> candidates(const QString& name, const bool directory, const Cancellation& cancel) {
     const int dot = directory ? -1 : name.lastIndexOf('.');
     const auto stem = dot > 0 ? name.left(dot) : name;
     const auto suffix = dot > 0 ? name.mid(dot) : QString();
     if (CandidateScorer::anomalies(stem) == 0)
-        return {{name, {}, CandidateScorer::score(Candidate{name, {}}), 0, true}};
+        return {{.text = name, .path = {}, .score = CandidateScorer::score(Candidate{.text = name, .path = {}}), .anomalies = 0, .reversible = true}};
     auto result = MojibakeAnalyzer::analyze(stem, cancel);
     for (auto& c : result.candidates) c.text += suffix;
     // Keep the original name available even when it was outside the top five.
-    if (std::none_of(result.candidates.begin(), result.candidates.end(), [&](const auto& c) { return c.text == name; })) {
+    if (std::ranges::none_of(result.candidates, [&](const auto& c) { return c.text == name; })) {
         if (result.candidates.size() == 5) result.candidates.removeLast();
-        result.candidates.append({name, {}, CandidateScorer::score(Candidate{name, {}}), CandidateScorer::anomalies(stem), true});
+        result.candidates.append({.text = name, .path = {}, .score = CandidateScorer::score(Candidate{.text = name, .path = {}}), .anomalies = CandidateScorer::anomalies(stem), .reversible = true});
     }
     return result.candidates;
 }
@@ -41,12 +40,11 @@ NamePlan scanTree(const QString& root, bool analyzeNames, const Cancellation& ca
     plan.root = rootInfo.canonicalFilePath();
     if (plan.root.isEmpty()) { plan.error = tr("The source directory is not accessible."); return plan; }
     struct Pending { QString path; int parent, depth; };
-    QList<Pending> pending{{plan.root, -1, 0}};
+    QList<Pending> pending{{.path = plan.root, .parent = -1, .depth = 0}};
     while (!pending.isEmpty()) {
         const auto current = pending.takeLast();
         // QDirIterator does not follow links. Check the directory again before listing.
-        const QFileInfo directory(current.path);
-        if (link(directory) || !directory.isDir() || !directory.isReadable()) {
+        if (const QFileInfo directory(current.path); link(directory) || !directory.isDir() || !directory.isReadable()) {
             plan.error = tr("A source directory changed or cannot be read."); break;
         }
         QDirIterator iterator(current.path, QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System);
@@ -84,7 +82,7 @@ NamePlan scanTree(const QString& root, bool analyzeNames, const Cancellation& ca
             }
             if (analyzeNames) entry.candidates = candidates(info.fileName(), entry.directory, cancel);
             const int index = plan.entries.size(); plan.entries.append(std::move(entry));
-            if (info.isDir()) pending.append({info.absoluteFilePath(), index, current.depth + 1});
+            if (info.isDir()) pending.append({.path = info.absoluteFilePath(), .parent = index, .depth = current.depth + 1});
             if (progress) { progress->entries.store(plan.entries.size()); progress->bytes.store(plan.totalBytes); }
         }
     }
@@ -96,13 +94,12 @@ bool sameSource(const NamePlan& a, const NamePlan& b) {
     QHash<QString, const NameEntry*> entries;
     for (const auto& e : a.entries) entries.insert(e.relativePath, &e);
     for (const auto& e : b.entries) {
-        const auto it = entries.constFind(e.relativePath);
-        if (it == entries.cend() || (*it)->directory != e.directory || (*it)->size != e.size || (*it)->hash != e.hash) return false;
+        if (const auto it = entries.constFind(e.relativePath); it == entries.cend() || (*it)->directory != e.directory || (*it)->size != e.size || (*it)->hash != e.hash) return false;
     }
     return true;
 }
 }
-bool NameValidation::valid() const { return std::all_of(errors.begin(), errors.end(), [](const auto& error) { return error.isEmpty(); }); }
+bool NameValidation::valid() const { return std::ranges::all_of(errors, [](const auto& error) { return error.isEmpty(); }); }
 NamePlan FilenameRecovery::scan(const QString& root, const Cancellation& cancel, const NameProgressPtr& progress) {
     return scanTree(root, true, cancel, progress);
 }
@@ -112,10 +109,10 @@ QString FilenameRecovery::invalidName(const QString& name) {
     if (name.endsWith(' ') || name.endsWith('.')) return tr("Windows names cannot end in a space or dot.");
     for (auto c : name) if (c.unicode() < 32 || QString("<>:\"/\\|?*").contains(c))
         return tr("The name contains a Windows-forbidden character.");
-    const auto base = name.section('.', 0, 0).trimmed().toUpper();
-    if (base == "CON" || base == "PRN" || base == "AUX" || base == "NUL" || base == "CONIN$" || base == "CONOUT$" ||
+    if (const auto base = name.section('.', 0, 0).trimmed().toUpper();
+        base == "CON" || base == "PRN" || base == "AUX" || base == "NUL" || base == "CONIN$" || base == "CONOUT$" ||
         ((base.startsWith("COM") || base.startsWith("LPT")) && base.size() == 4 &&
-         (QString("123456789¹²³").contains(base[3])))) return tr("Reserved Windows device name.");
+         QString("123456789¹²³").contains(base[3]))) return tr("Reserved Windows device name.");
     return {};
 }
 NameValidation FilenameRecovery::validate(const NamePlan& plan) {
@@ -128,8 +125,7 @@ NameValidation FilenameRecovery::validate(const NamePlan& plan) {
         const auto parent = e.parent >= 0 && e.parent < i ? result.paths[e.parent] : QString();
         const auto path = parent.isEmpty() ? e.selectedName : parent + '/' + e.selectedName;
         result.paths.append(path); result.errors[i] = error;
-        const auto key = QString::number(e.parent) + ':' + e.selectedName.toCaseFolded();
-        if (names.contains(key)) {
+        if (const auto key = QString::number(e.parent) + ':' + e.selectedName.toCaseFolded(); names.contains(key)) {
             result.errors[i] = tr("Name conflict in the same directory (case-insensitive).");
             result.errors[names[key]] = result.errors[i];
         } else names.insert(key, i);
@@ -166,20 +162,18 @@ NameCopyResult FilenameRecovery::copy(const NamePlan& plan, const QString& desti
         if (link(QFileInfo(result.destination)) || !QFileInfo(result.destination).isDir())
             return fail(tr("The output directory changed during copying. Stop and choose a new destination."));
         for (int index = e.parent; index >= 0; index = plan.entries[index].parent) {
-            const QFileInfo ancestor(QDir(result.destination).filePath(validation.paths[index]));
-            if (link(ancestor) || !ancestor.isDir())
+            if (const QFileInfo ancestor(QDir(result.destination).filePath(validation.paths[index])); link(ancestor) || !ancestor.isDir())
                 return fail(tr("The output directory changed during copying. Stop and choose a new destination."));
         }
         // Check ancestors too: a directory may have been replaced by a link.
         for (int index = e.parent; index >= 0; index = plan.entries[index].parent) {
-            const QFileInfo ancestor(QDir(plan.root).filePath(plan.entries[index].relativePath));
-            if (link(ancestor) || !ancestor.isDir()) return fail(tr("The source tree changed or is unreadable. Scan again before copying."));
+            if (const QFileInfo ancestor(QDir(plan.root).filePath(plan.entries[index].relativePath)); link(ancestor) || !ancestor.isDir())
+                return fail(tr("The source tree changed or is unreadable. Scan again before copying."));
         }
         if (link(QFileInfo(plan.root)) || link(source) || e.directory != source.isDir())
             return fail(tr("The source tree changed or is unreadable. Scan again before copying."));
         if (e.directory) {
-            const QFileInfo out(outputPath);
-            if (!QDir(out.absolutePath()).mkdir(out.fileName())) return fail(tr("Could not create a copied directory."));
+            if (const QFileInfo out(outputPath); !QDir(out.absolutePath()).mkdir(out.fileName())) return fail(tr("Could not create a copied directory."));
         } else {
             QFile input(sourcePath), output(outputPath);
             if (!input.open(QIODevice::ReadOnly) || !output.open(QIODevice::WriteOnly | QIODevice::NewOnly))

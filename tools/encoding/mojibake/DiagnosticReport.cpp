@@ -20,19 +20,19 @@ QJsonObject base(const char* kind, bool bytes) {
 }
 QJsonArray steps(const QList<Transformation>& path) {
     QJsonArray result;
-    for (const auto& step : path) result.append(QJsonObject{
-        {"encode_as", EncodingConverter::name(step.encodeAs)}, {"decode_as", EncodingConverter::name(step.decodeAs)},
-        {"segmented", step.segmented}, {"partial", step.partial}, {"lossy_reconstruction", step.lossy}});
+    for (const auto& [encodeAs, decodeAs, segmented, partial, lossy] : path) result.append(QJsonObject{
+        {"encode_as", EncodingConverter::name(encodeAs)}, {"decode_as", EncodingConverter::name(decodeAs)},
+        {"segmented", segmented}, {"partial", partial}, {"lossy_reconstruction", lossy}});
     return result;
 }
 QJsonObject candidate(double score, bool reversible, const QList<Transformation>& path) {
     return {{"quality_score", score}, {"inverse_verified", reversible}, {"transformation_path", steps(path)}};
 }
 bool possibleLoss(const QString& text) { return text.contains(QChar(0xfffd)) || text.contains("??"); }
-QString assessment(bool same, bool loss, bool reversible) { return !reversible ? "partial" : loss || !same ? "review" : "retained"; }
+QString assessment(const bool same, const bool loss, const bool reversible) { return !reversible ? "partial" : loss || !same ? "review" : "retained"; }
 }
-DiagnosticReport DiagnosticReport::text(const Result& result, int selected) {
-    DiagnosticReport report{base("unicode_text", false), !result.original.isEmpty() || result.tooLarge || result.cancelled};
+DiagnosticReport DiagnosticReport::text(const Result& result, const int selected) {
+    DiagnosticReport report{.data = base("unicode_text", false), .ready = !result.original.isEmpty() || result.tooLarge || result.cancelled};
     auto& data = report.data;
     data["possible_information_loss"] = result.possibleLoss || possibleLoss(result.original);
     data["metrics"] = QJsonObject{{"source_utf16_units", result.original.size()}, {"examined_candidates", result.generated}};
@@ -55,8 +55,8 @@ DiagnosticReport DiagnosticReport::text(const Result& result, int selected) {
         if (i != selected && std::abs(result.candidates[i].score - c.score) <= 5 && result.candidates[i].text != c.text) data["ambiguous"] = true;
     return report;
 }
-DiagnosticReport DiagnosticReport::file(const FileResult& result, int selected) {
-    DiagnosticReport report{base("text_file", !result.hash.isEmpty()), !result.path.isEmpty() || !result.hash.isEmpty() || result.tooLarge || result.cancelled};
+DiagnosticReport DiagnosticReport::file(const FileResult& result, const int selected) {
+    DiagnosticReport report{.data = base("text_file", !result.hash.isEmpty()), .ready = !result.path.isEmpty() || !result.hash.isEmpty() || result.tooLarge || result.cancelled};
     auto& data = report.data;
     data["paths_or_names_included"] = !result.path.isEmpty();
     data["metrics"] = QJsonObject{{"source_bytes", result.bytes.size()}, {"candidate_count", result.candidates.size()}};
@@ -70,7 +70,7 @@ DiagnosticReport DiagnosticReport::file(const FileResult& result, int selected) 
     QJsonArray candidates;
     for (const auto& c : result.candidates) {
         auto meta = candidate(c.score, c.reversible, c.repairPath); QJsonArray aliases;
-        for (auto e : c.aliases) aliases.append(EncodingConverter::name(e));
+        for (const auto e : c.aliases) aliases.append(EncodingConverter::name(e));
         meta["source_encoding"] = EncodingConverter::name(c.encoding); meta["encoding_aliases"] = aliases; candidates.append(meta);
     }
     data["candidates"] = candidates;
@@ -87,11 +87,11 @@ DiagnosticReport DiagnosticReport::file(const FileResult& result, int selected) 
     return report;
 }
 DiagnosticReport DiagnosticReport::names(const NamePlan& plan) {
-    DiagnosticReport report{base("name_plan", false), !plan.root.isEmpty() || !plan.error.isEmpty() || plan.cancelled};
+    DiagnosticReport report{.data = base("name_plan", false), .ready = !plan.root.isEmpty() || !plan.error.isEmpty() || plan.cancelled};
     auto& data = report.data; const auto validation = FilenameRecovery::validate(plan);
     data["paths_or_names_included"] = !plan.root.isEmpty() || !plan.entries.isEmpty();
     const bool complete = !plan.root.isEmpty() && plan.error.isEmpty() && !plan.cancelled;
-    const bool hashes = complete && std::all_of(plan.entries.begin(), plan.entries.end(), [](const auto& e) { return e.directory || e.hash.size() == 32; });
+    const bool hashes = complete && std::ranges::all_of(plan.entries, [](const auto& e) { return e.directory || e.hash.size() == 32; });
     data["evidence"] = QJsonObject{{"source_root", plan.root}, {"scan_error", !plan.error.isEmpty()}, {"cancelled", plan.cancelled},
                                   {"scan_complete", complete}, {"file_hashes_available", hashes}};
     int changes = 0, errors = 0; bool loss = false, ambiguous = false, reversible = true, unverified = false;
@@ -125,8 +125,8 @@ DiagnosticReport DiagnosticReport::names(const NamePlan& plan) {
     if (complete && changes && (!reversible || !unverified)) data["inverse_verified"] = reversible;
     return report;
 }
-DiagnosticReport DiagnosticReport::clipboard(const ClipboardTexts& snapshot, int selected) {
-    DiagnosticReport report{base("clipboard", false), true}; auto& data = report.data;
+DiagnosticReport DiagnosticReport::clipboard(const ClipboardTexts& snapshot, const int selected) {
+    DiagnosticReport report{.data = base("clipboard", false), .ready = true}; auto& data = report.data;
     const auto& c = snapshot.capture;
     data["evidence"] = QJsonObject{{"formats", QJsonArray::fromStringList(c.formats)}, {"rtf_not_parsed", c.hasRtf},
         {"plain_usable", snapshot.plainUsable()}, {"html_usable", snapshot.htmlUsable()},

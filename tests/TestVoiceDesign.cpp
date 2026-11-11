@@ -1,4 +1,4 @@
-#include <QtTest>
+#include <QTest>
 #include <QSignalSpy>
 #include <QtEndian>
 #include "MiMoTtsService.h"
@@ -7,8 +7,8 @@ using namespace speech;
 namespace {
 QByteArray wav() {
     QByteArray bytes("RIFF\0\0\0\0WAVEfmt ", 16);
-    const auto append32 = [&bytes](quint32 value) { char raw[4]; qToLittleEndian(value, raw); bytes.append(raw, 4); };
-    const auto append16 = [&bytes](quint16 value) { char raw[2]; qToLittleEndian(value, raw); bytes.append(raw, 2); };
+    const auto append32 = [&bytes](const quint32 value) { char raw[4]; qToLittleEndian(value, raw); bytes.append(raw, 4); };
+    const auto append16 = [&bytes](const quint16 value) { char raw[2]; qToLittleEndian(value, raw); bytes.append(raw, 2); };
     append32(16); append16(1); append16(1); append32(24000); append32(48000); append16(2); append16(16);
     bytes.append("data", 4); append32(480); bytes.append(QByteArray(480, '\0'));
     qToLittleEndian<quint32>(bytes.size() - 8, bytes.data() + 4);
@@ -19,10 +19,9 @@ QByteArray response(const QByteArray& audio = wav()) {
         {"finish_reason", "stop"}, {"message", QJsonObject{{"audio", QJsonObject{{"data", QString::fromLatin1(audio.toBase64())}}}}}
     }}}}).toJson(QJsonDocument::Compact);
 }
-VoiceDesignRequest input(quint64 revision = 7) { return {QStringLiteral("低沉、温暖的成年男性声音。"), QStringLiteral("你好，欢迎来到工具箱。\nHello!"), revision}; }
-const QString VoiceModel = QStringLiteral("test-voicedesign-model");
-ai::Configuration config(const TestHttpServer& server) { return {server.url(), VoiceModel, "test-only-key"}; }
-}
+VoiceDesignRequest input(const quint64 revision = 7) { return {.voiceDescription = QStringLiteral("低沉、温暖的成年男性声音。"), .previewText = QStringLiteral("你好，欢迎来到工具箱。\nHello!"), .revision = revision}; }
+const auto VoiceModel = QStringLiteral("test-voicedesign-model");
+ai::Configuration config(const TestHttpServer& server) { return {.baseUrl = server.url(), .model = VoiceModel, .apiKey = "test-only-key"}; }
 class TestVoiceDesign : public QObject {
     Q_OBJECT
 private slots:
@@ -74,13 +73,13 @@ private slots:
         const auto audio = wav();
         QVERIFY(MiMoTtsService::validWav(audio));
         const auto info = MiMoTtsService::wavInfo(audio); QVERIFY(info);
-        QCOMPARE(info->format, quint16(1)); QCOMPARE(info->channels, quint16(1));
-        QCOMPARE(info->sampleRate, quint32(24000)); QCOMPARE(info->bitsPerSample, quint16(16));
-        QCOMPARE(info->dataBytes, quint32(480)); QCOMPARE(info->durationMs(), qint64(10)); // 480 B at 48000 B/s
+        QCOMPARE(info->format, static_cast<quint16>(1)); QCOMPARE(info->channels, static_cast<quint16>(1));
+        QCOMPARE(info->sampleRate, static_cast<quint32>(24000)); QCOMPARE(info->bitsPerSample, static_cast<quint16>(16));
+        QCOMPARE(info->dataBytes, static_cast<quint32>(480)); QCOMPARE(info->durationMs(), static_cast<qint64>(10)); // 480 B at 48000 B/s
         QVERIFY(!MiMoTtsService::wavInfo(audio.first(audio.size() - 1)));
         QCOMPARE(*MiMoTtsService::parseAudio(response(audio)), audio);
-        for (int offset : {0, 4, 8, 16, 20, 22, 24, 28, 32, 34, 40}) {
-            auto broken = audio; broken[offset] ^= char(0x7f);
+        for (const int offset : {0, 4, 8, 16, 20, 22, 24, 28, 32, 34, 40}) {
+            auto broken = audio; broken[offset] ^= static_cast<char>(0x7f);
             QVERIFY2(!MiMoTtsService::validWav(broken), qPrintable(QString::number(offset)));
         }
         QVERIFY(!MiMoTtsService::validWav(audio.first(audio.size() - 1)));
@@ -89,7 +88,7 @@ private slots:
         auto empty = audio.first(44); qToLittleEndian<quint32>(36, empty.data() + 4); qToLittleEndian<quint32>(0, empty.data() + 40);
         QVERIFY(!MiMoTtsService::validWav(empty));
         auto padded = audio;
-        QByteArray unknown("JUNK\1\0\0\0x\0", 10); padded.insert(12, unknown);
+        const QByteArray unknown("JUNK\1\0\0\0x\0", 10); padded.insert(12, unknown);
         qToLittleEndian<quint32>(padded.size() - 8, padded.data() + 4);
         QVERIFY(MiMoTtsService::validWav(padded)); // Ancillary chunks and odd-size padding are legitimate.
     }
@@ -100,7 +99,7 @@ private slots:
             "{\"choices\":[{\"message\":{\"audio\":{\"data\":42}}}]}"
         };
         for (const auto& body : invalid) QVERIFY(!MiMoTtsService::parseAudio(body));
-        for (const auto& encoded : {QString(), QStringLiteral("???="), QStringLiteral("AAAA"), QStringLiteral("汉字"), QString::fromLatin1(wav().toBase64()) + "\n"}) {
+        for (const auto& encoded : {QString(), QStringLiteral("\?\?\?="), QStringLiteral("AAAA"), QStringLiteral("汉字"), QString::fromLatin1(wav().toBase64()) + "\n"}) {
             auto object = QJsonDocument::fromJson(response()).object();
             const QJsonObject message{{"audio", QJsonObject{{"data", encoded}}}};
             object["choices"] = QJsonArray{QJsonObject{{"message", message}}};
@@ -125,7 +124,7 @@ private slots:
         QCOMPARE(failed.size(), 0); QCOMPARE(server.requests, 1); QVERIFY(!service.isBusy());
         const auto result = qvariant_cast<VoiceDesignResult>(done[0][0]);
         QCOMPARE(result.audioData, wav()); QCOMPARE(result.snapshot.voiceDescription, input().voiceDescription);
-        QCOMPARE(result.snapshot.previewText, input().previewText); QCOMPARE(result.snapshot.revision, quint64(7));
+        QCOMPARE(result.snapshot.previewText, input().previewText); QCOMPARE(result.snapshot.revision, static_cast<quint64>(7));
         QCOMPARE(result.modelId, VoiceModel); QCOMPARE(result.mimeType, "audio/wav");
         QVERIFY(result.createdAt.isValid()); QCOMPARE(result.createdAt.timeSpec(), Qt::UTC);
         QVERIFY(server.lastHeaders.startsWith("POST /v1/chat/completions HTTP/1.1"));
@@ -149,7 +148,7 @@ private slots:
         MiMoTtsService service; QSignalSpy failed(&service, &MiMoTtsService::failed), done(&service, &MiMoTtsService::completed);
         QVERIFY(service.generate(config(server), input()));
         QTRY_COMPARE_WITH_TIMEOUT(failed.size(), 1, 3000);
-        QCOMPARE(qvariant_cast<VoiceDesignError>(failed[0][0]), code); QCOMPARE(failed[0][2].toULongLong(), quint64(7));
+        QCOMPARE(qvariant_cast<VoiceDesignError>(failed[0][0]), code); QCOMPARE(failed[0][2].toULongLong(), static_cast<quint64>(7));
         QVERIFY(!failed[0][1].toString().contains("secret")); QVERIFY(!failed[0][1].toString().contains("private"));
         QCOMPARE(done.size(), 0); QCOMPARE(destination.requests, 0); QVERIFY(!service.isBusy());
     }
@@ -160,16 +159,16 @@ private slots:
         QVERIFY(service.generate(config(held), input(10)));
         QTRY_COMPARE_WITH_TIMEOUT(failed.size(), 1, 3000);
         QCOMPARE(qvariant_cast<VoiceDesignError>(failed[0][0]), VoiceDesignError::Timeout);
-        QCOMPARE(failed[0][2].toULongLong(), quint64(10));
+        QCOMPARE(failed[0][2].toULongLong(), static_cast<quint64>(10));
         QVERIFY(service.generate(config(held), input(11)));
         QTRY_COMPARE_WITH_TIMEOUT(held.requests, 2, 3000);
         service.cancel(); service.cancel();
-        QTRY_COMPARE(cancelled.size(), 1); QCOMPARE(cancelled[0][0].toULongLong(), quint64(11));
+        QTRY_COMPARE(cancelled.size(), 1); QCOMPARE(cancelled[0][0].toULongLong(), static_cast<quint64>(11));
         TestHttpServer success; success.response = response();
         QVERIFY(service.generate(config(success), input(12)));
         QTRY_COMPARE_WITH_TIMEOUT(done.size(), 1, 3000);
         QTest::qWait(180); QCOMPARE(done.size(), 1); QCOMPARE(failed.size(), 1);
-        QCOMPARE(qvariant_cast<VoiceDesignResult>(done[0][0]).snapshot.revision, quint64(12));
+        QCOMPARE(qvariant_cast<VoiceDesignResult>(done[0][0]).snapshot.revision, static_cast<quint64>(12));
     }
     void cancelledLateResponse() {
         TestHttpServer old; old.response = response(); old.chunks.append(old.response.first(10));
@@ -181,7 +180,7 @@ private slots:
         QTRY_COMPARE(cancelled.size(), 1);
         TestHttpServer next; next.response = response(); QVERIFY(service.generate(config(next), input(2)));
         QTRY_COMPARE(done.size(), 1); QTest::qWait(60);
-        QCOMPARE(done.size(), 1); QCOMPARE(qvariant_cast<VoiceDesignResult>(done[0][0]).snapshot.revision, quint64(2));
+        QCOMPARE(done.size(), 1); QCOMPARE(qvariant_cast<VoiceDesignResult>(done[0][0]).snapshot.revision, static_cast<quint64>(2));
     }
     void responseLimit() {
         TestHttpServer server; server.response = QByteArray(MiMoTtsService::MaxResponseBytes + 1, 'x');
@@ -204,7 +203,7 @@ private slots:
         // Windows may retry a refused TCP connection before reporting the error.
         QVERIFY(service.generate(settings, input(31))); QTRY_COMPARE_WITH_TIMEOUT(failed.size(), 2, 8000);
         QCOMPARE(qvariant_cast<VoiceDesignError>(failed[1][0]), VoiceDesignError::Network);
-        QCOMPARE(failed[1][2].toULongLong(), quint64(31)); QCOMPARE(done.size(), 0);
+        QCOMPARE(failed[1][2].toULongLong(), static_cast<quint64>(31)); QCOMPARE(done.size(), 0);
     }
     void destructionDuringRequest() {
         TestHttpServer server; server.hold = true;
@@ -216,5 +215,6 @@ private slots:
         service.reset(); QTest::qWait(50); QCOMPARE(terminalSignals, 0);
     }
 };
+}  // namespace
 QTEST_GUILESS_MAIN(TestVoiceDesign)
 #include "TestVoiceDesign.moc"

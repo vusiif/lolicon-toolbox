@@ -1,9 +1,11 @@
-#include <QtTest>
+#include <QTest>
+#include <QElapsedTimer>
 #include <QTemporaryDir>
 #include <QBuffer>
 #include <QImageReader>
 #include "CharacterArt.h"
 using namespace characterart;
+namespace {
 class TestCharacterArt : public QObject {
     Q_OBJECT
 private slots:
@@ -109,5 +111,6 @@ private slots:
         const auto rendered = render(measured,maple); QVERIFY(!rendered.isNull()); qInfo()<<"2048 image + 240 columns generation/render ms"<<timer.elapsed();
     }
 };
+}  // namespace
 QTEST_MAIN(TestCharacterArt)
 #include "TestCharacterArt.moc"

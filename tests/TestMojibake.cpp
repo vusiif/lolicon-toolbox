@@ -1,4 +1,4 @@
-#include <QtTest>
+#include <QTest>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -10,6 +10,7 @@
 #include "CandidateScorer.h"
 #include "ByteEncodingAnalyzer.h"
 using namespace mojibake;
+namespace {
 class TestMojibake : public QObject {
     Q_OBJECT
 private slots:
@@ -26,7 +27,7 @@ private slots:
 };
 void TestMojibake::commonCharacterScoring() {
     // Generic UTF-8-as-GBK damage, not only phrases the scorer happens to know.
-    const auto damage = [](const QString& text, Encoding source, Encoding wrong) {
+    const auto damage = [](const QString& text, const Encoding source, const Encoding wrong) {
         const auto bytes = EncodingConverter::encode(text, source);
         return bytes ? EncodingConverter::decode(*bytes, wrong) : std::nullopt;
     };
@@ -69,7 +70,7 @@ void TestMojibake::questionMarkLoss() {
 void TestMojibake::converters() {
     qInfo() << "Qt native codecs:" << QStringConverter::availableCodecs();
     const auto available = EncodingConverter::supported();
-    for (auto e : available) qInfo() << "Tool codec:" << EncodingConverter::name(e);
+    for (const auto e : available) qInfo() << "Tool codec:" << EncodingConverter::name(e);
     QVERIFY(available.contains(Encoding::Utf8));
     QVERIFY(available.contains(Encoding::Latin1));
 #ifdef Q_OS_WIN
@@ -95,16 +96,15 @@ void TestMojibake::converters() {
 void TestMojibake::qualityScores() {
     const auto shortSample = QString("ä½ å¥½ ").repeated(10);
     const auto longSample = QString("ä½ å¥½ ").repeated(100);
-    QCOMPARE(CandidateScorer::score({shortSample, {}}), CandidateScorer::score({longSample, {}}));
-    Candidate complete{"你好世界", {{Encoding::Gbk, Encoding::Utf8}}};
-    Candidate partial{"你好�世界", {{Encoding::Gbk, Encoding::Utf8, false, true}}};
+    QCOMPARE(CandidateScorer::score({.text = shortSample, .path = {}}), CandidateScorer::score({.text = longSample, .path = {}}));
+    const Candidate complete{.text = "你好世界", .path = {{.encodeAs = Encoding::Gbk, .decodeAs = Encoding::Utf8}}};
+    Candidate partial{.text = "你好�世界", .path = {{.encodeAs = Encoding::Gbk, .decodeAs = Encoding::Utf8, .segmented = false, .partial = true}}};
     partial.reversible = false;
     QVERIFY(CandidateScorer::score(complete) > CandidateScorer::score(partial));
-    const auto damaged = MojibakeAnalyzer::analyze("浣犲ソ�");
-    for (const auto& c : damaged.candidates) {
+    for (const auto damaged = MojibakeAnalyzer::analyze("浣犲ソ�"); const auto& c : damaged.candidates) {
         QVERIFY(c.score >= 0 && c.score <= 100);
     }
-    QVERIFY(CandidateScorer::score({QString(1000, QChar(0xfffd)), {}}) >= 0);
+    QVERIFY(CandidateScorer::score({.text = QString(1000, QChar(0xfffd)), .path = {}}) >= 0);
 }
 void TestMojibake::recoveryDataset() {
     QFile file(QString(TEST_DATA_DIR) + "/mojibake_cases.json");
@@ -112,7 +112,7 @@ void TestMojibake::recoveryDataset() {
     const auto dataset = QJsonDocument::fromJson(file.readAll()).array();
     QVERIFY(dataset.size() >= 8);
     auto encoding = [](const QString& name) {
-        for (auto e : EncodingConverter::supported()) if (EncodingConverter::name(e) == name) return e;
+        for (const auto e : EncodingConverter::supported()) if (EncodingConverter::name(e) == name) return e;
         return Encoding::Utf8;
     };
     for (const auto& value : dataset) {
@@ -134,7 +134,7 @@ void TestMojibake::recoveryDataset() {
         qInfo().noquote() << item["name"].toString() << "input:" << input;
         for (const auto& c : result.candidates) qInfo().noquote() << c.score << c.text;
         QVERIFY(!result.candidates.isEmpty());
-        QVERIFY2(std::any_of(result.candidates.begin(), result.candidates.end(), [&](const auto& c) { return c.text == original; }),
+        QVERIFY2(std::ranges::any_of(result.candidates, [&](const auto& c) { return c.text == original; }),
                  qPrintable("Missing candidate: " + item["name"].toString()));
         if (item["top"].toBool()) QCOMPARE(result.candidates.first().text, original);
         QSet<QString> seen;
@@ -144,7 +144,7 @@ void TestMojibake::recoveryDataset() {
             if (!c.reversible) continue;
             QString restored = c.text;
             for (auto it = c.path.crbegin(); it != c.path.crend(); ++it) {
-                const auto inverse = CandidateGenerator::transform(restored, {it->decodeAs, it->encodeAs});
+                const auto inverse = CandidateGenerator::transform(restored, {.encodeAs = it->decodeAs, .decodeAs = it->encodeAs});
                 QVERIFY(inverse.has_value()); restored = *inverse;
             }
             QCOMPARE(restored, input);
@@ -167,7 +167,7 @@ void TestMojibake::damagedAndLimits() {
         QCOMPARE(result.confidence, Confidence::Unknown);
     }
     QVERIFY(MojibakeAnalyzer::analyze(QString(MojibakeAnalyzer::MaxInputBytes + 1, 'a')).tooLarge);
-    auto cancelled = std::make_shared<std::atomic_bool>(true);
+    const auto cancelled = std::make_shared<std::atomic_bool>(true);
     QVERIFY(MojibakeAnalyzer::analyze("ä½ å¥½", cancelled).cancelled);
     QVERIFY(MojibakeAnalyzer::analyze("").candidates.isEmpty());
 }
@@ -177,7 +177,7 @@ void TestMojibake::mixedText() {
     QVERIFY(result.likelyMojibake);
 }
 void TestMojibake::performance() {
-    for (int bytes : {32, 1024, 100 * 1024, 1024 * 1024}) {
+    for (const int bytes : {32, 1024, 100 * 1024, 1024 * 1024}) {
         QElapsedTimer timer; timer.start();
         const auto result = MojibakeAnalyzer::analyze(QString(bytes, 'a'));
         QCOMPARE(result.candidates.first().text, QString(bytes, 'a'));
@@ -212,5 +212,6 @@ void TestMojibake::damagedChineseParagraph() {
         QVERIFY(!unchanged.likelyMojibake);
     }
 }
+}  // namespace
 QTEST_GUILESS_MAIN(TestMojibake)
 #include "TestMojibake.moc"

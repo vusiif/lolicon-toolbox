@@ -24,7 +24,7 @@ class ArtCanvas : public QWidget {
 public:
     using QWidget::QWidget;
     void setImage(const QImage& image) { m_image = image; updateSize(); }
-    void setZoom(int percent) { m_zoom = percent / 100.0; updateSize(); }
+    void setZoom(const int percent) { m_zoom = percent / 100.0; updateSize(); }
 protected:
     void paintEvent(QPaintEvent*) override { QPainter painter(this); painter.fillRect(rect(), Qt::white); painter.scale(m_zoom,m_zoom); painter.drawImage(0,0,m_image); }
 private:
@@ -70,7 +70,7 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
     m_canvas=new ArtCanvas(preview); preview->setWidget(m_canvas); m_canvas->setImage({});
     auto* exports=new QHBoxLayout; for(auto* b:{m_copy,m_txt,m_png}) exports->addWidget(b); exports->addStretch();
     layout->addWidget(m_title); layout->addWidget(m_hint); layout->addLayout(actions); layout->addWidget(m_info); layout->addLayout(options); layout->addWidget(preview); layout->addLayout(exports); layout->addWidget(m_status); layout->addStretch();
-    connect(m_open,&ElaPushButton::clicked,this,[this] { const auto path=QFileDialog::getOpenFileName(this,tr("Open image"),{},tr("Images (*.png *.jpg *.jpeg)")); if(!path.isEmpty()) openImage(path); });
+    connect(m_open,&ElaPushButton::clicked,this,[this] { if(const auto path=QFileDialog::getOpenFileName(this,tr("Open image"),{},tr("Images (*.png *.jpg *.jpeg)")); !path.isEmpty()) openImage(path); });
     connect(m_generate,&ElaPushButton::clicked,this,&CharacterArtPage::generate);
     connect(m_stop,&ElaPushButton::clicked,this,[this] { invalidate(); m_message=tr("Generation cancelled."); refresh(); });
     connect(m_clear,&ElaPushButton::clicked,this,[this] { invalidate(); m_source={}; m_path.clear(); m_sourcePreview->clear(); refresh(); });
@@ -81,14 +81,13 @@ CharacterArtPage::CharacterArtPage(QWidget* parent) : ToolPage(parent), m_maple(
     connect(m_brightness,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CharacterArtPage::invalidate);
     connect(m_contrast,qOverload<double>(&QDoubleSpinBox::valueChanged),this,&CharacterArtPage::invalidate);
     connect(m_invert,&QCheckBox::toggled,this,&CharacterArtPage::invalidate);
-    connect(m_zoom,qOverload<int>(&QSpinBox::valueChanged),this,[this](int value) { m_canvas->setZoom(value); });
+    connect(m_zoom,qOverload<int>(&QSpinBox::valueChanged),this,[this](const int value) { m_canvas->setZoom(value); });
     connect(m_copy,&ElaPushButton::clicked,this,[this] { if(m_result.success()) { m_message=m_copyWriter(m_result.text) ? tr("Text copied.") : tr("Could not obtain clipboard ownership. Retry copying."); refresh(); } });
-    connect(m_txt,&ElaPushButton::clicked,this,[this] { const auto path=QFileDialog::getSaveFileName(this,tr("Save TXT"),"character-art.txt",tr("Text files (*.txt)"),nullptr,QFileDialog::DontConfirmOverwrite); if(!path.isEmpty()) saveText(path); });
-    connect(m_png,&ElaPushButton::clicked,this,[this] { const auto path=QFileDialog::getSaveFileName(this,tr("Export PNG"),"character-art.png",tr("PNG images (*.png)"),nullptr,QFileDialog::DontConfirmOverwrite); if(!path.isEmpty()) savePng(path); });
+    connect(m_txt,&ElaPushButton::clicked,this,[this] { if(const auto path=QFileDialog::getSaveFileName(this,tr("Save TXT"),"character-art.txt",tr("Text files (*.txt)"),nullptr,QFileDialog::DontConfirmOverwrite); !path.isEmpty()) saveText(path); });
+    connect(m_png,&ElaPushButton::clicked,this,[this] { if(const auto path=QFileDialog::getSaveFileName(this,tr("Export PNG"),"character-art.png",tr("PNG images (*.png)"),nullptr,QFileDialog::DontConfirmOverwrite); !path.isEmpty()) savePng(path); });
     connect(&m_worker,&QFutureWatcher<Work>::finished,this,[this] {
         if(m_submitted!=m_revision) { refresh(); return; }
-        const auto work=m_worker.result();
-        if(work.loading) {
+        if(const auto work=m_worker.result(); work.loading) {
             m_source=work.loaded.image; m_message=work.loaded.error;
             if(!m_source.isNull()) m_sourcePreview->setPixmap(QPixmap::fromImage(m_source.scaled(160,160,Qt::KeepAspectRatio,Qt::SmoothTransformation)));
         } else {
@@ -126,7 +125,7 @@ void CharacterArtPage::openImage(const QString& path) {
 void CharacterArtPage::generate() {
     if(m_source.isNull() || m_worker.isRunning() || !m_maple.valid() || !m_customError.isEmpty()) return;
     invalidate(); m_submitted=m_revision; m_cancel=std::make_shared<std::atomic_bool>(false);
-    const Options options{m_columns->value(),m_brightness->value(),m_contrast->value(),m_invert->isChecked()};
+    const Options options{.columns = m_columns->value(), .brightness = m_brightness->value(), .contrast = m_contrast->value(), .inverted = m_invert->isChecked()};
     const bool custom=m_palette->currentData().toString()=="custom";
     const auto source=m_source; const auto palette=custom ? m_resultMaple.palettes.first() : m_maple.palettes[m_palette->currentIndex()]; const auto cell=m_resultMaple.cell; const auto cancel=m_cancel;
     m_worker.setFuture(QtConcurrent::run([source,options,palette,cell,cancel] { Work work; work.result=characterart::generate(source,options,palette,cell,cancel); return work; })); refresh();

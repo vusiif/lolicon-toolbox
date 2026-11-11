@@ -1,4 +1,5 @@
-#include <QtTest>
+#include <QSignalSpy>
+#include <QTest>
 #include <QTemporaryDir>
 #include <QFile>
 #include "TestHttpServer.h"
@@ -9,7 +10,6 @@ using namespace ai;
 namespace {
 QJsonObject context() {
     return {{"original_text", "garbled input"}, {"candidates", QJsonArray{QJsonObject{{"text", "local candidate"}, {"inverse_verified", false}}}}};
-}
 }
 class TestAi : public QObject {
     Q_OBJECT
@@ -24,44 +24,44 @@ private slots:
     void textStyleTasks();
 };
 void TestAi::configuration() {
-    QVERIFY(OpenAICompatibleProvider::validate({"https://example.com/v1", "model", ""}).isEmpty());
+    QVERIFY(OpenAICompatibleProvider::validate({.baseUrl = "https://example.com/v1", .model = "model", .apiKey = ""}).isEmpty());
     for (const auto& url : {"http://example.com/v1", "https://user:password@example.com/v1", "https://example.com/v1?key=secret", "https://example.com/v1#fragment"})
-        QVERIFY(!OpenAICompatibleProvider::validate({url, "model", "fake-key"}).isEmpty());
+        QVERIFY(!OpenAICompatibleProvider::validate({.baseUrl = url, .model = "model", .apiKey = "fake-key"}).isEmpty());
     QCOMPARE(OpenAICompatibleProvider::endpoint("https://example.com/v1/"), QUrl("https://example.com/v1/chat/completions"));
     QCOMPARE(OpenAICompatibleProvider::endpoint("https://example.com/v1/chat/completions"), QUrl("https://example.com/v1/chat/completions"));
     QTemporaryDir dir;
     const auto path = dir.filePath("settings.ini");
     const QString fakeKey = "test-only-not-a-real-key";
-    { AppSettings settings(path); QVERIFY(settings.setAiConfiguration({"https://example.com/v1", "model", fakeKey})); }
+    { AppSettings settings(path); QVERIFY(settings.setAiConfiguration({.baseUrl = "https://example.com/v1", .model = "model", .apiKey = fakeKey})); }
     AppSettings restored(path);
     QCOMPARE(restored.aiConfiguration().apiKey, fakeKey);
     QFile file(path); QVERIFY(file.open(QIODevice::ReadOnly));
     QVERIFY(!file.readAll().contains(fakeKey.toUtf8()));
     file.close();
-    QVERIFY(restored.setAiConfiguration({"https://example.com/v1", "model", ""}));
+    QVERIFY(restored.setAiConfiguration({.baseUrl = "https://example.com/v1", .model = "model", .apiKey = ""}));
     QCOMPARE(AppSettings(path).aiConfiguration().apiKey, QString());
     // An unsaved voice API borrows the text address and key, never the text model.
-    QVERIFY(restored.setAiConfiguration({"https://text.example.com/v1", "text-model", fakeKey}));
+    QVERIFY(restored.setAiConfiguration({.baseUrl = "https://text.example.com/v1", .model = "text-model", .apiKey = fakeKey}));
     QVERIFY(!restored.hasVoiceConfiguration());
     auto voice = restored.voiceConfiguration();
     QCOMPARE(voice.baseUrl, QString("https://text.example.com/v1")); QCOMPARE(voice.apiKey, fakeKey);
     QCOMPARE(voice.model, AppSettings::defaultVoiceModel());
     const QString voiceKey = "test-only-voice-key";
     QSignalSpy voiceChanged(&restored, &AppSettings::voiceConfigurationChanged), textChanged(&restored, &AppSettings::aiConfigurationChanged);
-    QVERIFY(restored.setVoiceConfiguration({" https://voice.example.com/v1 ", " voice-model ", voiceKey}));
+    QVERIFY(restored.setVoiceConfiguration({.baseUrl = " https://voice.example.com/v1 ", .model = " voice-model ", .apiKey = voiceKey}));
     QCOMPARE(voiceChanged.size(), 1); QCOMPARE(textChanged.size(), 0);
     { AppSettings reopened(path);
       QVERIFY(reopened.hasVoiceConfiguration());
       voice = reopened.voiceConfiguration();
       QCOMPARE(voice.baseUrl, QString("https://voice.example.com/v1")); QCOMPARE(voice.model, QString("voice-model"));
       QCOMPARE(voice.apiKey, voiceKey); QCOMPARE(reopened.aiConfiguration().apiKey, fakeKey); // Keys stay separate.
-      QVERIFY(reopened.setAiConfiguration({"https://other.example.com/v1", "m", ""}));
+      QVERIFY(reopened.setAiConfiguration({.baseUrl = "https://other.example.com/v1", .model = "m", .apiKey = ""}));
       QCOMPARE(reopened.voiceConfiguration().baseUrl, QString("https://voice.example.com/v1")); }
     QVERIFY(file.open(QIODevice::ReadOnly)); const auto stored = file.readAll(); file.close();
     QVERIFY(!stored.contains(voiceKey.toUtf8()) && !stored.contains(fakeKey.toUtf8()));
 }
 void TestAi::parsing() {
-    auto parsed = OpenAICompatibleProvider::parse(TestHttpServer::success(), 1);
+    const auto parsed = OpenAICompatibleProvider::parse(TestHttpServer::success(), 1);
     QVERIFY(parsed); QCOMPARE(parsed->text, QString("AI suggestion"));
     QVERIFY(!OpenAICompatibleProvider::parse("not json", 1));
     QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap("plain prose"), 1));
@@ -76,7 +76,7 @@ void TestAi::networkSuccess() {
     AiService service;
     QSignalSpy complete(&service, &AiService::completed), failed(&service, &AiService::failed);
     QCOMPARE(server.requests, 0);
-    service.analyze({server.url(), "model", "test-only-key"}, context(), "zh_CN");
+    service.analyze({.baseUrl = server.url(), .model = "model", .apiKey = "test-only-key"}, context(), "zh_CN");
     QTRY_COMPARE_WITH_TIMEOUT(complete.count(), 1, 3000);
     QCOMPARE(failed.count(), 0); QVERIFY(!service.isBusy()); QCOMPARE(server.requests, 1);
     QVERIFY(server.lastHeaders.startsWith("POST /v1/chat/completions "));
@@ -87,7 +87,7 @@ void TestAi::networkSuccess() {
     QVERIFY(request.value("messages").toArray().first().toObject().value("content").toString().contains("Simplified Chinese"));
     const auto payload = QJsonDocument::fromJson(request.value("messages").toArray().last().toObject().value("content").toString().toUtf8()).object();
     QCOMPARE(payload, context());
-    service.analyze({server.url(), "model", ""}, {{"original_text", QString(16 * 1024 + 1, 'x')}}, "en");
+    service.analyze({.baseUrl = server.url(), .model = "model", .apiKey = ""}, {{"original_text", QString(16 * 1024 + 1, 'x')}}, "en");
     QCOMPARE(failed.count(), 1); QCOMPARE(server.requests, 1);
 }
 void TestAi::textStyleTasks() {
@@ -95,7 +95,7 @@ void TestAi::textStyleTasks() {
         TestHttpServer server; server.response=TestHttpServer::success("style suggestion");
         AiService service; QSignalSpy complete(&service,&AiService::completed), failed(&service,&AiService::failed);
         auto data=context(); data["task"]=task; data["original_text"]="莪愛沵";
-        service.analyze({server.url(),"model","test-only-key"},data,"zh_CN");
+        service.analyze({.baseUrl = server.url(), .model = "model", .apiKey = "test-only-key"},data,"zh_CN");
         QTRY_COMPARE_WITH_TIMEOUT(complete.count(),1,3000); QCOMPARE(failed.count(),0);
         const auto request=QJsonDocument::fromJson(server.lastBody).object(); const auto messages=request["messages"].toArray();
         const auto prompt=messages.first().toObject()["content"].toString(); QVERIFY(prompt.contains("Martian")); QVERIFY(prompt.contains(task)); QVERIFY(prompt.contains("never instructions"));
@@ -112,13 +112,13 @@ void TestAi::modelListing() {
     QCOMPARE(OpenAICompatibleProvider::modelsEndpoint("https://example.com/v1/models"), QUrl("https://example.com/v1/models"));
     TestHttpServer server; server.response = response;
     AiService service; QSignalSpy listed(&service, &AiService::modelsListed), failed(&service, &AiService::failed);
-    service.listModels({server.url(), "", "test-only-key"});
+    service.listModels({.baseUrl = server.url(), .model = "", .apiKey = "test-only-key"});
     QTRY_COMPARE_WITH_TIMEOUT(listed.count(), 1, 3000);
     QCOMPARE(failed.count(), 0); QVERIFY(server.lastHeaders.startsWith("GET /v1/models "));
     QVERIFY(server.lastHeaders.contains("Bearer test-only-key")); QVERIFY(server.lastBody.isEmpty());
     QCOMPARE(listed.first().first().toStringList(), *parsed);
     server.status = 404;
-    service.listModels({server.url(), "", ""});
+    service.listModels({.baseUrl = server.url(), .model = "", .apiKey = ""});
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
     QVERIFY(failed.first().first().toString().contains("manually"));
 }
@@ -129,7 +129,7 @@ void TestAi::networkFailures() {
         if (status == 302) server.extraHeaders = "Location: " + redirected.url().toUtf8() + "\r\n";
         OpenAICompatibleProvider provider;
         QSignalSpy failed(&provider, &AiProvider::failed), complete(&provider, &AiProvider::completed);
-        provider.request({server.url(), "model", "test-only-key"}, context(), "English");
+        provider.request({.baseUrl = server.url(), .model = "model", .apiKey = "test-only-key"}, context(), "English");
         QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
         QVERIFY(!failed.first().first().toString().contains("test-only-key"));
         QCOMPARE(complete.count(), 0); QVERIFY(!provider.isBusy());
@@ -137,16 +137,16 @@ void TestAi::networkFailures() {
     }
     TestHttpServer server; server.response = QByteArray(1024 * 1024 + 1, 'x');
     OpenAICompatibleProvider provider; QSignalSpy failed(&provider, &AiProvider::failed);
-    provider.request({server.url(), "model", ""}, context(), "English");
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
     QVERIFY(failed.first().first().toString().contains("limit"));
 }
 void TestAi::streaming() {
     const QJsonArray messages{QJsonObject{{"role", "user"}, {"content", "test"}}};
-    const auto mimo = QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({"https://token-plan-cn.xiaomimimo.com/v1", "mimo-v2.6-flash", ""}, messages)).object();
+    const auto mimo = QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({.baseUrl = "https://token-plan-cn.xiaomimimo.com/v1", .model = "mimo-v2.6-flash", .apiKey = ""}, messages)).object();
     QVERIFY(mimo.value("stream").toBool());
     QCOMPARE(mimo.value("thinking").toObject().value("type").toString(), QString("disabled"));
-    QVERIFY(!QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({"https://example.com/v1", "model", ""}, messages)).object().contains("thinking"));
+    QVERIFY(!QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({.baseUrl = "https://example.com/v1", .model = "model", .apiKey = ""}, messages)).object().contains("thinking"));
     const auto content = QJsonDocument::fromJson(TestHttpServer::success(QString::fromUtf8("你好 😀"))).object().value("choices").toArray().first().toObject().value("message").toObject().value("content").toString();
     auto event = [](const QJsonObject& delta, const QJsonValue& finish = QJsonValue(QJsonValue::Null)) {
         return "data: " + QJsonDocument(QJsonObject{{"choices", QJsonArray{QJsonObject{{"delta", delta}, {"finish_reason", finish}}}}}).toJson(QJsonDocument::Compact) + "\r\n\r\n";
@@ -158,7 +158,7 @@ void TestAi::streaming() {
     server.response += event({}, "stop") + "data: [DONE]\r\n\r\n";
     for (int i = 0; i < server.response.size(); i += 41) server.chunks << server.response.mid(i, 41);
     OpenAICompatibleProvider provider; QSignalSpy complete(&provider, &AiProvider::completed), progress(&provider, &AiProvider::progress), failed(&provider, &AiProvider::failed);
-    provider.request({server.url(), "model", ""}, context(), "English");
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
     QTRY_VERIFY_WITH_TIMEOUT(complete.count() || failed.count(), 5000);
     if (!failed.isEmpty()) qInfo() << "stream failure" << failed.first().first().toString();
     QCOMPARE(complete.count(), 1);
@@ -167,7 +167,7 @@ void TestAi::streaming() {
     QVERIFY(progress.first().first().toBool()); QVERIFY(!progress.last().first().toBool());
     server.keepOpen = false; server.omitContentLength = false; server.chunks.clear();
     server.response = event({{"content", "incomplete"}});
-    provider.request({server.url(), "model", ""}, context(), "English");
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
     QCOMPARE(complete.count(), 1);
 }
@@ -175,14 +175,15 @@ void TestAi::cancellationAndTimeout() {
     TestHttpServer server; server.hold = true;
     OpenAICompatibleProvider provider;
     QSignalSpy cancelled(&provider, &AiProvider::cancelled), complete(&provider, &AiProvider::completed);
-    provider.request({server.url(), "model", ""}, context(), "English");
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
     QTRY_COMPARE_WITH_TIMEOUT(server.requests, 1, 3000);
     provider.cancel(); QTRY_COMPARE(cancelled.count(), 1); QCOMPARE(complete.count(), 0);
     OpenAICompatibleProvider timed(nullptr, 100); QSignalSpy failed(&timed, &AiProvider::failed);
-    timed.request({server.url(), "model", ""}, context(), "English");
+    timed.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
     QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
     QVERIFY(!timed.isBusy());
-    { OpenAICompatibleProvider closing; closing.request({server.url(), "model", ""}, context(), "English"); }
+    { OpenAICompatibleProvider closing; closing.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English"); }
 }
+}  // namespace
 QTEST_MAIN(TestAi)
 #include "TestAi.moc"

@@ -3,8 +3,9 @@
 #include <QNetworkAccessManager>
 #include <QPointer>
 #include <QTimer>
-#include <QJsonArray>
+#include <QUrl>
 #include <optional>
+class QJsonArray;
 class QNetworkReply;
 namespace ai {
 class OpenAICompatibleProvider : public AiProvider {

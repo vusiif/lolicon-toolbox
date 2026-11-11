@@ -8,7 +8,7 @@
 
 namespace speech {
 QString MiMoTtsService::defaultBaseUrl() { return QStringLiteral("https://api.xiaomimimo.com/v1"); }
-MiMoTtsService::MiMoTtsService(QObject* parent, int timeoutMs)
+MiMoTtsService::MiMoTtsService(QObject* parent, const int timeoutMs)
     : QObject(parent), m_timeoutMs(std::max(1, timeoutMs)) {
     m_timeout.setSingleShot(true);
     connect(&m_timeout, &QTimer::timeout, this, [this] {
@@ -16,19 +16,18 @@ MiMoTtsService::MiMoTtsService(QObject* parent, int timeoutMs)
     });
 }
 MiMoTtsService::~MiMoTtsService() {
-    if (m_reply) { m_reply->disconnect(this); m_reply->abort(); }
+    if (m_reply) { static_cast<void>(m_reply->disconnect(this)); m_reply->abort(); }
 }
 QString MiMoTtsService::validate(const ai::Configuration& config, const VoiceDesignRequest& input) {
     const QUrl url(config.baseUrl.trimmed(), QUrl::StrictMode);
-    const bool local = url.host() == "localhost" || QHostAddress(url.host()).isLoopback();
-    if (!url.isValid() || url.host().isEmpty() || !url.userInfo().isEmpty() || url.hasQuery() || url.hasFragment() ||
+    if (const bool local = url.host() == "localhost" || QHostAddress(url.host()).isLoopback(); !url.isValid() || url.host().isEmpty() || !url.userInfo().isEmpty() || url.hasQuery() || url.hasFragment() ||
         (url.scheme() != "https" && !(url.scheme() == "http" && local)))
         return tr("Use an HTTPS API address. HTTP is allowed only for localhost. Credentials, query strings and fragments are not allowed in the address.");
     if (config.apiKey.trimmed().isEmpty() || config.apiKey.size() > 8192 ||
-        std::any_of(config.apiKey.begin(), config.apiKey.end(), [](QChar c) { return c.category() == QChar::Other_Control; }))
+        std::ranges::any_of(config.apiKey, [](const QChar c) { return c.category() == QChar::Other_Control; }))
         return tr("Enter a valid API key in Settings.");
     if (config.model.trimmed().isEmpty() || config.model.size() > 256 ||
-        std::any_of(config.model.begin(), config.model.end(), [](QChar c) { return c.isSpace() || c.category() == QChar::Other_Control; }))
+        std::ranges::any_of(config.model, [](const QChar c) { return c.isSpace() || c.category() == QChar::Other_Control; }))
         return tr("Choose a voice design model in Settings.");
     if (input.voiceDescription.size() > MaxDescriptionBytes || input.voiceDescription.toUtf8().size() > MaxDescriptionBytes)
         return tr("Voice description exceeds the 8 KiB UTF-8 limit.");
@@ -57,9 +56,9 @@ QByteArray MiMoTtsService::requestBody(const VoiceDesignRequest& input, const QS
 }
 std::optional<WavInfo> MiMoTtsService::wavInfo(const QByteArray& audio) {
     if (audio.size() < 44 || audio.size() > MaxAudioBytes || audio.first(4) != "RIFF" || audio.mid(8, 4) != "WAVE") return {};
-    const auto u32 = [&audio](qsizetype offset) { return qFromLittleEndian<quint32>(audio.constData() + offset); };
-    const auto u16 = [&audio](qsizetype offset) { return qFromLittleEndian<quint16>(audio.constData() + offset); };
-    if (quint64(u32(4)) + 8 != quint64(audio.size())) return {};
+    const auto u32 = [&audio](const qsizetype offset) { return qFromLittleEndian<quint32>(audio.constData() + offset); };
+    const auto u16 = [&audio](const qsizetype offset) { return qFromLittleEndian<quint16>(audio.constData() + offset); };
+    if (static_cast<quint64>(u32(4)) + 8 != static_cast<quint64>(audio.size())) return {};
     bool formatFound = false, dataFound = false;
     quint16 blockAlign = 0;
     WavInfo info;
@@ -67,10 +66,9 @@ std::optional<WavInfo> MiMoTtsService::wavInfo(const QByteArray& audio) {
     while (offset < audio.size()) {
         if (audio.size() - offset < 8) return {};
         const auto length = u32(offset + 4);
-        const quint64 next = quint64(offset) + 8 + length + (length & 1);
-        if (next > quint64(audio.size())) return {};
-        const auto tag = audio.mid(offset, 4);
-        if (tag == "fmt ") {
+        const quint64 next = static_cast<quint64>(offset) + 8 + length + (length & 1);
+        if (next > static_cast<quint64>(audio.size())) return {};
+        if (const auto tag = audio.mid(offset, 4); tag == "fmt ") {
             if (formatFound || length < 16) return {};
             const auto type = u16(offset + 8), channels = u16(offset + 10), bits = u16(offset + 22);
             const auto sampleRate = u32(offset + 12), byteRate = u32(offset + 16);
@@ -79,14 +77,14 @@ std::optional<WavInfo> MiMoTtsService::wavInfo(const QByteArray& audio) {
             if ((type != 1 && type != 3) || channels == 0 || channels > 8 || sampleRate == 0 || sampleRate > 384000 ||
                 (type == 1 && bits != 8 && bits != 16 && bits != 24 && bits != 32) ||
                 (type == 3 && bits != 32 && bits != 64) || blockAlign != channels * (bits / 8) ||
-                byteRate != quint64(sampleRate) * blockAlign) return {};
+                byteRate != static_cast<quint64>(sampleRate) * blockAlign) return {};
             formatFound = true;
             info.format = type; info.channels = channels; info.sampleRate = sampleRate; info.bitsPerSample = bits;
         } else if (tag == "data") {
             if (dataFound || length == 0) return {};
             dataFound = true; info.dataBytes = length;
         }
-        offset = qsizetype(next);
+        offset = static_cast<qsizetype>(next);
     }
     if (!formatFound || !dataFound || info.dataBytes % blockAlign != 0) return {};
     return info;
@@ -103,7 +101,7 @@ std::optional<QByteArray> MiMoTtsService::parseAudio(const QByteArray& response)
     const auto data = choice.value("message").toObject().value("audio").toObject().value("data");
     if (!data.isString()) return {};
     const auto encodedText = data.toString();
-    if (encodedText.isEmpty() || encodedText.size() > ((MaxAudioBytes + 2) / 3) * 4) return {};
+    if (encodedText.isEmpty() || encodedText.size() > (MaxAudioBytes + 2) / 3 * 4) return {};
     // Reject non-ASCII, invalid padding and noncanonical Base64 rather than repair it.
     const auto encoded = encodedText.toLatin1();
     const auto decoded = QByteArray::fromBase64Encoding(encoded, QByteArray::AbortOnBase64DecodingErrors);
@@ -112,8 +110,7 @@ std::optional<QByteArray> MiMoTtsService::parseAudio(const QByteArray& response)
 }
 bool MiMoTtsService::generate(const ai::Configuration& config, const VoiceDesignRequest& input) {
     if (isBusy()) return false;
-    const auto error = validate(config, input);
-    if (!error.isEmpty()) { emit failed(VoiceDesignError::InvalidInput, error, input.revision); return false; }
+    if (const auto error = validate(config, input); !error.isEmpty()) { emit failed(VoiceDesignError::InvalidInput, error, input.revision); return false; }
     const auto body = requestBody(input, config.model);
     if (body.size() > MaxRequestBytes) {
         emit failed(VoiceDesignError::InvalidInput, tr("Voice design request is too large."), input.revision); return false;
@@ -147,8 +144,8 @@ void MiMoTtsService::finish(QNetworkReply* reply) {
     const auto networkError = reply->error();
     m_reply.clear(); reply->deleteLater();
     const auto snapshot = m_snapshot;
-    auto body = std::move(m_body); m_body.clear(); m_snapshot = {};
-    const auto fail = [this, &snapshot](VoiceDesignError code, const QString& message) { emit failed(code, message, snapshot.revision); };
+    const auto body = std::move(m_body); m_body.clear(); m_snapshot = {};
+    const auto fail = [this, &snapshot](const VoiceDesignError code, const QString& message) { emit failed(code, message, snapshot.revision); };
     if (m_cancelled) { emit cancelled(snapshot.revision); return; }
     if (m_abortReason == VoiceDesignError::ResponseTooLarge) { fail(*m_abortReason, tr("Voice design response exceeded the 34 MiB limit.")); return; }
     if (m_abortReason == VoiceDesignError::Timeout || networkError == QNetworkReply::TimeoutError) {
@@ -164,7 +161,7 @@ void MiMoTtsService::finish(QNetworkReply* reply) {
     if (networkError != QNetworkReply::NoError) { fail(VoiceDesignError::Network, tr("Voice design connection failed or the response was incomplete.")); return; }
     const auto audio = parseAudio(body);
     if (!audio) { fail(VoiceDesignError::InvalidResponse, tr("The service returned invalid audio. Expected a complete PCM or float WAV response.")); return; }
-    emit completed(VoiceDesignResult{*audio, "audio/wav", m_model, snapshot, QDateTime::currentDateTimeUtc()});
+    emit completed(VoiceDesignResult{.audioData = *audio, .mimeType = "audio/wav", .modelId = m_model, .snapshot = snapshot, .createdAt = QDateTime::currentDateTimeUtc()});
 }
 void MiMoTtsService::cancel() {
     if (m_reply) { m_cancelled = true; m_reply->abort(); }

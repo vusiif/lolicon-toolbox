@@ -3,9 +3,7 @@
 #include "UiTheme.h"
 #include <ElaTheme.h>
 #include <QButtonGroup>
-#include <QEnterEvent>
 #include <QEvent>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
 #include <QPainterPath>
@@ -15,7 +13,7 @@
 #include <QVBoxLayout>
 using mojibake::CharEvidence;
 namespace {
-QColor themeColor(ElaThemeType::ThemeColor role) { return eTheme->getThemeColor(eTheme->getThemeMode(), role); }
+QColor themeColor(const ElaThemeType::ThemeColor role) { return eTheme->getThemeColor(eTheme->getThemeMode(), role); }
 bool darkTheme() { return eTheme->getThemeMode() == ElaThemeType::Dark; }
 QString oneLine(QString text) {
     text.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ').replace('\t', ' ');
@@ -27,7 +25,7 @@ CandidateCard::CandidateCard(QWidget* parent) : ElaPushButton(parent) {
     setCheckable(true);
     setCursor(Qt::PointingHandCursor);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    setFixedHeight(sizeHint().height());
+    setFixedHeight(CandidateCard::sizeHint().height());
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { update(); });
 }
 QSize CandidateCard::sizeHint() const { return {240, 84}; }
@@ -118,12 +116,12 @@ protected:
         if (evidence.isEmpty()) return;
         const int start = currentBlock().position();
         const bool dark = darkTheme();
-        const auto at = [&](int i) { return start + i < evidence.size() ? evidence[start + i] : char(CharEvidence::Exact); };
+        const auto at = [&](const int i) { return start + i < evidence.size() ? evidence[start + i] : static_cast<char>(CharEvidence::Exact); };
         for (int i = 0; i < text.size();) {
             const char e = at(i);
             int j = i + 1;
             while (j < text.size() && at(j) == e) ++j;
-            if (e != char(CharEvidence::Exact)) {
+            if (e != static_cast<char>(CharEvidence::Exact)) {
                 QTextCharFormat format;
                 format.setBackground(EvidenceView::color(e, dark));
                 setFormat(i, j - i, format);
@@ -136,15 +134,15 @@ EvidenceView::EvidenceView(QWidget* parent) : ElaPlainTextEdit(parent), m_highli
     setReadOnly(true);
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { m_highlighter->rehighlight(); });
 }
-QColor EvidenceView::color(char evidence, bool dark) {
-    switch (CharEvidence(evidence)) {
+QColor EvidenceView::color(char evidence, const bool dark) {
+    switch (static_cast<CharEvidence>(evidence)) {
     case CharEvidence::Partial: return dark ? QColor("#5C4B12") : QColor("#FFEDB0");
     case CharEvidence::Guided: return dark ? QColor("#1E3D66") : QColor("#D3E6FF");
     case CharEvidence::Unknown: return dark ? QColor("#5E2A2A") : QColor("#FFD3D3");
     default: return {};
     }
 }
-qsizetype EvidenceView::show(const QString& text, const QByteArray& evidence, qsizetype limit) {
+qsizetype EvidenceView::show(const QString& text, const QByteArray& evidence, const qsizetype limit) {
     // Display only: CR LF becomes one line break so evidence stays aligned with
     // document positions. Copying and saving use the candidate text itself.
     QString shown; QByteArray marks;
@@ -154,7 +152,7 @@ qsizetype EvidenceView::show(const QString& text, const QByteArray& evidence, qs
         if (c == '\r') { if (i + 1 < text.size() && text[i + 1] == '\n') continue; c = '\n'; }
         if (shown.size() + 1 == limit && c.isHighSurrogate()) break;
         shown += c;
-        if (!evidence.isEmpty()) marks += i < evidence.size() ? evidence[i] : char(CharEvidence::Exact);
+        if (!evidence.isEmpty()) marks += i < evidence.size() ? evidence[i] : static_cast<char>(CharEvidence::Exact);
     }
     m_highlighter->evidence = marks;
     setPlainText(shown);
@@ -187,11 +185,11 @@ RecoveryWorkspace::RecoveryWorkspace(const QString& prefix, const QString& previ
     footer->addWidget(m_legend); footer->addWidget(m_stats, 1);
     right->addLayout(footer);
     layout->addLayout(right, 1);
-    connect(m_group, &QButtonGroup::idClicked, this, [this](int id) { select(id); });
+    connect(m_group, &QButtonGroup::idClicked, this, [this](const int id) { select(id); });
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { showSelected(); });
     retranslate();
 }
-ElaPushButton* RecoveryWorkspace::card(int index) const { return index >= 0 && index < m_cards.size() ? m_cards[index] : nullptr; }
+ElaPushButton* RecoveryWorkspace::card(const int index) const { return index >= 0 && index < m_cards.size() ? m_cards[index] : nullptr; }
 void RecoveryWorkspace::setPlaceholder(const QString& text) { m_preview->setPlaceholderText(text); }
 void RecoveryWorkspace::setCandidates(const QList<WorkspaceCandidate>& local, const WorkspaceCandidate* ai) {
     m_local = local.mid(0, LocalSlots);
@@ -203,14 +201,12 @@ void RecoveryWorkspace::setCandidates(const QList<WorkspaceCandidate>& local, co
         card->setEnabled(available); card->setVisible(available);
         if (available) card->setContent(i < LocalSlots ? m_local[i] : m_ai);
     }
-    const bool valid = m_selected == LocalSlots ? m_hasAi : m_selected >= 0 && m_selected < m_local.size();
-    if (!valid) m_selected = m_local.isEmpty() ? (m_hasAi ? LocalSlots : -1) : 0;
+    if (const bool valid = m_selected == LocalSlots ? m_hasAi : m_selected >= 0 && m_selected < m_local.size(); !valid) m_selected = m_local.isEmpty() ? (m_hasAi ? LocalSlots : -1) : 0;
     m_listTitle->setVisible(!m_local.isEmpty() || m_hasAi);
     showSelected();
 }
-void RecoveryWorkspace::select(int index) {
-    const bool valid = index == LocalSlots ? m_hasAi : index >= 0 && index < m_local.size();
-    if (!valid) return;
+void RecoveryWorkspace::select(const int index) {
+    if (const bool valid = index == LocalSlots ? m_hasAi : index >= 0 && index < m_local.size(); !valid) return;
     const bool changed = index != m_selected;
     m_selected = index;
     showSelected();
@@ -233,16 +229,15 @@ void RecoveryWorkspace::showSelected() {
     const auto& e = current->evidence;
     const bool dark = darkTheme();
     const auto chip = [&](CharEvidence kind, const QString& name) {
-        const auto count = e.count(char(kind));
-        if (!count) return;
-        legend << QString("<span style=\"background:%1\">&nbsp;&nbsp;&nbsp;</span>&nbsp;%2").arg(EvidenceView::color(char(kind), dark).name(), name.toHtmlEscaped());
+        if (const auto count = e.count(static_cast<char>(kind)); !count) return;
+        legend << QString("<span style=\"background:%1\">&nbsp;&nbsp;&nbsp;</span>&nbsp;%2").arg(EvidenceView::color(static_cast<char>(kind), dark).name(), name.toHtmlEscaped());
     };
     if (!e.isEmpty()) {
         chip(CharEvidence::Partial, tr("guessed from one surviving byte"));
         chip(CharEvidence::Guided, tr("filled in by AI"));
         chip(CharEvidence::Unknown, tr("lost"));
-        stats << tr("%1 certain, %2 guessed, %3 AI, %4 lost").arg(e.count(char(CharEvidence::Exact))).arg(e.count(char(CharEvidence::Partial)))
-                     .arg(e.count(char(CharEvidence::Guided))).arg(e.count(char(CharEvidence::Unknown)));
+        stats << tr("%1 certain, %2 guessed, %3 AI, %4 lost").arg(e.count(static_cast<char>(CharEvidence::Exact))).arg(e.count(static_cast<char>(CharEvidence::Partial)))
+                     .arg(e.count(static_cast<char>(CharEvidence::Guided))).arg(e.count(static_cast<char>(CharEvidence::Unknown)));
     }
     if (m_shown < current->text.size()) stats << tr("Preview shows the first %1 characters.").arg(m_shown);
     m_legend->setText(legend.join("&nbsp;&nbsp;&nbsp;"));

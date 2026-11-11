@@ -1,8 +1,9 @@
-#include <QtTest>
+#include <QTest>
 #include <QMimeData>
 #include <QTextDocument>
 #include "ClipboardSource.h"
 using namespace mojibake;
+namespace {
 class TestClipboardSource : public QObject {
     Q_OBJECT
 private slots:
@@ -38,7 +39,7 @@ void TestClipboardSource::formatsAreNotFetched() {
     class OfferedMime final : public QMimeData {
     public: mutable QStringList fetched;
     protected:
-        QVariant retrieveData(const QString& format, QMetaType type) const override {
+        QVariant retrieveData(const QString& format, const QMetaType type) const override {
             fetched << format; return QMimeData::retrieveData(format, type);
         }
     } mime;
@@ -57,5 +58,6 @@ void TestClipboardSource::emptyInvalidAndLimits() {
     mime.setHtml("<p>" + QString(ClipboardSource::MaxBytes, 'a') + "</p>"); snapshot = ClipboardSource::extract(ClipboardSource::capture(mime)); QVERIFY(snapshot.capture.htmlTooLarge); QVERIFY(!snapshot.htmlUsable());
     mime.setText("�"); mime.setHtml("<p>�</p>"); snapshot = ClipboardSource::extract(ClipboardSource::capture(mime)); QVERIFY(snapshot.plainUsable()); QVERIFY(snapshot.htmlUsable()); QCOMPARE(snapshot.htmlText, QString("�"));
 }
+}  // namespace
 QTEST_MAIN(TestClipboardSource)
 #include "TestClipboardSource.moc"

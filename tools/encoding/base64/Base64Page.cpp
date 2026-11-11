@@ -4,7 +4,6 @@
 #include <ElaPlainTextEdit.h>
 #include <ElaPushButton.h>
 #include <ElaScrollArea.h>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QClipboard>
@@ -43,7 +42,7 @@ Base64Page::Base64Page(QWidget* parent) : ToolPage(parent)
     m_output->setReadOnly(true);
     m_output->setMinimumHeight(100);
     m_output->setFont(m_input->font());
-    auto button = [this](const char* name, bool primary) {
+    auto button = [this](const char* name, const bool primary) {
         auto* result = new ElaPushButton(this);
         result->setObjectName(name);
         result->setMinimumWidth(100);
@@ -74,32 +73,32 @@ Base64Page::Base64Page(QWidget* parent) : ToolPage(parent)
     layout->addWidget(m_outputLabel);
     layout->addWidget(m_output, 1);
     layout->addLayout(bottom);
-    connect(m_encode, &ElaPushButton::clicked, this, [this]() {
+    connect(m_encode, &ElaPushButton::clicked, this, [this] {
         const auto bytes = m_input->toPlainText().toUtf8();
         if (bytes.isEmpty()) { setStatus(Status::Empty); return; }
         const auto result = Base64Codec::encode(std::string(bytes.constData(), bytes.size()));
-        m_output->setPlainText(QString::fromLatin1(result.data(), qsizetype(result.size())));
+        m_output->setPlainText(QString::fromLatin1(result.data(), static_cast<qsizetype>(result.size())));
         setStatus(Status::Encoded);
     });
-    connect(m_decode, &ElaPushButton::clicked, this, [this]() {
+    connect(m_decode, &ElaPushButton::clicked, this, [this] {
         const auto bytes = m_input->toPlainText().toUtf8();
         if (bytes.isEmpty()) { setStatus(Status::Empty); return; }
         const auto result = Base64Codec::decode(std::string(bytes.constData(), bytes.size()));
         if (!result) { m_output->clear(); setStatus(Status::Invalid); return; }
-        m_output->setPlainText(QString::fromUtf8(result->data(), qsizetype(result->size())));
+        m_output->setPlainText(QString::fromUtf8(result->data(), static_cast<qsizetype>(result->size())));
         setStatus(Status::Decoded);
     });
-    connect(m_clear, &ElaPushButton::clicked, this, [this]() {
+    connect(m_clear, &ElaPushButton::clicked, this, [this] {
         m_input->clear(); m_output->clear(); setStatus(Status::Ready);
     });
-    connect(m_copy, &ElaPushButton::clicked, this, [this]() {
+    connect(m_copy, &ElaPushButton::clicked, this, [this] {
         if (m_output->toPlainText().isEmpty()) return;
         QGuiApplication::clipboard()->setText(m_output->toPlainText());
         setStatus(Status::Copied);
     });
     retranslate();
 }
-void Base64Page::setStatus(Status status)
+void Base64Page::setStatus(const Status status)
 {
     m_status = status;
     ui::setTone(m_statusLabel, status == Status::Empty || status == Status::Invalid ? ui::Tone::Danger

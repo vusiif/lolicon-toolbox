@@ -2,14 +2,14 @@
 #include <QStringConverter>
 namespace mojibake {
 namespace {
-QString codecName(Encoding e) {
+QString codecName(const Encoding e) {
     switch(e) {
     case Encoding::Latin1: return "ISO-8859-1";
     case Encoding::ShiftJis: return "Shift_JIS";
     default: return EncodingConverter::name(e);
     }
 }
-std::optional<QByteArray> rawEncode(const QString& text, Encoding e) {
+std::optional<QByteArray> rawEncode(const QString& text, const Encoding e) {
     if (!text.isValidUtf16()) return {};
     QStringEncoder encoder(codecName(e), QStringConverter::Flag::Stateless);
     if (!encoder.isValid()) return {};
@@ -17,7 +17,7 @@ std::optional<QByteArray> rawEncode(const QString& text, Encoding e) {
     if (encoder.hasError()) return {};
     return bytes;
 }
-std::optional<QString> rawDecode(const QByteArray& bytes, Encoding e) {
+std::optional<QString> rawDecode(const QByteArray& bytes, const Encoding e) {
     // File markers are removed by ByteEncodingAnalyzer; preserve literal U+FEFF here.
     QStringDecoder decoder(codecName(e), QStringConverter::Flag::Stateless | QStringConverter::Flag::ConvertInitialBom);
     if (!decoder.isValid()) return {};
@@ -26,7 +26,7 @@ std::optional<QString> rawDecode(const QByteArray& bytes, Encoding e) {
     return text;
 }
 }
-QString EncodingConverter::name(Encoding e) {
+QString EncodingConverter::name(const Encoding e) {
     switch(e) {
     case Encoding::Utf8: return "UTF-8";
     case Encoding::Latin1: return "Latin-1";
@@ -43,27 +43,25 @@ QString EncodingConverter::name(Encoding e) {
     }
     return {};
 }
-std::optional<QByteArray> EncodingConverter::encode(const QString& text, Encoding e) {
+std::optional<QByteArray> EncodingConverter::encode(const QString& text, const Encoding e) {
     auto bytes = rawEncode(text, e);
     if (!bytes) return {};
-    const auto restored = rawDecode(*bytes, e);
-    if (!restored || *restored != text) return {};
+    if (const auto restored = rawDecode(*bytes, e); !restored || *restored != text) return {};
     return bytes;
 }
-std::optional<QString> EncodingConverter::decode(const QByteArray& bytes, Encoding e) {
+std::optional<QString> EncodingConverter::decode(const QByteArray& bytes, const Encoding e) {
     auto text = rawDecode(bytes, e);
     if (!text) return {};
-    const auto restored = rawEncode(*text, e);
-    if (!restored || *restored != bytes) return {};
+    if (const auto restored = rawEncode(*text, e); !restored || *restored != bytes) return {};
     return text;
 }
-QList<Encoding> EncodingConverter::supported(bool includeWideUnicode) {
+QList<Encoding> EncodingConverter::supported(const bool includeWideUnicode) {
     QList<Encoding> result;
-    for (auto e : {Encoding::Utf8, Encoding::Latin1, Encoding::Windows1252, Encoding::Gbk,
+    for (const auto e : {Encoding::Utf8, Encoding::Latin1, Encoding::Windows1252, Encoding::Gbk,
                    Encoding::Gb18030, Encoding::Big5, Encoding::ShiftJis, Encoding::EucKr})
         if (encode("ASCII", e)) result.append(e);
     if (includeWideUnicode)
-        for (auto e : {Encoding::Utf16LE, Encoding::Utf16BE, Encoding::Utf32LE, Encoding::Utf32BE})
+        for (const auto e : {Encoding::Utf16LE, Encoding::Utf16BE, Encoding::Utf32LE, Encoding::Utf32BE})
             if (encode("ASCII", e)) result.append(e);
     return result;
 }

@@ -19,7 +19,7 @@ public:
     QString locale() const { return m_locale; }
     QString localePreference() const;
     static QString localeForUiLanguages(const QStringList& languages);
-    bool setLocale(const QString& locale);
+    bool setLocale(const QString& preference);
     QByteArray windowGeometry() const;
     void setWindowGeometry(const QByteArray& geometry);
     QString lastPage() const;
@@ -37,6 +37,7 @@ public:
     static QString defaultVoiceModel();
     QString textStylePreset() const;
     void setTextStylePreset(const QString& preset);
+    bool eventFilter(QObject* watched, QEvent* event) override;
 signals:
     void themeChanged(ElaThemeType::ThemeMode mode);
     void localeChanged();
@@ -44,7 +45,6 @@ signals:
     void voiceConfigurationChanged();
 private:
     bool storeConfiguration(const QString& group, const ai::Configuration& config);
-    bool eventFilter(QObject* watched, QEvent* event) override;
     bool applyLocale(const QString& locale);
     void refreshSystemLocale();
     std::unique_ptr<QSettings> m_store;

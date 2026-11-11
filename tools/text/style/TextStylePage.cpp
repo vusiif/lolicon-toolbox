@@ -9,7 +9,6 @@
 #include <ElaPushButton.h>
 #include <ElaIconButton.h>
 #include <QValidator>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QFormLayout>
 #include <QLabel>
@@ -28,7 +27,7 @@
 #include <QtConcurrentRun>
 using namespace textstyle;
 namespace {
-void selection(ElaPushButton* button, bool active) {
+void selection(ElaPushButton* button, const bool active) {
     button->setChecked(active);
     button->setLightDefaultColor(eTheme->getThemeColor(ElaThemeType::Light,active ? ElaThemeType::PrimaryNormal : ElaThemeType::BasicBase));
     button->setLightHoverColor(eTheme->getThemeColor(ElaThemeType::Light,active ? ElaThemeType::PrimaryHover : ElaThemeType::BasicHover));
@@ -45,8 +44,7 @@ public:
     explicit SeedValidator(QObject* parent) : QValidator(parent) {}
     State validate(QString& input, int&) const override {
         if (input.isEmpty()) return Intermediate;
-        UserSeed parsed;
-        if (!Engine::userSeed(input, parsed)) return Invalid;
+        if (UserSeed parsed; !Engine::userSeed(input, parsed)) return Invalid;
         // Lowercase ASCII only; preserve decimal leading zeroes while editing.
         input = input.toLower(); return Acceptable;
     }
@@ -81,7 +79,7 @@ TextStylePage::TextStylePage(QWidget* parent, AppSettings* settings) : ToolPage(
     options->addWidget(m_styleLabel); options->addWidget(m_styles, 2);
     options->addWidget(m_presetLabel); options->addWidget(m_presets, 1);
     auto* form = new QFormLayout;
-    auto editor = [content](const char* name, bool readOnly) { auto* w = new ElaPlainTextEdit(content); w->setObjectName(name); w->setReadOnly(readOnly); w->setMinimumHeight(160); return w; };
+    auto editor = [content](const char* name, const bool readOnly) { auto* w = new ElaPlainTextEdit(content); w->setObjectName(name); w->setReadOnly(readOnly); w->setMinimumHeight(160); return w; };
     m_input = editor("textStyleInput", false); m_output = editor("textStyleOutput", true);
     auto* columns = new QHBoxLayout; m_columns = columns;
     auto* left = new QVBoxLayout; left->addWidget(m_inputLabel); left->addWidget(m_input);
@@ -125,7 +123,7 @@ TextStylePage::TextStylePage(QWidget* parent, AppSettings* settings) : ToolPage(
     connect(m_seed, &QLineEdit::textChanged, this, &TextStylePage::invalidate);
     connect(m_styles, &QComboBox::currentIndexChanged, this, &TextStylePage::invalidate);
     connect(m_presets, &QComboBox::currentIndexChanged, this, [this] { invalidate(); savePreferences(); });
-    auto selectMode=[this](bool reverse) { m_encodeMode->setChecked(!reverse); m_restoreMode->setChecked(reverse); invalidate(); retranslate(); };
+    auto selectMode=[this](const bool reverse) { m_encodeMode->setChecked(!reverse); m_restoreMode->setChecked(reverse); invalidate(); retranslate(); };
     connect(m_encodeMode,&ElaPushButton::clicked,this,[selectMode] { selectMode(false); });
     connect(m_restoreMode,&ElaPushButton::clicked,this,[selectMode] { selectMode(true); });
     connect(m_removeWrappers,&QCheckBox::toggled,this,&TextStylePage::invalidate);
@@ -138,7 +136,7 @@ TextStylePage::TextStylePage(QWidget* parent, AppSettings* settings) : ToolPage(
     connect(m_cancel, &ElaPushButton::clicked, this, [this] { invalidate(); m_error = Error::Cancelled; refresh(); });
     connect(m_clear, &ElaPushButton::clicked, this, [this] { m_input->clear(); invalidate(); });
     connect(m_copy, &ElaPushButton::clicked, this, [this] { if (m_copy->isEnabled()) { m_copied = m_clipboardWriter(Engine::normalize(m_output->document()->toRawText())); m_clipboardFailed = !m_copied; refresh(); } });
-    connect(m_copySeed, &ElaPushButton::clicked, this, [this] { UserSeed seed; if (Engine::userSeed(m_seed->text(), seed)) { m_copied = m_clipboardWriter(seed.text); m_clipboardFailed = !m_copied; refresh(); } });
+    connect(m_copySeed, &ElaPushButton::clicked, this, [this] { if (UserSeed seed; Engine::userSeed(m_seed->text(), seed)) { m_copied = m_clipboardWriter(seed.text); m_clipboardFailed = !m_copied; refresh(); } });
     connect(&m_worker, &QFutureWatcher<Result>::finished, this, [this] {
         if (m_submittedRevision != m_revision) { refresh(); return; }
         auto result = m_worker.result(); m_error = result.error; m_success = result.success();
@@ -161,12 +159,12 @@ TextStylePage::TextStylePage(QWidget* parent, AppSettings* settings) : ToolPage(
     });
     connect(m_aiService,&ai::AiService::failed,this,[this](const QString& error) { m_aiTimer.stop(); if(m_aiRevision==m_revision) m_aiMessage=error; refresh(); });
     connect(m_aiService,&ai::AiService::cancelled,this,[this] { m_aiTimer.stop(); if(m_aiRevision==m_revision) m_aiMessage=tr("AI request cancelled."); refresh(); });
-    connect(m_aiService,&ai::AiService::progress,this,[this](bool thinking,int characters) { m_aiThinking=thinking; m_aiCharacters=characters; refreshAi(); });
+    connect(m_aiService,&ai::AiService::progress,this,[this](const bool thinking,const int characters) { m_aiThinking=thinking; m_aiCharacters=characters; refreshAi(); });
     m_aiTimer.setInterval(500); connect(&m_aiTimer,&QTimer::timeout,this,&TextStylePage::refreshAi);
     if(m_settings) connect(m_settings,&AppSettings::aiConfigurationChanged,this,[this] { invalidate(); });
     retranslate();
 }
-TextStylePage::~TextStylePage() { if (m_cancelToken) m_cancelToken->store(true); m_aiService->disconnect(this); m_aiService->cancel(); }
+TextStylePage::~TextStylePage() { if (m_cancelToken) m_cancelToken->store(true); static_cast<void>(m_aiService->disconnect(this)); m_aiService->cancel(); }
 bool TextStylePage::restoring() const { return m_restoreMode->isChecked(); }
 bool TextStylePage::busy() const { return m_worker.isRunning() || m_restoreWorker.isRunning() || m_aiService->isBusy(); }
 QString TextStylePage::inputText() const { return m_input->document()->toRawText(); }
@@ -186,7 +184,7 @@ void TextStylePage::run() {
     if(restoring()) {
         invalidate(); m_submittedRevision=m_revision; m_cancelToken=std::make_shared<std::atomic_bool>(false);
         const auto input=inputText(); const auto style=m_loaded.style; const auto token=m_cancelToken; const bool wrappers=m_removeWrappers->isChecked();
-        m_restoreWorker.setFuture(QtConcurrent::run([input,style,token,wrappers] { return Restore::run(input,style,wrappers,Control{token}); })); refresh(); return;
+        m_restoreWorker.setFuture(QtConcurrent::run([input,style,token,wrappers] { return Restore::run(input,style,wrappers,Control{.cancelled = token}); })); refresh(); return;
     }
     UserSeed seed;
     if (!Engine::userSeed(m_seed->text(), seed)) { invalidate(); m_error = Error::InvalidSeed; refresh(); return; }
@@ -194,7 +192,7 @@ void TextStylePage::run() {
     invalidate(); m_submittedRevision = m_revision; m_cancelToken = std::make_shared<std::atomic_bool>(false);
     const auto input = inputText(), preset = m_presets->currentData().toString(); const auto style = m_loaded.style; const auto token = m_cancelToken; const auto runner = m_runner;
     m_worker.setFuture(QtConcurrent::run([input, preset, style, seed, token, runner] {
-        auto result = runner(input, style, preset, seed.value, Control{token});
+        auto result = runner(input, style, preset, seed.value, Control{.cancelled = token});
         if (result.success()) {
             result.metadata["reproduction_schema_version"] = 2;
             result.metadata["seed_text"] = seed.text; result.metadata["seed_mapping_id"] = seed.mapping;
@@ -205,8 +203,8 @@ void TextStylePage::run() {
 void TextStylePage::refresh() {
     const bool running = m_worker.isRunning() || m_restoreWorker.isRunning(); const auto input = inputText(); UserSeed seed;
     const bool validSeed = Engine::userSeed(m_seed->text(), seed);
-    m_convert->setEnabled(!busy() && !input.isEmpty() && (restoring() || validSeed) && bool(m_loaded.style)); m_cancel->setVisible(running);
-    m_randomConvert->setEnabled(!busy() && !input.isEmpty() && bool(m_loaded.style)); m_randomConvert->setVisible(!restoring());
+    m_convert->setEnabled(!busy() && !input.isEmpty() && (restoring() || validSeed) && static_cast<bool>(m_loaded.style)); m_cancel->setVisible(running);
+    m_randomConvert->setEnabled(!busy() && !input.isEmpty() && static_cast<bool>(m_loaded.style)); m_randomConvert->setVisible(!restoring());
     m_copy->setEnabled((m_showAi ? !m_aiReply.text.isEmpty() : m_success) && !busy()); m_copySeed->setEnabled(validSeed);
     m_seedArea->setVisible(!restoring()); m_seedLabel->setVisible(!restoring()); m_presets->setVisible(!restoring()); m_presetLabel->setVisible(!restoring()); m_restoreArea->setVisible(restoring());
     selection(m_encodeMode,!restoring()); selection(m_restoreMode,restoring());
@@ -275,7 +273,7 @@ void TextStylePage::runAi() {
         QJsonArray alternatives; for(const auto& choice:rule.choices) alternatives.append(choice.text);
         hints.append(QJsonObject{{"source",rule.source},{"alternatives",alternatives}}); if(hints.size()==32) break;
     }
-    QJsonObject context{{"task",restoring() ? "text_style_restore" : "text_style_encode"},{"original_text",original},
+    const QJsonObject context{{"task",restoring() ? "text_style_restore" : "text_style_encode"},{"original_text",original},
         {"candidates",candidates},{"ambiguities",m_restored.ambiguities},{"style_id","mars_classic"},
         {"intensity",m_presets->currentData().toString()},{"seed",seed.text},{"rule_hints",hints},{"remove_line_decorations",m_removeWrappers->isChecked()}};
     m_aiThinking=false; m_aiCharacters=0; m_aiElapsed.start();
@@ -297,7 +295,6 @@ void TextStylePage::refreshAi() {
 void TextStylePage::changeEvent(QEvent* event) { ToolPage::changeEvent(event); if (event->type() == QEvent::LanguageChange) retranslate(); }
 void TextStylePage::resizeEvent(QResizeEvent* event) {
     ToolPage::resizeEvent(event);
-    const auto direction = width() >= 680 ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom;
-    if (m_columns && m_columns->direction() != direction) m_columns->setDirection(direction);
+    if (const auto direction = width() >= 680 ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom; m_columns && m_columns->direction() != direction) m_columns->setDirection(direction);
     if(m_restoreChoiceLayout) { const int columns=width()>=680 ? 5 : 2; for(int i=0;i<5;++i) { m_restoreChoiceLayout->removeWidget(m_restoreChoices[i]); m_restoreChoiceLayout->addWidget(m_restoreChoices[i],i/columns,i%columns); } }
 }

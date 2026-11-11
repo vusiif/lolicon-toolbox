@@ -7,7 +7,7 @@
 #include <QPalette>
 
 namespace {
-QColor color(ElaThemeType::ThemeColor role) { return eTheme->getThemeColor(eTheme->getThemeMode(), role); }
+QColor color(const ElaThemeType::ThemeColor role) { return eTheme->getThemeColor(eTheme->getThemeMode(), role); }
 void refreshLabel(QLabel* label)
 {
     const auto tone = static_cast<ui::Tone>(label->property("tone").toInt());
@@ -32,17 +32,17 @@ void applyPalette()
     palette.setColor(QPalette::Highlight, color(ElaThemeType::PrimaryNormal));
     palette.setColor(QPalette::HighlightedText, color(ElaThemeType::BasicTextInvert));
     palette.setColor(QPalette::PlaceholderText, color(ElaThemeType::BasicDetailsText));
-    for (auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
+    for (const auto role : {QPalette::WindowText, QPalette::Text, QPalette::ButtonText})
         palette.setColor(QPalette::Disabled, role, color(ElaThemeType::BasicTextDisable));
     qApp->setPalette(palette);
 }
 }
-void ui::initializeTheme(QObject* lifetime)
+void ui::initializeTheme(const QObject* lifetime)
 {
     applyPalette();
     QObject::connect(eTheme, &ElaTheme::themeModeChanged, lifetime, applyPalette);
 }
-QLabel* ui::label(const QString& text, int size, Tone tone, QWidget* parent)
+QLabel* ui::label(const QString& text, const int size, const Tone tone, QWidget* parent)
 {
     auto* result = new QLabel(text, parent);
     QFont font = result->font();
@@ -50,14 +50,14 @@ QLabel* ui::label(const QString& text, int size, Tone tone, QWidget* parent)
     result->setFont(font);
     result->setWordWrap(true);
     setTone(result, tone);
-    QObject::connect(eTheme, &ElaTheme::themeModeChanged, result, [result]() { refreshLabel(result); });
+    QObject::connect(eTheme, &ElaTheme::themeModeChanged, result, [result] { refreshLabel(result); });
     return result;
 }
-void ui::setTone(QLabel* label, Tone tone) { label->setProperty("tone", int(tone)); refreshLabel(label); }
+void ui::setTone(QLabel* label, Tone tone) { label->setProperty("tone", static_cast<int>(tone)); refreshLabel(label); }
 void ui::styleCard(QFrame* card)
 {
     card->setObjectName("settingsCard");
-    auto refresh = [card]() {
+    auto refresh = [card] {
         card->setStyleSheet(QString("QFrame#settingsCard { background: %1; border: 1px solid %2; border-radius: 8px; }")
             .arg(color(ElaThemeType::PopupBase).name(), color(ElaThemeType::BasicBorder).name()));
     };
@@ -66,7 +66,7 @@ void ui::styleCard(QFrame* card)
 }
 void ui::primaryButton(ElaPushButton* button)
 {
-    auto refresh = [button]() {
+    auto refresh = [button] {
         button->setLightDefaultColor(ElaThemeColor(ElaThemeType::Light, PrimaryNormal));
         button->setLightHoverColor(ElaThemeColor(ElaThemeType::Light, PrimaryHover));
         button->setLightPressColor(ElaThemeColor(ElaThemeType::Light, PrimaryPress));

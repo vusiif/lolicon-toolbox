@@ -18,10 +18,8 @@
 #include <QButtonGroup>
 #include <QClipboard>
 #include <QDragEnterEvent>
-#include <QDropEvent>
 #include <QEvent>
 #include <QFrame>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QMimeData>
 #include <QStackedWidget>
@@ -45,14 +43,14 @@ void styleMode(ElaPushButton* b, bool selected) {
 }
 bool lossy(const Candidate& c) { return !c.path.isEmpty() && c.path.last().lossy; }
 }
-WorkspaceCandidate MojibakePage::describe(const Candidate& c, bool recommended) {
+WorkspaceCandidate MojibakePage::describe(const Candidate& c, const bool recommended) {
     WorkspaceCandidate w;
     w.text = c.text; w.evidence = c.evidence; w.score = c.score;
     if (c.path.isEmpty()) { w.title = tr("Original text"); w.subtitle = tr("No conversion"); }
     else if (lossy(c)) {
         w.title = tr("Rebuilt damaged GBK text");
-        w.subtitle = tr("%1 certain · %2 guessed · %3 lost").arg(c.evidence.count(char(CharEvidence::Exact)))
-                         .arg(c.evidence.count(char(CharEvidence::Partial))).arg(c.evidence.count(char(CharEvidence::Unknown)));
+        w.subtitle = tr("%1 certain · %2 guessed · %3 lost").arg(c.evidence.count(static_cast<char>(CharEvidence::Exact)))
+                         .arg(c.evidence.count(static_cast<char>(CharEvidence::Partial))).arg(c.evidence.count(static_cast<char>(CharEvidence::Unknown)));
     } else {
         QStringList steps;
         bool partial = false;
@@ -68,7 +66,7 @@ WorkspaceCandidate MojibakePage::describe(const Candidate& c, bool recommended) 
     else if (c.path.isEmpty()) { w.badge = tr("Original"); w.accentBadge = false; }
     return w;
 }
-QStringList MojibakePage::processLines(const Candidate& candidate, int examined, bool limited) {
+QStringList MojibakePage::processLines(const Candidate& candidate, const int examined, const bool limited) {
     QStringList path;
     path << tr("Quality score: %1 / 100 (not a probability).").arg(candidate.score, 0, 'f', 1);
     if (lossy(candidate)) {
@@ -76,7 +74,7 @@ QStringList MojibakePage::processLines(const Candidate& candidate, int examined,
         path << tr("The original bytes were GBK. They were read as UTF-8, which replaced every invalid byte sequence with U+FFFD and lost those bytes; the file was then saved again.");
         path << tr("Every byte that formed valid UTF-8 survived. The tool searched GBK byte sequences that reproduce the damaged text exactly and ranked them with a character frequency model (jieba dictionary).");
         path << tr("Certain characters: %1 (both bytes survived). Guessed: %2 (one byte survived; the model chose the other). Lost: %3 (no byte survived), shown as □.")
-                    .arg(e.count(char(CharEvidence::Exact))).arg(e.count(char(CharEvidence::Partial))).arg(e.count(char(CharEvidence::Unknown)));
+                    .arg(e.count(static_cast<char>(CharEvidence::Exact))).arg(e.count(static_cast<char>(CharEvidence::Partial))).arg(e.count(static_cast<char>(CharEvidence::Unknown)));
         if (candidate.lossy) path << (candidate.lossy->replacement == Utf8Replacement::PerByte
             ? tr("The damage matches a decoder that writes one U+FFFD per invalid byte (for example Qt or .NET).")
             : tr("The damage matches a decoder that writes one U+FFFD per invalid sequence (for example browsers, Java or Python)."));
@@ -112,8 +110,8 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings)
     header->addWidget(m_title); header->addWidget(m_description);
     auto* modes = new QHBoxLayout; modes->setSpacing(6); modes->setContentsMargins(0, 6, 0, 0);
     m_modeGroup = new QButtonGroup(this);
-    const std::array<const char*, 4> modeNames{"mojibakeTextMode", "mojibakeFileMode", "mojibakeNameMode", "mojibakeClipboardMode"};
     for (int i = 0; i < 4; ++i) {
+        constexpr std::array<const char*, 4> modeNames{"mojibakeTextMode", "mojibakeFileMode", "mojibakeNameMode", "mojibakeClipboardMode"};
         auto* b = new ElaPushButton(this); b->setObjectName(modeNames[i]); b->setCheckable(true);
         m_modes[i] = b; m_modeGroup->addButton(b, i); modes->addWidget(b);
     }
@@ -181,7 +179,7 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings)
     m_pages->addWidget(new FilenameRecoveryPage(m_pages));
     auto* clipboardPage = new ClipboardSourcePage(m_pages);
     m_pages->addWidget(clipboardPage);
-    connect(m_modeGroup, &QButtonGroup::idClicked, this, [this](int id) { selectMode(id); });
+    connect(m_modeGroup, &QButtonGroup::idClicked, this, [this](const int id) { selectMode(id); });
     connect(eTheme, &ElaTheme::themeModeChanged, this, [this] { selectMode(m_pages->currentIndex()); });
     connect(clipboardPage, &ClipboardSourcePage::textChosen, this, [this](const QString& text) {
         m_input->setPlainText(text); invalidate(); selectMode(0);
@@ -220,8 +218,8 @@ MojibakePage::MojibakePage(QWidget* parent, AppSettings* settings)
     selectMode(0);
     retranslate();
 }
-MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); m_ai->disconnect(this); m_ai->reset(); }
-void MojibakePage::selectMode(int index) {
+MojibakePage::~MojibakePage() { if (m_cancellation) m_cancellation->store(true); static_cast<void>(m_ai->disconnect(this)); m_ai->reset(); }
+void MojibakePage::selectMode(const int index) {
     m_pages->setCurrentIndex(index);
     for (int i = 0; i < 4; ++i) { m_modes[i]->setChecked(i == index); styleMode(m_modes[i], i == index); }
 }
@@ -261,7 +259,7 @@ void MojibakePage::analyze() {
     const auto progress = m_analysisProgress;
     // No QWidget or page pointer is captured by the worker.
     m_watcher.setFuture(QtConcurrent::run([text, cancel, progress] {
-        return MojibakeAnalyzer::analyze(text, cancel, [progress](double fraction) { progress->store(std::max(1, int(fraction * 1000))); });
+        return MojibakeAnalyzer::analyze(text, cancel, [progress](const double fraction) { progress->store(std::max(1, static_cast<int>(fraction * 1000))); });
     }));
 }
 void MojibakePage::refreshCards() {
@@ -296,7 +294,7 @@ void MojibakePage::showSelection() {
     const int index = m_workspace->selected();
     const bool local = index >= 0 && index < m_result.candidates.size();
     m_copy->setEnabled(!selectedText().isEmpty() && !m_watcher.isRunning());
-    m_report->setReport(m_watcher.isRunning() ? DiagnosticReport{} : DiagnosticReport::text(m_result, local ? index : (m_result.candidates.isEmpty() ? -1 : 0)));
+    m_report->setReport(m_watcher.isRunning() ? DiagnosticReport{} : DiagnosticReport::text(m_result, local ? index : m_result.candidates.isEmpty() ? -1 : 0));
     if (index == RecoveryWorkspace::LocalSlots) m_process->setPlainText(m_ai->explanation().join('\n'));
     else if (local) m_process->setPlainText(processLines(m_result.candidates[index], m_result.generated, m_result.searchLimited).join('\n'));
     else m_process->clear();
@@ -304,8 +302,7 @@ void MojibakePage::showSelection() {
 }
 void MojibakePage::requestAi() {
     if (m_watcher.isRunning() || m_result.candidates.isEmpty() || m_ai->busy()) return;
-    const auto& top = m_result.candidates.first();
-    if (lossy(top) && top.lossy) m_ai->refine(top.lossy);
+    if (const auto& top = m_result.candidates.first(); lossy(top) && top.lossy) m_ai->refine(top.lossy);
     else m_ai->suggest(m_submitted, m_result.candidates, m_result.possibleLoss);
     // A refinement shows its partial result at once: put it in front of the user.
     if (m_ai->refined() && m_ai->hasResult()) m_workspace->select(RecoveryWorkspace::LocalSlots);
@@ -347,11 +344,9 @@ bool MojibakePage::eventFilter(QObject* watched, QEvent* event) {
     // A file dropped on the text box opens in the file mode instead of pasting its path.
     if (watched == m_input->viewport()) {
         if (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove) {
-            auto* drag = static_cast<QDragMoveEvent*>(event);
-            if (drag->mimeData()->hasUrls() && drag->mimeData()->urls().size() == 1 && drag->mimeData()->urls().first().isLocalFile()) { drag->acceptProposedAction(); return true; }
+            if (auto* drag = static_cast<QDragMoveEvent*>(event); drag->mimeData()->hasUrls() && drag->mimeData()->urls().size() == 1 && drag->mimeData()->urls().first().isLocalFile()) { drag->acceptProposedAction(); return true; }
         } else if (event->type() == QEvent::Drop) {
-            auto* drop = static_cast<QDropEvent*>(event);
-            if (openDroppedFile(drop->mimeData())) { drop->acceptProposedAction(); return true; }
+            if (auto* drop = static_cast<QDropEvent*>(event); openDroppedFile(drop->mimeData())) { drop->acceptProposedAction(); return true; }
         }
     }
     return ToolPage::eventFilter(watched, event);

@@ -1,6 +1,5 @@
 #include "TextStyleEngine.h"
 #include <QFile>
-#include <QResource>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QStringDecoder>
@@ -13,47 +12,47 @@ static void initializeStyles() { Q_INIT_RESOURCE(styles); }
 namespace textstyle {
 namespace {
 struct Invalid { Error error; QString path, reason; };
-void require(bool condition, const QString& path, const QString& reason) { if (!condition) throw Invalid{Error::InvalidStyle, path, reason}; }
+void require(const bool condition, const QString& path, const QString& reason) { if (!condition) throw Invalid{.error = Error::InvalidStyle, .path = path, .reason = reason}; }
 QJsonObject object(const QJsonValue& value, const QString& path, const QStringList& fields) {
     require(value.isObject(), path, "must be an object"); const auto result = value.toObject();
     for (const auto& field : fields) require(result.contains(field), path + '.' + field, "required field missing");
     for (const auto& key : result.keys()) require(fields.contains(key), path + '.' + key, "unknown field");
     return result;
 }
-bool forbidden(char32_t c) {
+bool forbidden(const char32_t c) {
     return c <= 0x1f || (c >= 0x7f && c <= 0x9f) || c == 0x2028 || c == 0x2029 || c == 0x061c || c == 0x200e || c == 0x200f ||
            (c >= 0x202a && c <= 0x202e) || (c >= 0x2066 && c <= 0x206f) || c == 0x200b || c == 0xfeff ||
            (c >= 0xfdd0 && c <= 0xfdef) || (c & 0xffff) >= 0xfffe;
 }
-QString string(const QJsonValue& value, const QString& path, int limit = 2 * 1024 * 1024, bool empty = false) {
+QString string(const QJsonValue& value, const QString& path, const int limit = 2 * 1024 * 1024, const bool empty = false) {
     require(value.isString(), path, "must be a string"); const auto result = value.toString();
     require((empty || !result.isEmpty()) && result.size() <= limit && result.isValidUtf16(), path, "empty, too long or invalid Unicode string");
-    for (auto c : result.toUcs4()) require(!forbidden(c), path, "forbidden Unicode scalar");
+    for (const auto c : result.toUcs4()) require(!forbidden(c), path, "forbidden Unicode scalar");
     return result;
 }
 QString id(const QJsonValue& value, const QString& path) {
     auto result = string(value, path, 64); static const QRegularExpression valid("^[a-z][a-z0-9_]{0,63}$");
     require(valid.match(result).hasMatch(), path, "invalid stable ID"); return result;
 }
-int number(const QJsonValue& value, const QString& path, int low, int high) {
+int number(const QJsonValue& value, const QString& path, const int low, const int high) {
     require(value.isDouble(), path, "must be an integer"); const double x = value.toDouble();
-    require(std::isfinite(x) && std::floor(x) == x && x >= low && x <= high, path, "integer out of range"); return int(x);
+    require(std::isfinite(x) && std::floor(x) == x && x >= low && x <= high, path, "integer out of range"); return static_cast<int>(x);
 }
-QJsonArray array(const QJsonValue& value, const QString& path, int max) {
+QJsonArray array(const QJsonValue& value, const QString& path, const int max) {
     require(value.isArray(), path, "must be an array"); const auto result = value.toArray(); require(result.size() <= max, path, "too many items"); return result;
 }
-QStringList ids(const QJsonValue& value, const QString& path, int max) {
+QStringList ids(const QJsonValue& value, const QString& path, const int max) {
     QStringList result; int index = 0;
     for (const auto& item : array(value, path, max)) { const auto key = id(item, path + '[' + QString::number(index++) + ']'); require(!result.contains(key), path, "duplicate ID"); result.append(key); }
     return result;
 }
-QJsonObject localized(const QJsonValue& value, const QString& path, bool empty) {
+QJsonObject localized(const QJsonValue& value, const QString& path, const bool empty) {
     const auto result = object(value, path, {"en", "zh_CN", "zh_TW"});
     for (const auto& key : result.keys()) string(result[key], path + '.' + key, 2 * 1024 * 1024, empty); return result;
 }
 int graphemes(const QString& text) { QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text); int count = 0; while (finder.toNextBoundary() >= 0) ++count; return count; }
 }
-bool white(char32_t c) { return (c >= 9 && c <= 13) || c == 32 || c == 0x85 || c == 0xa0 || c == 0x1680 || (c >= 0x2000 && c <= 0x200a) || c == 0x2028 || c == 0x2029 || c == 0x202f || c == 0x205f || c == 0x3000; }
+bool white(const char32_t c) { return (c >= 9 && c <= 13) || c == 32 || c == 0x85 || c == 0xa0 || c == 0x1680 || (c >= 0x2000 && c <= 0x200a) || c == 0x2028 || c == 0x2029 || c == 0x202f || c == 0x205f || c == 0x3000; }
 Loaded Loader::parse(const QByteArray& bytes, const QString& resource) {
     try {
         require(bytes.size() <= 2 * 1024 * 1024 && !bytes.startsWith(QByteArray::fromHex("efbbbf")), "$", "resource too large or BOM present");
@@ -63,7 +62,7 @@ Loaded Loader::parse(const QByteArray& bytes, const QString& resource) {
         require(syntax.error == QJsonParseError::NoError && doc.isObject(), "$", "invalid JSON object");
         const auto top = object(doc.object(), "$", {"schema_version", "metadata", "rule_groups", "presets", "rules", "decorators"});
         require(top["schema_version"].isDouble() && top["schema_version"].toDouble() == std::floor(top["schema_version"].toDouble()), "schema_version", "must be an integer");
-        if (top["schema_version"].toDouble() != 1) throw Invalid{Error::UnsupportedSchema, "schema_version", "unsupported schema version"};
+        if (top["schema_version"].toDouble() != 1) throw Invalid{.error = Error::UnsupportedSchema, .path = "schema_version", .reason = "unsupported schema version"};
         auto style = std::make_shared<Definition>();
         const auto meta = object(top["metadata"], "metadata", {"id", "version", "name", "description", "license", "sources"});
         style->id = id(meta["id"], "metadata.id"); style->version = string(meta["version"], "metadata.version");
@@ -71,7 +70,7 @@ Loaded Loader::parse(const QByteArray& bytes, const QString& resource) {
         require(version.match(style->version).hasMatch(), "metadata.version", "expected major.minor.patch");
         style->names = localized(meta["name"], "metadata.name", false); style->descriptions = localized(meta["description"], "metadata.description", true);
         string(meta["license"], "metadata.license"); const auto sources = array(meta["sources"], "metadata.sources", 2 * 1024 * 1024); require(!sources.isEmpty(), "metadata.sources", "source attribution required");
-        for (int i = 0; i < sources.size(); ++i) { const auto path = QString("metadata.sources[%1]").arg(i); const auto source = object(sources[i], path, {"label", "url", "license", "notes"}); for (const auto& field : source.keys()) string(source[field], path + '.' + field, 2 * 1024 * 1024, field == "url" || field == "notes"); }
+        for (int i = 0; i < sources.size(); ++i) { const auto path = QString("metadata.sources[%1]").arg(i); for (const auto source = object(sources[i], path, {"label", "url", "license", "notes"}); const auto& field : source.keys()) string(source[field], path + '.' + field, 2 * 1024 * 1024, field == "url" || field == "notes"); }
         const auto groups = ids(top["rule_groups"], "rule_groups", 16); QSet<QString> seenIDs, seenSources, usedGroups;
         const auto rules = array(top["rules"], "rules", 10000);
         for (int i = 0; i < rules.size(); ++i) {
@@ -83,7 +82,7 @@ Loaded Loader::parse(const QByteArray& bytes, const QString& resource) {
             const int count = graphemes(rule.source); const auto kind = string(row["kind"], path + ".kind");
             require(count <= 64 && ((kind == "character" && count == 1) || (kind == "phrase" && count >= 2)), path + ".kind", "kind does not match grapheme length");
             const auto choices = array(row["candidates"], path + ".candidates", 16); require(!choices.isEmpty(), path, "no candidates"); QSet<QString> seen;
-            for (int n = 0; n < choices.size(); ++n) { const auto p = path + QString(".candidates[%1]").arg(n); const auto item = object(choices[n], p, {"text", "weight"}); const auto text = string(item["text"], p + ".text", 128); require(text != rule.source && !seen.contains(text), p, "identity or duplicate candidate"); seen.insert(text); rule.choices.append({text, uint64_t(number(item["weight"], p + ".weight", 1, 1000000))}); }
+            for (int n = 0; n < choices.size(); ++n) { const auto p = path + QString(".candidates[%1]").arg(n); const auto item = object(choices[n], p, {"text", "weight"}); const auto text = string(item["text"], p + ".text", 128); require(text != rule.source && !seen.contains(text), p, "identity or duplicate candidate"); seen.insert(text); rule.choices.append({.text = text, .weight = static_cast<uint64_t>(number(item["weight"], p + ".weight", 1, 1000000))}); }
             style->rules.append(std::move(rule));
         }
         QSet<QString> decorators;
@@ -107,11 +106,11 @@ Loaded Loader::parse(const QByteArray& bytes, const QString& resource) {
         for (const auto& group : groups) require(usedGroups.contains(group) && referenced.contains(group), "rule_groups", "unused group");
         require(usable && (!style->rules.isEmpty() || !style->decorators.isEmpty()), "$", "no usable capability");
         style->sha256 = QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
-        return {style, Error::None, {}};
-    } catch (const Invalid& error) { return {{}, error.error, resource + ": " + error.path + ": " + error.reason}; }
+        return {.style = style, .error = Error::None, .detail = {}};
+    } catch (const Invalid& error) { return {.style = {}, .error = error.error, .detail = resource + ": " + error.path + ": " + error.reason}; }
 }
 Loaded Loader::builtin() {
-    static const Loaded result = [] { initializeStyles(); QFile file(":/styles/mars_classic.json"); if (!file.open(QIODevice::ReadOnly)) return Loaded{{}, Error::StyleUnavailable, "Cannot read built-in style resource"}; return parse(file.readAll(), file.fileName()); }();
+    static const Loaded result = [] { initializeStyles(); QFile file(":/styles/mars_classic.json"); if (!file.open(QIODevice::ReadOnly)) return Loaded{.style = {}, .error = Error::StyleUnavailable, .detail = "Cannot read built-in style resource"}; return parse(file.readAll(), file.fileName()); }();
     return result;
 }
 }

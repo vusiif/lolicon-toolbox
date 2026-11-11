@@ -8,7 +8,7 @@ namespace mojibake {
 namespace {
 // Reconstruct bytes up to each damaged character. A decoder must never carry
 // an incomplete UTF-8 sequence across a hole in the original byte stream.
-std::optional<QString> partialUtf8(const QString& text, Encoding from, const Cancellation& cancel = {}) {
+std::optional<QString> partialUtf8(const QString& text, const Encoding from, const Cancellation& cancel = {}) {
     QString result;
     QByteArray run;
     qsizetype decodedCount = 0, invalidCount = 0, recoveredNonAscii = 0;
@@ -25,12 +25,11 @@ std::optional<QString> partialUtf8(const QString& text, Encoding from, const Can
         run.clear();
     };
     for (qsizetype i = 0; i < text.size(); ++i) {
-        if ((i % 256) == 0 && cancel && cancel->load()) return {};
+        if (i % 256 == 0 && cancel && cancel->load()) return {};
         const auto length = text[i].isHighSurrogate() && i + 1 < text.size() && text[i + 1].isLowSurrogate() ? 2 : 1;
         const auto character = text.mid(i, length);
         i += length - 1;
-        const auto bytes = character.contains(QChar(0xfffd)) ? std::nullopt : EncodingConverter::encode(character, from);
-        if (bytes) run += *bytes;
+        if (const auto bytes = character.contains(QChar(0xfffd)) ? std::nullopt : EncodingConverter::encode(character, from)) run += *bytes;
         else { flush(); result += character; }
     }
     flush();
@@ -63,8 +62,9 @@ std::optional<QString> CandidateGenerator::transform(const QString& text, const 
         result += text.mid(previous, match.capturedStart() - previous);
         const auto original = match.captured();
         const auto bytes = EncodingConverter::encode(original, step.encodeAs);
-        const auto decoded = bytes ? EncodingConverter::decode(*bytes, step.decodeAs) : std::nullopt;
-        if (decoded && *decoded != original) { result += *decoded; changed = true; }
+        if (const auto decoded = bytes ? EncodingConverter::decode(*bytes, step.decodeAs) : std::nullopt; decoded && *decoded != original) {
+            result += *decoded; changed = true;
+        }
         else result += original;
         previous = match.capturedEnd();
     }
@@ -73,19 +73,19 @@ std::optional<QString> CandidateGenerator::transform(const QString& text, const 
     return result;
 }
 QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancellation& cancel, bool& limited) {
-    Candidate original{text, {}};
+    Candidate original{.text = text, .path = {}};
     original.score = CandidateScorer::score(original);
     original.anomalies = CandidateScorer::anomalies(text);
     QList<Candidate> all{original}, frontier{original};
-    QSet<QString> seen{text};
+    QSet seen{text};
     // UTF-16/32 byte detection belongs to the file analyzer. Adding them to
     // Unicode-string inversion would manufacture unrelated wide-codec text.
     const auto encodings = EncodingConverter::supported(false);
     for (int depth = 0; depth < 2; ++depth) {
         QList<Candidate> next;
         for (const auto& parent : frontier) {
-            if (std::any_of(parent.path.begin(), parent.path.end(), [](const auto& step) { return step.partial; })) continue;
-            const auto cjk = std::count_if(parent.text.begin(), parent.text.end(), [](QChar c) {
+            if (std::ranges::any_of(parent.path, [](const auto& step) { return step.partial; })) continue;
+            const auto cjk = std::ranges::count_if(parent.text, [](QChar c) {
                 return c.unicode() >= 0x3400 && c.unicode() <= 0x9fff;
             });
             for (auto from : encodings) {
@@ -104,7 +104,7 @@ QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancell
                     // digits and 0x81-0x84; reading those as a single-byte codec
                     // yields clean-looking noise ("ƒ2î8"), never a plausible history.
                     if (from == Encoding::Gb18030 && (to == Encoding::Latin1 || to == Encoding::Windows1252)) continue;
-                    Transformation step{from, to};
+                    Transformation step{.encodeAs = from, .decodeAs = to};
                     auto transformed = bytes ? EncodingConverter::decode(*bytes, to) : std::nullopt;
                     if (!transformed && to == Encoding::Utf8 && (from == Encoding::Latin1 || from == Encoding::Windows1252)) {
                         step.segmented = true;
@@ -117,14 +117,14 @@ QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancell
                         transformed = partialUtf8(parent.text, from, cancel);
                     }
                     if (!transformed || seen.contains(*transformed)) continue;
-                    Candidate candidate{*transformed, parent.path};
+                    Candidate candidate{.text = *transformed, .path = parent.path};
                     candidate.path.append(step);
                     candidate.anomalies = CandidateScorer::anomalies(candidate.text);
                     if (candidate.anomalies > parent.anomalies) continue;
                     // Every whole-string step is exact. For segmented repairs,
                     // invert with a whole-string encode/decode and verify equality.
                     if (step.segmented) {
-                        const auto inverse = transform(candidate.text, {to, from});
+                        const auto inverse = transform(candidate.text, {.encodeAs = to, .decodeAs = from});
                         // Mixed-script inverses need to preserve the unchanged runs.
                         // If not provable, retain candidate with an honest flag.
                         candidate.reversible = inverse && *inverse == parent.text;
@@ -139,7 +139,7 @@ QList<Candidate> CandidateGenerator::generate(const QString& text, const Cancell
                 }
             }
         }
-        std::stable_sort(next.begin(), next.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
+        std::ranges::stable_sort(next, [](const auto& a, const auto& b) { return a.score > b.score; });
         if (next.size() > 12) { next = next.mid(0, 12); limited = true; }
         frontier = next;
         if (frontier.isEmpty()) break;

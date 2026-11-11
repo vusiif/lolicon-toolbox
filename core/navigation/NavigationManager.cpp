@@ -28,16 +28,16 @@ bool NavigationManager::addItem(const NavigationItem& item)
 QList<NavigationSection> NavigationManager::sections(const ToolRegistry& tools) const
 {
     auto groups = m_groups;
-    std::sort(groups.begin(), groups.end(), [](const auto& a, const auto& b) {
+    std::ranges::sort(groups, [](const auto& a, const auto& b) {
         return a.order == b.order ? a.id < b.id : a.order < b.order;
     });
     QList<NavigationSection> result;
     for (const auto& group : groups) {
-        NavigationSection section{group, {}};
+        NavigationSection section{.group = group, .items = {}};
         for (const auto& item : m_items)
             if (item.groupId == group.id && item.visible && tools.contains(item.toolId))
                 section.items.append(item);
-        std::sort(section.items.begin(), section.items.end(), [](const auto& a, const auto& b) {
+        std::ranges::sort(section.items, [](const auto& a, const auto& b) {
             return a.order == b.order ? a.toolId < b.toolId : a.order < b.order;
         });
         // Don't display categories that have no available, visible tools.

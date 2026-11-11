@@ -1,7 +1,6 @@
 #pragma once
 #include <QObject>
 #include <QJsonObject>
-#include <QUrl>
 #include <QStringList>
 namespace ai {
 struct Configuration { QString baseUrl; QString model; QString apiKey; };

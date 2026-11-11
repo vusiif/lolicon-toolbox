@@ -8,18 +8,16 @@
 namespace mojibake {
 namespace {
 bool cancelled(const Cancellation& cancel) { return cancel && cancel->load(); }
-bool wide(Encoding e) { return e == Encoding::Utf16LE || e == Encoding::Utf16BE || e == Encoding::Utf32LE || e == Encoding::Utf32BE; }
-bool wideEvidence(const QByteArray& bytes, Encoding e) {
+bool wide(const Encoding e) { return e == Encoding::Utf16LE || e == Encoding::Utf16BE || e == Encoding::Utf32LE || e == Encoding::Utf32BE; }
+bool wideEvidence(const QByteArray& bytes, const Encoding e) {
     if (!wide(e) || bytes.size() < 4) return false;
     const bool four = e == Encoding::Utf32LE || e == Encoding::Utf32BE;
     const bool little = e == Encoding::Utf16LE || e == Encoding::Utf32LE;
     int zeros = 0, total = 0;
     for (qsizetype i = 0; i < std::min<qsizetype>(bytes.size(), 65536); ++i) {
-        const auto position = i % (four ? 4 : 2);
-        const bool high = four ? (little ? position >= 2 : position < 2) : position == (little ? 1 : 0);
-        if (high) { ++total; if (bytes[i] == 0) ++zeros; }
+        if (const auto position = i % (four ? 4 : 2); four ? (little ? position >= 2 : position < 2) : position == (little ? 1 : 0)) { ++total; if (bytes[i] == 0) ++zeros; }
     }
-    return total && double(zeros) / total >= 0.65;
+    return total && static_cast<double>(zeros) / total >= 0.65;
 }
 bool textLike(const QString& text) {
     if (text.contains(QChar(0))) return false;
@@ -34,7 +32,7 @@ bool binarySignature(const QByteArray& bytes) {
     return false;
 }
 }
-QByteArray ByteEncodingAnalyzer::bom(Encoding e) {
+QByteArray ByteEncodingAnalyzer::bom(const Encoding e) {
     switch (e) {
     case Encoding::Utf8: return QByteArray::fromHex("efbbbf");
     case Encoding::Utf16LE: return QByteArray::fromHex("fffe");
@@ -44,7 +42,7 @@ QByteArray ByteEncodingAnalyzer::bom(Encoding e) {
     default: return {};
     }
 }
-FileResult ByteEncodingAnalyzer::load(const QString& path, std::optional<Encoding> forced, const Cancellation& cancel,
+FileResult ByteEncodingAnalyzer::load(const QString& path, const std::optional<Encoding> forced, const Cancellation& cancel,
                                       const std::function<void(double)>& progress) {
     FileResult result; result.path = QFileInfo(path).absoluteFilePath();
     QFile file(path);
@@ -60,7 +58,7 @@ FileResult ByteEncodingAnalyzer::load(const QString& path, std::optional<Encodin
     }
     result = analyze(bytes, forced, cancel, progress); result.path = QFileInfo(path).absoluteFilePath(); return result;
 }
-FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<Encoding> forced, const Cancellation& cancel,
+FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, const std::optional<Encoding> forced, const Cancellation& cancel,
                                          const std::function<void(double)>& progress) {
     FileResult result;
     if (bytes.size() > MaxFileBytes) { result.tooLarge = true; return result; }
@@ -72,17 +70,19 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
     for (auto e : {Encoding::Utf32LE, Encoding::Utf32BE, Encoding::Utf8, Encoding::Utf16LE, Encoding::Utf16BE}) {
         if (bytes.startsWith(bom(e))) { result.bomEncoding = e; payload.remove(0, bom(e).size()); break; }
     }
-    auto encodings = forced ? QList<Encoding>{*forced} : result.bomEncoding ? QList<Encoding>{*result.bomEncoding} : EncodingConverter::supported();
+    auto encodings = forced ? QList{*forced} : result.bomEncoding ? QList{*result.bomEncoding} : EncodingConverter::supported();
     result.preferredEncoding = result.bomEncoding;
     if (forced && result.bomEncoding && *forced != *result.bomEncoding) { result.invalidBom = true; return result; }
     int rawControls = 0;
     const auto sample = payload.left(65536);
     for (unsigned char c : sample) if (c < 32 && c != 0 && c != '\r' && c != '\n' && c != '\t') ++rawControls;
-    const bool hasWideEvidence = std::any_of(encodings.begin(), encodings.end(), [&](auto e) { return wideEvidence(payload, e); });
-    if (!result.bomEncoding && !forced && rawControls > std::max<qsizetype>(4, sample.size() / 20) && !hasWideEvidence) { result.probablyBinary = true; return result; }
+    if (const bool hasWideEvidence = std::ranges::any_of(encodings, [&](auto e) { return wideEvidence(payload, e); });
+        !result.bomEncoding && !forced && rawControls > std::max<qsizetype>(4, sample.size() / 20) && !hasWideEvidence) {
+        result.probablyBinary = true; return result;
+    }
     auto append = [&](FileCandidate c) {
-        auto existing = std::find_if(result.candidates.begin(), result.candidates.end(), [&](const auto& other) { return other.text == c.text; });
-        if (existing == result.candidates.end()) result.candidates.append(std::move(c));
+        if (const auto existing = std::ranges::find_if(result.candidates, [&](const auto& other) { return other.text == c.text; });
+            existing == result.candidates.end()) result.candidates.append(std::move(c));
         // The same text reached by a plain decode is the simpler, exact explanation:
         // a GBK file is GBK, not "Latin-1 plus a repair back to the same text".
         else if (!existing->repairPath.isEmpty() && c.repairPath.isEmpty()) *existing = std::move(c);
@@ -99,13 +99,13 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         if (!textLike(*decoded)) { nonTextDecode = true; continue; }
         if (e == Encoding::Utf8 || (!result.preferredEncoding && wideEvidence(payload, e))) result.preferredEncoding = e;
         // The plain decode has no path, so pass the codec for the script check.
-        double score = CandidateScorer::score(Candidate{*decoded, {}}, e);
+        double score = CandidateScorer::score(Candidate{.text = *decoded, .path = {}}, e);
         if (!result.bomEncoding) {
             if (wide(e) && !wideEvidence(payload, e)) score -= 25;
             else if (e != Encoding::Utf8 && !wide(e)) score -= 6 + CandidateScorer::legacyPrior(e);
         }
         const auto anomalies = CandidateScorer::anomalies(*decoded);
-        append({*decoded, e, {e}, {}, std::clamp(score, 0.0, 100.0), true, anomalies});
+        append({.text = *decoded, .encoding = e, .aliases = {e}, .repairPath = {}, .score = std::clamp(score, 0.0, 100.0), .reversible = true, .anomalies = anomalies});
         if (anomalies == 0) continue;
         // Once the UTF-8 reading has been rebuilt as damaged GBK, repairs of other readings only
         // re-encode its replacement characters (and are discarded below): skip the search.
@@ -121,7 +121,7 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         if (!repaired.likelyMojibake) continue;
         for (const auto& candidate : repaired.candidates) {
             if (candidate.path.isEmpty() || candidate.anomalies >= anomalies) continue;
-            append({candidate.text, e, {e}, candidate.path, candidate.score, candidate.reversible, candidate.anomalies, candidate.evidence, candidate.lossy});
+            append({.text = candidate.text, .encoding = e, .aliases = {e}, .repairPath = candidate.path, .score = candidate.score, .reversible = candidate.reversible, .anomalies = candidate.anomalies, .evidence = candidate.evidence, .lossy = candidate.lossy});
             lossyFound = lossyFound || (!candidate.path.isEmpty() && candidate.path.last().lossy);
         }
     }
@@ -139,10 +139,10 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, std::optional<
         if (best >= 0) for (auto& c : result.candidates)
             if (!c.aliases.contains(*result.preferredEncoding)) c.score = std::min(c.score, std::max(0.0, best - 8));
     }
-    std::stable_sort(result.candidates.begin(), result.candidates.end(), [](const auto& a, const auto& b) { return a.score > b.score; });
+    std::ranges::stable_sort(result.candidates, [](const auto& a, const auto& b) { return a.score > b.score; });
     // As in MojibakeAnalyzer: a lossy GBK reconstruction is the only candidate that
     // explains the replacement pattern; conversions of the debris merely look clean.
-    const auto lossy = std::find_if(result.candidates.begin(), result.candidates.end(), [](const auto& c) {
+    const auto lossy = std::ranges::find_if(result.candidates, [](const auto& c) {
         return !c.repairPath.isEmpty() && c.repairPath.last().lossy;
     });
     if (lossy != result.candidates.end()) {

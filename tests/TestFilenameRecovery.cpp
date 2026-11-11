@@ -1,4 +1,4 @@
-#include <QtTest>
+#include <QTest>
 #include <QTemporaryDir>
 #include <QDir>
 #include <QFile>
@@ -15,7 +15,6 @@ int find(const NamePlan& plan, const QString& path) {
     for (int i = 0; i < plan.entries.size(); ++i) if (plan.entries[i].relativePath == path) return i;
     return -1;
 }
-}
 class TestFilenameRecovery : public QObject {
     Q_OBJECT
 private slots:
@@ -27,19 +26,19 @@ private slots:
     void cancellationRetainsPartialCopy();
 };
 void TestFilenameRecovery::nestedCopy() {
-    QTemporaryDir dir; const auto root = dir.filePath("source"), destination = dir.filePath("copy");
+    const QTemporaryDir dir; const auto root = dir.filePath("source"), destination = dir.filePath("copy");
     QVERIFY(QDir().mkpath(root + "/浣犲ソ/empty"));
     const auto binary = QByteArray::fromHex("89504e470d0a1a0a00ff00000102");
     QVERIFY(write(root + "/浣犲ソ/浣犲ソ.txt", "unchanged\r\n"));
     QVERIFY(write(root + "/normal.bin", binary)); QVERIFY(write(root + "/.keep", "hidden"));
     auto plan = FilenameRecovery::scan(root); QVERIFY2(plan.error.isEmpty(), qPrintable(plan.error)); QCOMPARE(plan.entries.size(), 5);
     const int folder = find(plan, "浣犲ソ"), file = find(plan, "浣犲ソ/浣犲ソ.txt"); QVERIFY(folder >= 0); QVERIFY(file >= 0);
-    QVERIFY(std::any_of(plan.entries[folder].candidates.begin(), plan.entries[folder].candidates.end(), [](const auto& c) { return c.text == "你好"; }));
-    QVERIFY(std::any_of(plan.entries[file].candidates.begin(), plan.entries[file].candidates.end(), [](const auto& c) { return c.text == "你好.txt"; }));
+    QVERIFY(std::ranges::any_of(plan.entries[folder].candidates, [](const auto& c) { return c.text == "你好"; }));
+    QVERIFY(std::ranges::any_of(plan.entries[file].candidates, [](const auto& c) { return c.text == "你好.txt"; }));
     QCOMPARE(plan.entries[folder].selectedName, QString("浣犲ソ")); // Analysis never applies a suggestion.
     plan.entries[folder].selectedName = "你好"; plan.entries[file].selectedName = "你好.txt";
     const auto validation = FilenameRecovery::validate(plan); QVERIFY(validation.valid()); QCOMPARE(validation.paths[file], QString("你好/你好.txt"));
-    auto progress = std::make_shared<NameProgress>();
+    const auto progress = std::make_shared<NameProgress>();
     const auto result = FilenameRecovery::copy(plan, destination, {}, progress); QVERIFY2(result.success, qPrintable(result.error));
     QCOMPARE(read(destination + "/你好/你好.txt"), QByteArray("unchanged\r\n")); QCOMPARE(read(destination + "/normal.bin"), binary);
     QCOMPARE(read(destination + "/.keep"), QByteArray("hidden")); QVERIFY(QFileInfo(destination + "/你好/empty").isDir());
@@ -52,14 +51,14 @@ void TestFilenameRecovery::invalidNamesAndConflicts() {
                             QString("trailing."), QString("trailing "), QString(256, 'a'), QString("bad?")})
         QVERIFY2(!FilenameRecovery::invalidName(name).isEmpty(), qPrintable(name));
     for (const auto& name : {QString("你好.txt"), QString("COM10.txt"), QString("normal 😀"), QString(".env")}) QVERIFY(FilenameRecovery::invalidName(name).isEmpty());
-    NamePlan plan; plan.entries = {{"a.txt", "same.txt"}, {"b.txt", "SAME.TXT"}, {"folder", "folder", -1, true}, {"folder/a.txt", "same.txt", 2}};
+    NamePlan plan; plan.entries = {{.relativePath = "a.txt", .selectedName = "same.txt"}, {.relativePath = "b.txt", .selectedName = "SAME.TXT"}, {.relativePath = "folder", .selectedName = "folder", .parent = -1, .directory = true}, {.relativePath = "folder/a.txt", .selectedName = "same.txt", .parent = 2}};
     auto validation = FilenameRecovery::validate(plan); QVERIFY(!validation.valid()); QVERIFY(!validation.errors[0].isEmpty()); QVERIFY(!validation.errors[1].isEmpty()); QVERIFY(validation.errors[3].isEmpty());
     plan.entries[1].selectedName = "different.txt"; QVERIFY(FilenameRecovery::validate(plan).valid());
     plan.entries[2].selectedName = "same.txt"; QVERIFY(!FilenameRecovery::validate(plan).valid()); // File/folder collision.
     plan.entries[2].selectedName = "folder"; plan.entries[3].parent = 3; QVERIFY(!FilenameRecovery::validate(plan).valid());
 }
 void TestFilenameRecovery::destinationSafety() {
-    QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkpath(source)); QVERIFY(write(source + "/a", "original"));
+    const QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkpath(source)); QVERIFY(write(source + "/a", "original"));
     const auto plan = FilenameRecovery::scan(source); QVERIFY(plan.error.isEmpty());
     for (const auto& destination : {source, source + "/nested", dir.path()}) {
         const auto result = FilenameRecovery::copy(plan, destination); QVERIFY(!result.success); QVERIFY(!result.outputCreated);
@@ -72,7 +71,7 @@ void TestFilenameRecovery::destinationSafety() {
     QCOMPARE(read(source + "/a"), QByteArray("original"));
 }
 void TestFilenameRecovery::sourceChanges() {
-    QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkdir(source)); QVERIFY(write(source + "/a", "before"));
+    const QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkdir(source)); QVERIFY(write(source + "/a", "before"));
     const auto plan = FilenameRecovery::scan(source); QVERIFY(plan.error.isEmpty());
     QVERIFY(write(source + "/a", "after!")); // Same size, different hash.
     QVERIFY(!FilenameRecovery::copy(plan, dir.filePath("changed")).success); QVERIFY(!QFileInfo::exists(dir.filePath("changed")));
@@ -82,9 +81,9 @@ void TestFilenameRecovery::sourceChanges() {
     QVERIFY(!FilenameRecovery::copy(plan, dir.filePath("removed")).success); QVERIFY(!QFileInfo::exists(dir.filePath("removed")));
 }
 void TestFilenameRecovery::limitsCancellationAndLinks() {
-    QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkdir(source)); QVERIFY(write(source + "/a", "data"));
+    const QTemporaryDir dir; const auto source = dir.filePath("source"); QVERIFY(QDir().mkdir(source)); QVERIFY(write(source + "/a", "data"));
     const auto plan = FilenameRecovery::scan(source);
-    auto cancel = std::make_shared<std::atomic_bool>(true);
+    const auto cancel = std::make_shared<std::atomic_bool>(true);
     QVERIFY(FilenameRecovery::scan(source, cancel).cancelled);
     const auto cancelledCopy = FilenameRecovery::copy(plan, dir.filePath("cancelled"), cancel); QVERIFY(cancelledCopy.cancelled); QVERIFY(!cancelledCopy.outputCreated);
     QVERIFY(QFile::link(source + "/a", source + "/shortcut.lnk")); QVERIFY(QFileInfo(source + "/shortcut.lnk").isSymLink());
@@ -99,14 +98,14 @@ void TestFilenameRecovery::limitsCancellationAndLinks() {
     QVERIFY(!FilenameRecovery::scan(many).error.isEmpty());
 }
 void TestFilenameRecovery::cancellationRetainsPartialCopy() {
-    QTemporaryDir dir; const auto source = dir.filePath("source"), destination = dir.filePath("partial");
+    const QTemporaryDir dir; const auto source = dir.filePath("source"), destination = dir.filePath("partial");
     QVERIFY(QDir().mkdir(source));
     constexpr qint64 size = 64 * 1024 * 1024;
     { QFile file(source + "/large.bin"); QVERIFY(file.open(QIODevice::WriteOnly)); QVERIFY(file.resize(size)); }
     const auto plan = FilenameRecovery::scan(source); QVERIFY(plan.error.isEmpty());
-    auto cancel = std::make_shared<std::atomic_bool>(false); auto progress = std::make_shared<NameProgress>();
+    const auto cancel = std::make_shared<std::atomic_bool>(false); const auto progress = std::make_shared<NameProgress>();
     // Wait for actual writes, rather than cancelling during the preflight scan.
-    std::jthread monitor([&](std::stop_token stop) {
+    std::jthread monitor([&](const std::stop_token& stop) {
         while (!stop.stop_requested()) {
             if (progress->bytes.load() > 0) { cancel->store(true); return; }
             QThread::msleep(1);
@@ -119,5 +118,6 @@ void TestFilenameRecovery::cancellationRetainsPartialCopy() {
     QCOMPARE(FilenameRecovery::scan(source).entries.first().hash, plan.entries.first().hash);
     QVERIFY(!FilenameRecovery::copy(plan, destination).success); // Partial outputs cannot be reused or overwritten.
 }
+}  // namespace
 QTEST_GUILESS_MAIN(TestFilenameRecovery)
 #include "TestFilenameRecovery.moc"

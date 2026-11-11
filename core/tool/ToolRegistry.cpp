@@ -16,7 +16,7 @@ bool ToolRegistry::registerTool(const ToolDescriptor& descriptor)
 
 std::optional<ToolDescriptor> ToolRegistry::findTool(const QString& id) const
 {
-    auto it = m_tools.find(id);
+    const auto it = m_tools.find(id);
     if (it == m_tools.end()) {
         return std::nullopt;
     }

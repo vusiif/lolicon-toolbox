@@ -55,7 +55,7 @@ public:
     int selected() const { return m_selected; }
     void select(int index);
     EvidenceView* preview() const { return m_preview; }
-    void setPreviewLimit(qsizetype limit) { m_limit = limit; }
+    void setPreviewLimit(const qsizetype limit) { m_limit = limit; }
     qsizetype shownCharacters() const { return m_shown; }
     void setPlaceholder(const QString& text);
     ElaPushButton* card(int index) const;

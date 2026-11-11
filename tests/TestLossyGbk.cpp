@@ -1,4 +1,4 @@
-#include <QtTest>
+#include <QTest>
 #include <QFile>
 #include <QElapsedTimer>
 #include <QStringConverter>
@@ -21,7 +21,7 @@ QString damage(const QString& text) { return LossyGbkRecovery::lossyUtf8(gbk(tex
 // Longest common subsequence over the longer length: a fair score when a
 // recovery inserts or drops a character where the byte count is ambiguous.
 double positional(const QString& a, const QString& b) {
-    std::vector<int> row(b.size() + 1, 0);
+    std::vector row(b.size() + 1, 0);
     for (qsizetype i = 1; i <= a.size(); ++i) {
         int diagonal = 0;
         for (qsizetype j = 1; j <= b.size(); ++j) {
@@ -30,8 +30,7 @@ double positional(const QString& a, const QString& b) {
             diagonal = up;
         }
     }
-    return double(row[b.size()]) / std::max<qsizetype>(1, std::max(a.size(), b.size()));
-}
+    return static_cast<double>(row[b.size()]) / static_cast<double>(std::max<qsizetype>(1, std::max(a.size(), b.size())));
 }
 class TestLossyGbk : public QObject {
     Q_OBJECT
@@ -73,7 +72,7 @@ void TestLossyGbk::recoversProse() {
     const auto damaged = damage(truth);
     QElapsedTimer timer; timer.start();
     const auto r = LossyGbkRecovery::recover(damaged);
-    qInfo("prose: %lld chars, %lld ms, exact %d partial %d unknown %d", qint64(truth.size()), qint64(timer.elapsed()), r.exact, r.partial, r.unknown);
+    qInfo("prose: %lld chars, %lld ms, exact %d partial %d unknown %d", truth.size(), timer.elapsed(), r.exact, r.partial, r.unknown);
     QVERIFY(r.success);
     QCOMPARE(r.evidence.size(), r.text.size());
     QVERIFY(qAbs(r.text.size() - truth.size()) * 50 <= truth.size());
@@ -82,7 +81,7 @@ void TestLossyGbk::recoversProse() {
     if (r.text.size() != truth.size()) return;
     int exactRight = 0, partialRight = 0;
     for (qsizetype i = 0; i < truth.size(); ++i) {
-        const auto e = CharEvidence(r.evidence[i]);
+        const auto e = static_cast<CharEvidence>(r.evidence[i]);
         if (e == CharEvidence::Exact) exactRight += r.text[i] == truth[i];
         if (e == CharEvidence::Partial) partialRight += r.text[i] == truth[i];
         if (e == CharEvidence::Unknown) QCOMPARE(r.text[i], QChar(LossyGbkRecovery::UnknownMark));
@@ -105,7 +104,7 @@ void TestLossyGbk::recoversEssay() {
             const auto r = LossyGbkRecovery::recover(LossyGbkRecovery::lossyUtf8(gbk(truth), convention));
             int partial = 0;
             if (r.text.size() == truth.size())
-                for (qsizetype i = 0; i < truth.size(); ++i) partial += CharEvidence(r.evidence[i]) == CharEvidence::Partial && r.text[i] == truth[i];
+                for (qsizetype i = 0; i < truth.size(); ++i) partial += static_cast<CharEvidence>(r.evidence[i]) == CharEvidence::Partial && r.text[i] == truth[i];
             qInfo("%s %s: similarity %.3f, partial correct %d/%d", name, convention == Utf8Replacement::PerByte ? "per-byte" : "subpart",
                   positional(r.text, truth), partial, r.partial);
         }
@@ -120,7 +119,7 @@ void TestLossyGbk::recoversEssay() {
     int exactRight = 0, partialRight = 0, inTopFive = 0;
     QString ideal;  // what an AI that picks well from the listed alternatives would answer
     for (qsizetype i = 0; i < truth.size(); ++i) {
-        const auto e = CharEvidence(r.evidence[i]);
+        const auto e = static_cast<CharEvidence>(r.evidence[i]);
         if (e == CharEvidence::Exact) exactRight += r.text[i] == truth[i];
         if (e != CharEvidence::Partial) { ideal += truth[i]; continue; }
         partialRight += r.text[i] == truth[i];
@@ -147,7 +146,7 @@ void TestLossyGbk::recoversEssay() {
     QCOMPARE(subpart.replacement, Utf8Replacement::MaximalSubpart);
     const auto subpartRefined = LossyGbkRecovery::guided(subpartDamage, truth, Utf8Replacement::MaximalSubpart);
     qInfo("subpart: local similarity %.3f, %lld vs %lld characters; with the original as guide %.3f, rejected %d",
-          positional(subpart.text, truth), qint64(subpart.text.size()), qint64(truth.size()), positional(subpartRefined.text, truth), subpartRefined.guideRejected);
+          positional(subpart.text, truth), subpart.text.size(), truth.size(), positional(subpartRefined.text, truth), subpartRefined.guideRejected);
     QCOMPARE(LossyGbkRecovery::lossyUtf8(subpartRefined.bytes), subpartDamage);
     QVERIFY(positional(subpartRefined.text, truth) > 0.9);
 }
@@ -168,7 +167,7 @@ void TestLossyGbk::guideIsVerified() {
     QVERIFY(checked.guideRejected > 0);
     QCOMPARE(checked.text.size(), truth.size());
     for (qsizetype i = 0; i < checked.text.size(); ++i)
-        if (CharEvidence(checked.evidence[i]) == CharEvidence::Exact) QCOMPARE(checked.text[i], truth[i]);
+        if (static_cast<CharEvidence>(checked.evidence[i]) == CharEvidence::Exact) QCOMPARE(checked.text[i], truth[i]);
     QVERIFY(!checked.text.contains("铅笔"));
     // Markup copied back by the model: a group counts as its first option, □ holds its place.
     QString echoed = truth;
@@ -179,7 +178,7 @@ void TestLossyGbk::guideIsVerified() {
     QVERIFY(copied.text.contains("钢笔"));
     QCOMPARE(copied.guideRejected, 0);
     const auto room = truth.indexOf("房");
-    QVERIFY(CharEvidence(copied.evidence[room]) != CharEvidence::Guided);
+    QVERIFY(static_cast<CharEvidence>(copied.evidence[room]) != CharEvidence::Guided);
     QVERIFY(positional(checked.text, truth) > positional(LossyGbkRecovery::recover(damaged).text, truth));
 }
 void TestLossyGbk::detectsReplacementConvention() {
@@ -209,7 +208,7 @@ void TestLossyGbk::fileAnalysis() {
     const auto result = ByteEncodingAnalyzer::analyze(bytes);
     QVERIFY(!result.candidates.isEmpty());
     const auto& top = result.candidates.first();
-    for (const auto& c : result.candidates) qInfo("%s score %.1f path %lld lossy %d %s", qPrintable(EncodingConverter::name(c.encoding)), c.score, qint64(c.repairPath.size()), int(!c.repairPath.isEmpty() && c.repairPath.last().lossy), qPrintable(c.text.left(40) + " / " + (c.repairPath.isEmpty() ? QString() : EncodingConverter::name(c.repairPath[0].encodeAs) + ">" + EncodingConverter::name(c.repairPath[0].decodeAs) + (c.repairPath.size() > 1 ? ", " + EncodingConverter::name(c.repairPath[1].encodeAs) + ">" + EncodingConverter::name(c.repairPath[1].decodeAs) + QString(c.repairPath[1].partial ? " partial" : "") : QString()))));
+    for (const auto& c : result.candidates) qInfo("%s score %.1f path %lld lossy %d %s", qPrintable(EncodingConverter::name(c.encoding)), c.score, c.repairPath.size(), !c.repairPath.isEmpty() && c.repairPath.last().lossy, qPrintable(c.text.left(40) + " / " + (c.repairPath.isEmpty() ? QString() : EncodingConverter::name(c.repairPath[0].encodeAs) + ">" + EncodingConverter::name(c.repairPath[0].decodeAs) + (c.repairPath.size() > 1 ? ", " + EncodingConverter::name(c.repairPath[1].encodeAs) + ">" + EncodingConverter::name(c.repairPath[1].decodeAs) + QString(c.repairPath[1].partial ? " partial" : "") : QString()))));
     QVERIFY(!top.repairPath.isEmpty() && top.repairPath.last().lossy);
     QCOMPARE(top.evidence.size(), top.text.size());
 }
@@ -220,20 +219,19 @@ void TestLossyGbk::largeInput() {
     const auto damaged = damage(big);
     QElapsedTimer timer; timer.start();
     const auto r = LossyGbkRecovery::recover(damaged);
-    qInfo("large: %lld chars in %lld ms", qint64(big.size()), qint64(timer.elapsed()));
+    qInfo("large: %lld chars in %lld ms", big.size(), timer.elapsed());
     QVERIFY(r.success);
     auto cancel = std::make_shared<std::atomic_bool>(true);
     QVERIFY(LossyGbkRecovery::recover(damaged, cancel).cancelled);
     // Optional manual benchmark on a real damaged file.
-    const auto path = qEnvironmentVariable("LOSSY_GBK_SAMPLE");
-    if (!path.isEmpty()) {
+    if (const auto path = qEnvironmentVariable("LOSSY_GBK_SAMPLE"); !path.isEmpty()) {
         QFile file(path);
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto text = QString::fromUtf8(file.readAll());
         timer.restart();
         const auto sample = LossyGbkRecovery::recover(text);
-        qInfo("sample: %lld chars in %lld ms, exact %d partial %d unknown %d, applicable %d", qint64(text.size()), qint64(timer.elapsed()),
-              sample.exact, sample.partial, sample.unknown, int(LossyGbkRecovery::applicable(text)));
+        qInfo("sample: %lld chars in %lld ms, exact %d partial %d unknown %d, applicable %d", text.size(), timer.elapsed(),
+              sample.exact, sample.partial, sample.unknown, LossyGbkRecovery::applicable(text));
         QVERIFY(sample.success);
         if (const auto markup = qEnvironmentVariable("LOSSY_GBK_MARKUP"); !markup.isEmpty()) {
             QFile out(markup);  // the draft the AI receives for the first chunk
@@ -242,14 +240,15 @@ void TestLossyGbk::largeInput() {
         }
         timer.restart();
         const auto analyzed = ByteEncodingAnalyzer::load(path);
-        qInfo("file analysis: %lld ms, %lld candidates, top lossy %d", qint64(timer.elapsed()), qint64(analyzed.candidates.size()),
-              int(!analyzed.candidates.isEmpty() && !analyzed.candidates.first().repairPath.isEmpty() && analyzed.candidates.first().repairPath.last().lossy));
+        qInfo("file analysis: %lld ms, %lld candidates, top lossy %d", timer.elapsed(), analyzed.candidates.size(),
+              !analyzed.candidates.isEmpty() && !analyzed.candidates.first().repairPath.isEmpty() && analyzed.candidates.first().repairPath.last().lossy);
         timer.restart();
         const auto pasted = MojibakeAnalyzer::analyze(text);
-        qInfo("text analysis: %lld ms, top lossy %d", qint64(timer.elapsed()),
-              int(!pasted.candidates.isEmpty() && !pasted.candidates.first().path.isEmpty() && pasted.candidates.first().path.last().lossy));
+        qInfo("text analysis: %lld ms, top lossy %d", timer.elapsed(),
+              !pasted.candidates.isEmpty() && !pasted.candidates.first().path.isEmpty() && pasted.candidates.first().path.last().lossy);
     }
 }
+}  // namespace
 #if defined(_MSC_VER) && defined(_DEBUG)
 // Debug CRT assertions go to stderr instead of a dialog nobody sees under ctest.
 #include <crtdbg.h>

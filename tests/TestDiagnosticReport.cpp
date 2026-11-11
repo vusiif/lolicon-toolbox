@@ -1,11 +1,11 @@
-#include <QtTest>
+#include <QTest>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
-#include <QJsonArray>
 #include "DiagnosticReport.h"
 #include "MojibakeAnalyzer.h"
 using namespace mojibake;
+namespace {
 class TestDiagnosticReport : public QObject {
     Q_OBJECT
 private slots:
@@ -22,10 +22,10 @@ void TestDiagnosticReport::textAssessments() {
     QVERIFY(report.data["inverse_verified"].toBool()); QVERIFY(!report.data["original_bytes_available"].toBool());
     QVERIFY(report.summary().contains("does not prove"));
     const auto normal = DiagnosticReport::text(MojibakeAnalyzer::analyze("正常文字"), 0); QCOMPARE(normal.data["assessment"].toString(), QString("retained"));
-    Result partial; partial.original = "damaged�"; partial.candidates = {{"recovered�", {}, 90, 1, false}};
+    Result partial; partial.original = "damaged�"; partial.candidates = {{.text = "recovered�", .path = {}, .score = 90, .anomalies = 1, .reversible = false}};
     const auto incomplete = DiagnosticReport::text(partial, 0); QCOMPARE(incomplete.data["assessment"].toString(), QString("partial"));
     QVERIFY(incomplete.data["possible_information_loss"].toBool()); QVERIFY(!incomplete.data["inverse_verified"].toBool());
-    partial.candidates = {{"damaged�", {}, 90, 1, true}, {"alternative", {}, 87, 0, true}};
+    partial.candidates = {{.text = "damaged�", .path = {}, .score = 90, .anomalies = 1, .reversible = true}, {.text = "alternative", .path = {}, .score = 87, .anomalies = 0, .reversible = true}};
     const auto ambiguous = DiagnosticReport::text(partial, 0); QVERIFY(ambiguous.data["ambiguous"].toBool()); QCOMPARE(ambiguous.data["assessment"].toString(), QString("review"));
     partial.cancelled = true; partial.candidates.clear(); const auto cancelled = DiagnosticReport::text(partial, -1);
     QCOMPARE(cancelled.data["assessment"].toString(), QString("unavailable")); QVERIFY(cancelled.data["inverse_verified"].isNull()); QVERIFY(cancelled.data["possible_information_loss"].toBool());
@@ -45,7 +45,7 @@ void TestDiagnosticReport::fileEvidence() {
 void TestDiagnosticReport::namePlanEvidence() {
     NamePlan plan; plan.root = "C:/example";
     NameEntry entry; entry.relativePath = "浣犲ソ.txt"; entry.selectedName = "你好.txt";
-    entry.candidates = {{"你好.txt", {{Encoding::Gbk, Encoding::Utf8}}, 98, 0, true}}; plan.entries.append(entry);
+    entry.candidates = {{.text = "你好.txt", .path = {{.encodeAs = Encoding::Gbk, .decodeAs = Encoding::Utf8}}, .score = 98, .anomalies = 0, .reversible = true}}; plan.entries.append(entry);
     auto report = DiagnosticReport::names(plan); QVERIFY(report.data["inverse_verified"].toBool());
     QCOMPARE(report.data["metrics"].toObject()["name_changes"].toInt(), 1);
     QVERIFY(report.data["paths_or_names_included"].toBool()); QVERIFY(!report.data["original_bytes_available"].toBool());
@@ -64,7 +64,7 @@ void TestDiagnosticReport::clipboardEvidence() {
     report = DiagnosticReport::clipboard(snapshot, 1); QVERIFY(!report.data["possible_information_loss"].toBool());
 }
 void TestDiagnosticReport::exportSafetyAndPrivacy() {
-    QTemporaryDir dir; const auto path = dir.filePath("report.json"); QString error;
+    const QTemporaryDir dir; const auto path = dir.filePath("report.json"); QString error;
     QVERIFY(!DiagnosticReport{}.save(path, error)); QVERIFY(!QFile::exists(path));
     const auto report = DiagnosticReport::text(MojibakeAnalyzer::analyze("private-secret-body"), 0);
     QVERIFY(report.save(path, error)); QVERIFY(error.isEmpty());
@@ -74,5 +74,6 @@ void TestDiagnosticReport::exportSafetyAndPrivacy() {
     QVERIFY(!bytes.contains("private-secret-body")); QVERIFY(data.contains("exported_at_utc"));
     QVERIFY(!report.save(path, error)); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), bytes);
 }
+}  // namespace
 QTEST_GUILESS_MAIN(TestDiagnosticReport)
 #include "TestDiagnosticReport.moc"
