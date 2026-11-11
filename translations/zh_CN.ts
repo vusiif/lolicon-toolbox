@@ -209,6 +209,7 @@ Unavailable</source><translation>候选 %1
         <message><source>2  Choose a result</source><translation>2  选择修复结果</translation></message>
         <message><source>Results appear here after analysis.</source><translation>分析后，修复结果会显示在这里。</translation></message>
         <message><source>Damaged GBK text detected. Characters whose bytes were lost are marked; AI refinement can fill them from context.</source><translation>检测到受损的 GBK 文本：丢失字节的字已标出，可用 AI 精修根据上下文补全。</translation></message>
+        <message><source>Damaged GBK text detected. Characters whose bytes were lost are marked; too many were lost for AI to restore them reliably.</source><translation>检测到受损的 GBK 文本：丢失字节的字已标出；丢失得太多，AI 无法可靠地补全。</translation></message>
         <message><source>No conversion</source><translation>未做转换</translation></message>
         <message><source>Rebuilt damaged GBK text</source><translation>重建受损的 GBK 文本</translation></message>
         <message><source>%1 certain · %2 guessed · %3 lost</source><translation>确定 %1 · 推测 %2 · 丢失 %3</translation></message>

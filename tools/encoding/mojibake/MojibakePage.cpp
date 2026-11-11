@@ -281,7 +281,10 @@ void MojibakePage::showResult() {
     else if (m_result.tooLarge) m_status->setText(tr("Input exceeds the 1 MiB limit. Analyze a smaller section."));
     else if (m_result.cancelled) m_status->setText(tr("Analysis cancelled."));
     else if (m_result.candidates.isEmpty()) m_status->setText(tr("Paste text, then analyze. Scores rank possibilities; they are not probabilities."));
-    else if (lossy(m_result.candidates.first())) m_status->setText(tr("Damaged GBK text detected. Characters whose bytes were lost are marked; AI refinement can fill them from context."));
+    else if (const auto& top = m_result.candidates.first(); lossy(top))
+        m_status->setText(top.lossy && !MojibakeAi::heavyDamageWarning(*top.lossy).isEmpty()
+            ? tr("Damaged GBK text detected. Characters whose bytes were lost are marked; too many were lost for AI to restore them reliably.")
+            : tr("Damaged GBK text detected. Characters whose bytes were lost are marked; AI refinement can fill them from context."));
     else if (m_result.possibleLoss) m_status->setText(tr("Possible missing information: replacement characters or repeated question marks. Recovery is uncertain."));
     else if (!m_result.likelyMojibake) m_status->setText(tr("No reliable improvement found. The original text is retained; alternatives may be incorrect."));
     else if (m_result.confidence == Confidence::High) m_status->setText(tr("High confidence candidate. Check the meaning before using it."));

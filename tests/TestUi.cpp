@@ -363,6 +363,7 @@ void TestUi::lossyRecoveryWorkflow()
     auto* aiAnalyze = page.findChild<ElaPushButton*>("mojibakeAiAnalyze");
     input->setPlainText(damaged); analyze->click(); QTRY_VERIFY_WITH_TIMEOUT(analyze->isEnabled(), 10000);
     QVERIFY(page.findChild<QLabel*>("mojibakeStatus")->text().contains(QString::fromUtf8("受损的 GBK")));
+    QVERIFY(page.findChild<QLabel*>("mojibakeStatus")->text().contains(QString::fromUtf8("无法可靠")));  // heavy damage: no AI promise
     QVERIFY(output->toPlainText().contains(QChar(0x25a1)));
     QVERIFY(page.findChild<QLabel*>("mojibakeEvidenceStats")->text().contains(QString::fromUtf8("丢失")));
     QVERIFY(aiAnalyze->text().contains(QString::fromUtf8("AI 精修")));
