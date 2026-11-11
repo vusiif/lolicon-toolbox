@@ -290,7 +290,11 @@ void TextFileRecoveryPage::updateAiControls() {
     m_aiAnalyze->setEnabled(configured && !busy && !m_analysis.isRunning() && (lossyFile ? chunks > 0 : small));
     m_aiCancel->setVisible(busy);
     if (!configured) m_aiHint->setText(MojibakePage::tr("Configure the AI API address and model in Settings first. Local analysis does not upload text."));
-    else if (lossyFile) m_aiHint->setText(MojibakePage::tr("AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.", nullptr, chunks).arg(m_ai->target()));
+    else if (lossyFile) {
+        QString hint = MojibakePage::tr("AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.", nullptr, chunks).arg(m_ai->target());
+        if (const auto warning = MojibakeAi::heavyDamageWarning(*m_result.candidates.first().lossy); !warning.isEmpty()) hint += '\n' + warning;
+        m_aiHint->setText(hint);
+    }
     else if (m_result.candidates.isEmpty()) m_aiHint->setText(tr("Analyze a file first. AI is used only when you click it."));
     else if (!small) m_aiHint->setText(tr("AI suggestions are limited to 16 KiB of text. Damaged GBK files can be refined in chunks of any size."));
     else m_aiHint->setText(tr("Clicking AI analysis sends the decoded text and local candidates to %1.").arg(m_ai->target()));

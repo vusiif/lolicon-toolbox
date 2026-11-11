@@ -366,6 +366,15 @@ void TestUi::lossyRecoveryWorkflow()
     QVERIFY(output->toPlainText().contains(QChar(0x25a1)));
     QVERIFY(page.findChild<QLabel*>("mojibakeEvidenceStats")->text().contains(QString::fromUtf8("丢失")));
     QVERIFY(aiAnalyze->text().contains(QString::fromUtf8("AI 精修")));
+    // Most characters of this sentence lost every byte: the hint says AI will not make it accurate.
+    QVERIFY(page.findChild<QLabel*>("mojibakeAiHint")->text().contains(QString::fromUtf8("损坏严重")));
+    {
+        mojibake::LossyRecovery light; light.text = QString(10, u'字'); light.unknown = 1;
+        QVERIFY(MojibakeAi::heavyDamageWarning(light).isEmpty());
+        light.unknown = 5;
+        QVERIFY(MojibakeAi::heavyDamageWarning(light).contains("50%"));
+        QVERIFY(MojibakeAi::heavyDamageWarning(mojibake::LossyRecovery{}).isEmpty());
+    }
     QVERIFY(page.grab().save("mojibake-lossy.png"));
     // The model answers every damaged span by id; the fills are spliced into the certain
     // text and re-solved against the surviving bytes, so correct fills are accepted in full.
@@ -411,7 +420,9 @@ void TestUi::lossyRecoveryWorkflow()
     QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("fileRecoveryAnalyze")->isEnabled(), 10000);
     QVERIFY(page.findChild<ElaPlainTextEdit*>("fileRecoveryPreview")->toPlainText().contains(QChar(0x25a1)));
     auto* fileAi = page.findChild<ElaPushButton*>("fileRecoveryAiAnalyze");
-    QVERIFY(fileAi->isEnabled()); fileAi->click();
+    QVERIFY(fileAi->isEnabled());
+    QVERIFY(page.findChild<QLabel*>("fileRecoveryAiHint")->text().contains(QString::fromUtf8("损坏严重")));
+    fileAi->click();
     QTRY_VERIFY_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("fileRecoveryAiCancel")->isVisible(), 10000);
     QCOMPARE(page.findChild<ElaPlainTextEdit*>("fileRecoveryPreview")->toPlainText(), truth);
     filePage->exportCopy(copy); QTRY_VERIFY_WITH_TIMEOUT(page.findChild<ElaPushButton*>("fileRecoverySave")->isEnabled(), 5000);

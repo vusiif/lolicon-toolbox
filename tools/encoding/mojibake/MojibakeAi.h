@@ -42,6 +42,13 @@ public:
     QString target() const;  // "address · model"
     bool busy() const { return m_busy; }
     static int chunkCount(const mojibake::LossyRecovery& local);
+    // Share of characters with no surviving byte from which AI refinement is not
+    // worth its cost. Measured on the corpus (about 45% lost, tests/DiagnoseAiRefinement):
+    // mimo-v2.6-pro and -flash guessed about 4% of lost characters right and
+    // picked partly damaged ones no better than the local word model.
+    static constexpr double HeavyLoss = 0.2;
+    // A warning for the AI hint when local is that damaged, otherwise empty.
+    static QString heavyDamageWarning(const mojibake::LossyRecovery& local);
     void suggest(const QString& original, const QList<mojibake::Candidate>& candidates, bool possibleLoss);
     void refine(const std::shared_ptr<const mojibake::LossyRecovery>& local);
     // On by default. Off sends each chunk without neighbouring text or glossary,

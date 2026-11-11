@@ -40,6 +40,14 @@ int MojibakeAi::chunkCount(const LossyRecovery& local) {
     }
     return count + (open && needed);
 }
+QString MojibakeAi::heavyDamageWarning(const LossyRecovery& local) {
+    if (local.text.isEmpty()) return {};
+    const double lost = static_cast<double>(local.unknown) / static_cast<double>(local.text.size());
+    if (lost < HeavyLoss) return {};
+    return tr("Heavy damage: %1% of the characters lost every byte. In tests with damage like this, AI guessed only about "
+              "1 in 25 lost characters right and did not make the text more accurate; its fills make the text look complete, "
+              "not correct.").arg(qRound(100 * lost));
+}
 void MojibakeAi::reset() {
     ++m_generation;
     for (int i = 0; i < Parallel; ++i) { m_running[i] = -1; m_services[i]->cancel(); }

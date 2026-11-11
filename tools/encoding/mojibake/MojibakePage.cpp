@@ -327,7 +327,11 @@ void MojibakePage::updateAiControls() {
     m_aiAnalyze->setEnabled(configured && !busy && !m_watcher.isRunning() && !m_result.candidates.isEmpty() && (!lossyTop || chunks > 0));
     m_aiCancel->setVisible(busy);
     if (!configured) m_aiHint->setText(tr("Configure the AI API address and model in Settings first. Local analysis does not upload text."));
-    else if (lossyTop) m_aiHint->setText(tr("AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.", nullptr, chunks).arg(m_ai->target()));
+    else if (lossyTop) {
+        QString hint = tr("AI refinement sends the marked local draft in %n chunk(s) to %1, three at a time. Each reply is checked against the surviving bytes; this may take a while and cost API fees.", nullptr, chunks).arg(m_ai->target());
+        if (const auto warning = MojibakeAi::heavyDamageWarning(*m_result.candidates.first().lossy); !warning.isEmpty()) hint += '\n' + warning;
+        m_aiHint->setText(hint);
+    }
     else m_aiHint->setText(tr("Clicking AI analysis sends the original text and local candidates to %1 using model %2. Suggestions may contain inferred characters. Run local analysis first.")
                                .arg(m_settings ? m_settings->aiConfiguration().baseUrl : QString(), m_settings ? m_settings->aiConfiguration().model : QString()));
     m_aiStatus->setText(m_ai->status());
