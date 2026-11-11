@@ -102,6 +102,7 @@ void MojibakeAi::refine(const std::shared_ptr<const LossyRecovery>& local) {
         for (auto& c : m_chunks) {
             const auto marks = local->evidence.mid(c.textBegin, c.textEnd - c.textBegin);
             c.needed = marks.contains(static_cast<char>(CharEvidence::Partial)) || marks.contains(static_cast<char>(CharEvidence::Unknown));
+            c.units = LossyGbkRecovery::repairUnits(*local, c.textBegin, c.textEnd, UnitCharacters);
             m_needed += c.needed;
         }
         rebuild();
@@ -122,6 +123,22 @@ QJsonObject MojibakeAi::refineRequest(const LossyRecovery& local, const qsizetyp
             {"before", before}, {"after", after}, {"glossary", QJsonArray::fromStringList(glossary)},
             {"chunk", chunk}, {"chunks", chunks}, {"lost_count_exact", local.replacement == Utf8Replacement::PerByte}};
 }
+QJsonObject MojibakeAi::unitsRequest(const LossyRecovery& local, const qsizetype textBegin, const qsizetype textEnd,
+                                     const QList<RepairUnit>& units, const int chunk, const int chunks, const QStringList& glossary) {
+    auto request = refineRequest(local, textBegin, textEnd, chunk, chunks, glossary);
+    QJsonArray lengths;
+    for (qsizetype k = 0; k < units.size(); ++k) {
+        const auto& unit = units[k];
+        QJsonObject entry{{"id", QString::number(k + 1)}};
+        if (unit.minLength == unit.maxLength) entry.insert("length", unit.minLength);
+        else { entry.insert("min", unit.minLength); entry.insert("max", unit.maxLength); }
+        lengths.append(entry);
+    }
+    request.insert("task", "lossy_gbk_units");
+    request.insert("draft", LossyGbkRecovery::unitMarkup(local, textBegin, textEnd, units, Options));
+    request.insert("units", lengths);
+    return request;
+}
 void MojibakeAi::dispatch() {
     if (!m_busy || !m_refining) return;
     for (int i = 0; i < Parallel; ++i) {
@@ -132,7 +149,8 @@ void MojibakeAi::dispatch() {
         if (next < 0) break;
         auto& chunk = m_chunks[next];
         chunk.state = Chunk::Running; m_running[i] = next;
-        auto context = refineRequest(*m_local, chunk.textBegin, chunk.textEnd, next + 1, static_cast<int>(m_chunks.size()), m_glossary);
+        auto context = m_units ? unitsRequest(*m_local, chunk.textBegin, chunk.textEnd, chunk.units, next + 1, static_cast<int>(m_chunks.size()), m_glossary)
+                               : refineRequest(*m_local, chunk.textBegin, chunk.textEnd, next + 1, static_cast<int>(m_chunks.size()), m_glossary);
         if (!m_context) { context.remove("before"); context.remove("after"); context.remove("glossary"); }
         m_services[i]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
         if (!m_busy) return;  // A synchronous failure stopped the run.
@@ -149,8 +167,21 @@ void MojibakeAi::finishChunk(const int service, const ai::Reply& reply) {
                                         : tr("AI suggestion received. Verify the text and any inferred characters.");
         emit changed(); return;
     }
+    // Fills are spliced into the certain text by id; a reply that rewrote the
+    // chunk instead (a model ignoring the protocol) is used as a whole-chunk guide.
     // guided() reads markup the model copied back; only a reply without any character is useless.
-    const auto guide = reply.text;
+    auto& answeredChunk = m_chunks[index];
+    QString guide = reply.text;
+    if (!reply.fills.isEmpty()) {
+        QHash<int, QString> fills;
+        for (auto it = reply.fills.begin(); it != reply.fills.end(); ++it) {
+            bool number = false;
+            if (const int id = it.key().toInt(&number); number && id >= 1 && id <= answeredChunk.units.size()) fills.insert(id, it.value().toString());
+        }
+        answeredChunk.answered = static_cast<int>(fills.size()); answeredChunk.wrongLength = 0;
+        guide = LossyGbkRecovery::unitGuide(*m_local, answeredChunk.textBegin, answeredChunk.textEnd, answeredChunk.units, fills, &answeredChunk.wrongLength);
+        if (fills.size() == answeredChunk.wrongLength) guide.clear();  // nothing usable
+    }
     if (QString(guide).remove(QChar(0x3014)).remove(QChar(0x3015)).remove(QChar(LossyGbkRecovery::UnknownMark)).trimmed().isEmpty()) {
         m_chunks[index].state = Chunk::Failed; ++m_failed;
         m_lastError = tr("The AI returned no text for a chunk.");
@@ -233,10 +264,11 @@ void MojibakeAi::updateStatus() {
 QStringList MojibakeAi::explanation() const {
     QStringList lines;
     if (m_refining) {
-        int filled = 0, rejected = 0, unknownBefore = 0, unknownAfter = 0, repicked = 0;
+        int filled = 0, rejected = 0, unknownBefore = 0, unknownAfter = 0, repicked = 0, spans = 0, answered = 0, wrongLength = 0;
         for (const auto& chunk : m_chunks) {
             if (chunk.state != Chunk::Done || !chunk.result || !m_local) continue;
             const auto& r = *chunk.result;
+            spans += static_cast<int>(chunk.units.size()); answered += chunk.answered; wrongLength += chunk.wrongLength;
             filled += r.guided; rejected += r.guideRejected; unknownAfter += r.unknown;
             const auto length = chunk.textEnd - chunk.textBegin;
             unknownBefore += static_cast<int>(m_local->evidence.mid(chunk.textBegin, length).count(static_cast<char>(CharEvidence::Unknown)));
@@ -248,6 +280,7 @@ QStringList MojibakeAi::explanation() const {
         lines << tr("AI refinement: %1 of %2 chunks verified against the surviving bytes; %3 failed.").arg(m_done).arg(m_needed).arg(m_failed);
         lines << tr("AI filled %1 lost characters. %2 AI characters contradicted surviving bytes and were not used.").arg(filled).arg(rejected);
         if (m_done) {
+            if (answered) lines << tr("AI answered %1 of %2 damaged spans; %3 answers had the wrong length and were not used.").arg(answered).arg(spans).arg(wrongLength);
             lines << tr("Unknown characters in the verified chunks: %1 before AI, %2 after.").arg(unknownBefore).arg(unknownAfter);
             lines << tr("AI chose a different fitting character than the local word model for %1 partly damaged characters.").arg(repicked);
         }

@@ -4,10 +4,12 @@
 // app's AI refinement and saves the verified text, ready for
 //   MOJIBAKE_CORPUS_GUIDES=<output> TestMojibakeCorpus lossyGbk
 //
-// RunAiRefinement <corpus dir> <output dir> [--no-context] [--only <document>]
+// RunAiRefinement <corpus dir> <output dir> [--no-context] [--rewrite] [--only <document>] [--dump-first]
+// --rewrite asks for whole-chunk rewrites (the protocol before per-span fills).
 // Progress and the app's AI explanation go to <output dir>/run.log.
 #include <QApplication>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -32,8 +34,10 @@ int main(int argc, char* argv[]) {
     AppSettings settings{QString()};
     MojibakeAi ai(&settings);
     ai.setContextEnabled(context);
+    const bool units = !args.contains("--rewrite");
+    ai.setUnitsEnabled(units);
     if (!ai.configured()) { qCritical("No AI service is configured in the app."); return 2; }
-    note("Model: " + ai.target() + (context ? " with context" : " without context"));
+    note("Model: " + ai.target() + (context ? " with context" : " without context") + (units ? ", per-span fills" : ", whole-chunk rewrite"));
     int failures = 0;
     for (const auto& document : corpus.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name)) {
         if (!only.isEmpty() && document != only) continue;
@@ -48,12 +52,19 @@ int main(int argc, char* argv[]) {
             if (args.contains("--dump-first")) {
                 // One raw exchange for the first chunk, to read what the model makes of the draft.
                 const auto end = std::min<qsizetype>(local->text.size(), MojibakeAi::ChunkCharacters);
-                const auto request = MojibakeAi::refineRequest(*local, 0, end, 1, 1, LossyGbkRecovery::glossary(*local, MojibakeAi::GlossaryCharacters));
+                const auto glossary = LossyGbkRecovery::glossary(*local, MojibakeAi::GlossaryCharacters);
+                const auto request = units ? MojibakeAi::unitsRequest(*local, 0, end, LossyGbkRecovery::repairUnits(*local, 0, end, MojibakeAi::UnitCharacters), 1, 1, glossary)
+                                           : MojibakeAi::refineRequest(*local, 0, end, 1, 1, glossary);
                 ai::AiService service;
                 QEventLoop wait;
                 QObject::connect(&service, &ai::AiService::completed, &wait, [&](const ai::Reply& reply) {
-                    note("DRAFT:\n" + request.value("draft").toString() + "\nREPLY:\n" + reply.text + "\nREASON: " + reply.reason); wait.quit(); });
+                    note("DRAFT:\n" + request.value("draft").toString() + "\nREPLY:\n" + reply.text +
+                         QString::fromUtf8(QJsonDocument(reply.fills).toJson(QJsonDocument::Compact)) + "\nREASON: " + reply.reason); wait.quit(); });
                 QObject::connect(&service, &ai::AiService::failed, &wait, [&](const QString& error) { note("FAILED: " + error); wait.quit(); });
+                note(QStringLiteral("Request: %1 bytes, %2 spans").arg(QJsonDocument(request).toJson(QJsonDocument::Compact).size())
+                         .arg(request.value("units").toArray().size()));
+                QElapsedTimer timer; timer.start();
+                QObject::connect(&service, &ai::AiService::completed, &wait, [&] { note(QStringLiteral("Reply after %1 ms").arg(timer.elapsed())); });
                 service.analyze(settings.aiConfiguration(), request, settings.locale());
                 wait.exec();
                 return 0;

@@ -7,6 +7,7 @@ struct Configuration { QString baseUrl; QString model; QString apiKey; };
 struct Reply {
     QString text, reason, confidence, status;
     QStringList guesses;
+    QJsonObject fills;  // lossy_gbk_units: unit id -> its characters (strings only)
     int selectedCandidate = -1;
 };
 class AiProvider : public QObject {

@@ -367,7 +367,17 @@ void TestUi::lossyRecoveryWorkflow()
     QVERIFY(page.findChild<QLabel*>("mojibakeEvidenceStats")->text().contains(QString::fromUtf8("丢失")));
     QVERIFY(aiAnalyze->text().contains(QString::fromUtf8("AI 精修")));
     QVERIFY(page.grab().save("mojibake-lossy.png"));
-    // The AI draft is re-solved against the surviving bytes; a correct draft is accepted in full.
+    // The model answers every damaged span by id; the fills are spliced into the certain
+    // text and re-solved against the surviving bytes, so correct fills are accepted in full.
+    {
+        const auto local = mojibake::LossyGbkRecovery::recover(damaged);
+        QCOMPARE(local.text.size(), truth.size());  // Qt's decoder replaces per byte: counts are exact
+        const auto units = mojibake::LossyGbkRecovery::repairUnits(local, 0, local.text.size(), MojibakeAi::UnitCharacters);
+        QJsonObject fills;
+        for (qsizetype k = 0; k < units.size(); ++k) fills.insert(QString::number(k + 1), truth.mid(units[k].textBegin, units[k].textEnd - units[k].textBegin));
+        server.response = TestHttpServer::wrap(QString::fromUtf8(QJsonDocument(QJsonObject{{"status", "recovered"}, {"confidence", "medium"},
+            {"reason", "Context."}, {"fills", fills}}).toJson(QJsonDocument::Compact)));
+    }
     aiAnalyze->click();
     auto* aiCard = page.findChild<ElaPushButton*>("mojibakeAiCandidate");
     QTRY_VERIFY2_WITH_TIMEOUT(!page.findChild<ElaPushButton*>("mojibakeAiCancel")->isVisible(), qPrintable(page.findChild<QLabel*>("mojibakeAiStatus")->text()), 10000);
@@ -375,6 +385,7 @@ void TestUi::lossyRecoveryWorkflow()
     QCOMPARE(output->toPlainText(), truth);
     QCOMPARE(server.requests, 1);
     QVERIFY(server.lastBody.contains("glossary") && server.lastBody.contains("before") && server.lastBody.contains("after"));
+    QVERIFY(server.lastBody.contains("lossy_gbk_units") && server.lastBody.contains("\\\"units\\\""));
     QVERIFY(page.findChild<QLabel*>("mojibakeAiStatus")->text().contains(QString::fromUtf8("校验")));
     // A chunk is sent with the local text on both sides as read-only context.
     {
@@ -388,7 +399,10 @@ void TestUi::lossyRecoveryWorkflow()
         QCOMPARE(request.value("chunk").toInt(), 2);
     }
     QVERIFY(page.grab().save("mojibake-lossy-ai.png"));
-    // The file mode offers the same refinement and saves the AI text as a copy.
+    // The file mode offers the same refinement and saves the AI text as a copy. This reply
+    // rewrites the whole chunk instead of filling spans, as a model ignoring the protocol does:
+    // it is still used, as a guide for the whole chunk.
+    server.response = TestHttpServer::success(truth);
     const auto source = dir.filePath("damaged.txt"), copy = dir.filePath("repaired.txt");
     { QFile file(source); QVERIFY(file.open(QIODevice::WriteOnly)); file.write(damaged.toUtf8()); }
     page.findChild<ElaPushButton*>("mojibakeFileMode")->click();

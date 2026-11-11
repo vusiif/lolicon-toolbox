@@ -42,6 +42,7 @@ private slots:
     void recoversEssay();
     void guideIsVerified();
     void glossaryIsByteProven();
+    void repairUnitsCoverDamage();
     void detectsReplacementConvention();
     void analyzerOffersCandidate();
     void fileAnalysis();
@@ -200,6 +201,45 @@ void TestLossyGbk::glossaryIsByteProven() {
     QVERIFY(LossyGbkRecovery::glossary(r, 0).isEmpty());
     // Nothing recurs in a single sentence.
     QVERIFY(LossyGbkRecovery::glossary(LossyGbkRecovery::recover(damage("今天天气很好，我们去公园散步吧。")), 400).isEmpty());
+}
+void TestLossyGbk::repairUnitsCoverDamage() {
+    const auto truth = readFixture("lossy_gbk_essay.txt");
+    const auto damaged = LossyGbkRecovery::lossyUtf8(gbk(truth), Utf8Replacement::PerByte);
+    const auto r = LossyGbkRecovery::recover(damaged);
+    QCOMPARE(r.text.size(), truth.size());  // per-byte damage keeps the character count
+    const qsizetype begin = 0, end = std::min<qsizetype>(r.text.size(), 900);
+    const auto units = LossyGbkRecovery::repairUnits(r, begin, end, 8);
+    QVERIFY(!units.isEmpty());
+    // Every damaged character is in exactly one unit, every certain one in none.
+    QByteArray covered(end - begin, 0);
+    for (const auto& u : units) {
+        QVERIFY(u.textBegin >= begin && u.textEnd <= end && u.textEnd > u.textBegin && u.textEnd - u.textBegin <= 8);
+        QCOMPARE(u.minLength, static_cast<int>(u.textEnd - u.textBegin));  // exact count: no slack
+        QCOMPARE(u.maxLength, u.minLength);
+        for (auto i = u.textBegin; i < u.textEnd; ++i) ++covered[i - begin];
+    }
+    for (qsizetype i = begin; i < end; ++i)
+        QCOMPARE(covered[i - begin], static_cast<char>(static_cast<CharEvidence>(r.evidence[i]) == CharEvidence::Exact ? 0 : 1));
+    const auto draft = LossyGbkRecovery::unitMarkup(r, begin, end, units, 5);
+    QCOMPARE(draft.count(QChar(0x27e6)), units.size());
+    QVERIFY(draft.startsWith(units.first().textBegin == 0 ? QStringLiteral("⟦1:") : r.text.left(1)));
+    // Right answers spliced in give the original; guided() accepts them in full.
+    QHash<int, QString> fills;
+    for (qsizetype k = 0; k < units.size(); ++k) fills.insert(static_cast<int>(k + 1), truth.mid(units[k].textBegin, units[k].textEnd - units[k].textBegin));
+    int rejected = 0;
+    const auto guide = LossyGbkRecovery::unitGuide(r, begin, end, units, fills, &rejected);
+    QCOMPARE(guide, truth.mid(begin, end - begin));
+    QCOMPARE(rejected, 0);
+    // A fill of the wrong length is not used: its span keeps the local markup.
+    fills[1] += u'多';
+    const auto shorter = LossyGbkRecovery::unitGuide(r, begin, end, units, fills, &rejected);
+    QCOMPARE(rejected, 1);
+    QVERIFY(shorter.startsWith(LossyGbkRecovery::markup(r, begin, units.first().textEnd)));
+    // Maximal-subpart damage hides the count: lost characters get a range.
+    const auto subpart = LossyGbkRecovery::recover(damage(truth));
+    const auto ranged = LossyGbkRecovery::repairUnits(subpart, 0, std::min<qsizetype>(subpart.text.size(), 900), 8);
+    QVERIFY(std::ranges::any_of(ranged, [](const RepairUnit& u) { return u.maxLength > u.minLength; }));
+    QVERIFY(std::ranges::all_of(ranged, [](const RepairUnit& u) { return u.minLength >= 1; }));
 }
 void TestLossyGbk::detectsReplacementConvention() {
     const auto truth = readFixture("lossy_gbk_prose.txt").left(300);

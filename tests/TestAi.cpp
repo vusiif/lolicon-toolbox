@@ -70,6 +70,18 @@ void TestAi::parsing() {
     QVERIFY(OpenAICompatibleProvider::parse(TestHttpServer::wrap("```json\n" + content + "\n```"), 1));
     QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(QString(content).replace("unknown", "certain")), 1));
     QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(QString(content).replace("null,\"guessed", "1.5,\"guessed")), 2));
+    // Per-span replies carry fills; a null fill is a span the model could not guess.
+    const QString units = R"({"status":"recovered","confidence":"low","reason":"r","fills":{"1":"继承","2":null,"3":"发"}})";
+    const auto filled = OpenAICompatibleProvider::parse(TestHttpServer::wrap(units), 0, true);
+    QVERIFY(filled); QCOMPARE(filled->fills.size(), 2);
+    QCOMPARE(filled->fills.value("1").toString(), QString("继承")); QVERIFY(!filled->fills.contains("2"));
+    QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(QString(units).replace("null", "7")), 0, true));
+    QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(QString(units).replace("fills", "answers")), 0, true));
+    QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(QString(units).replace("{\"1\"", "[{\"1\"").replace("\"发\"}", "\"发\"}]")), 0, true));
+    // A whole-chunk rewrite in reply to a per-span request is still read as usual.
+    const auto rewrite = OpenAICompatibleProvider::parse(TestHttpServer::success("全文"), 1, true);
+    QVERIFY(rewrite); QCOMPARE(rewrite->text, QString("全文")); QVERIFY(rewrite->fills.isEmpty());
+    QVERIFY(!OpenAICompatibleProvider::parse(TestHttpServer::wrap(units), 0));  // not a recovered_text reply
 }
 void TestAi::networkSuccess() {
     TestHttpServer server; server.response = TestHttpServer::success(); QVERIFY(server.isListening());

@@ -732,4 +732,56 @@ QStringList LossyGbkRecovery::glossary(const LossyRecovery& r, const int maxChar
     }
     return out;
 }
+QList<RepairUnit> LossyGbkRecovery::repairUnits(const LossyRecovery& r, const qsizetype textBegin, qsizetype textEnd, const int maxCharacters) {
+    QList<RepairUnit> units;
+    textEnd = std::min({textEnd, r.text.size(), r.evidence.size()});
+    const auto exact = [&r](const qsizetype i) { return static_cast<CharEvidence>(r.evidence.at(i)) == CharEvidence::Exact; };
+    for (qsizetype i = std::max<qsizetype>(0, textBegin); i < textEnd;) {
+        if (exact(i)) { ++i; continue; }
+        RepairUnit unit{.textBegin = i};
+        int unknown = 0;
+        for (; i < textEnd && i - unit.textBegin < std::max(1, maxCharacters) && !exact(i); ++i)
+            unknown += static_cast<CharEvidence>(r.evidence.at(i)) == CharEvidence::Unknown;
+        unit.textEnd = i;
+        // One U+FFFD per maximal subpart hides one to three bytes: the local count of
+        // lost characters may be off by about one in two. Per-byte damage is exact.
+        const int length = static_cast<int>(unit.textEnd - unit.textBegin);
+        const int slack = r.replacement == Utf8Replacement::PerByte ? 0 : (unknown + 1) / 2;
+        unit.minLength = std::max(1, length - slack);
+        unit.maxLength = length + slack;
+        units.append(unit);
+    }
+    return units;
+}
+QString LossyGbkRecovery::unitMarkup(const LossyRecovery& r, const qsizetype textBegin, const qsizetype textEnd,
+                                     const QList<RepairUnit>& units, const int options) {
+    QString out;
+    qsizetype at = textBegin;
+    for (qsizetype k = 0; k < units.size(); ++k) {
+        const auto& unit = units[k];
+        out += markup(r, at, unit.textBegin);
+        out += QChar(0x27e6) + QString::number(k + 1) + u':' + markup(r, unit.textBegin, unit.textEnd, options) + QChar(0x27e7);
+        at = unit.textEnd;
+    }
+    return out + markup(r, at, textEnd);
+}
+QString LossyGbkRecovery::unitGuide(const LossyRecovery& r, const qsizetype textBegin, const qsizetype textEnd,
+                                    const QList<RepairUnit>& units, const QHash<int, QString>& fills, int* rejected) {
+    QString out;
+    qsizetype at = textBegin;
+    for (qsizetype k = 0; k < units.size(); ++k) {
+        const auto& unit = units[k];
+        out += markup(r, at, unit.textBegin);
+        const auto fill = fills.value(static_cast<int>(k + 1));
+        const bool fits = !fill.isEmpty() && fill.size() >= unit.minLength && fill.size() <= unit.maxLength
+                       && !fill.contains(QChar(0x27e6)) && !fill.contains(QChar(0x27e7)) && !fill.contains(u'\n');
+        if (fits) out += fill;
+        else {
+            if (!fill.isEmpty() && rejected) ++*rejected;
+            out += markup(r, unit.textBegin, unit.textEnd);
+        }
+        at = unit.textEnd;
+    }
+    return out + markup(r, at, textEnd);
+}
 }

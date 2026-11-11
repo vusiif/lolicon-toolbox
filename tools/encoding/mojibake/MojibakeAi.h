@@ -29,6 +29,13 @@ public:
     // The request for one chunk: its draft, the neighbouring text and the glossary.
     static QJsonObject refineRequest(const mojibake::LossyRecovery& local, qsizetype textBegin, qsizetype textEnd,
                                      int chunk, int chunks, const QStringList& glossary);
+    // Longest damaged span answered at once: long enough for a word, short enough
+    // that a wrong guess cannot shift the rest of the chunk.
+    static constexpr int UnitCharacters = 8;
+    // The per-span request: the draft with every damaged span as ⟦id:...⟧ and the
+    // number of characters each one takes. The model answers each id on its own.
+    static QJsonObject unitsRequest(const mojibake::LossyRecovery& local, qsizetype textBegin, qsizetype textEnd,
+                                    const QList<mojibake::RepairUnit>& units, int chunk, int chunks, const QStringList& glossary);
     explicit MojibakeAi(AppSettings* settings, QObject* parent = nullptr);
     ~MojibakeAi() override;
     bool configured() const;
@@ -40,6 +47,10 @@ public:
     // On by default. Off sends each chunk without neighbouring text or glossary,
     // to measure what the context is worth (tests/RunAiRefinement.cpp).
     void setContextEnabled(bool enabled) { m_context = enabled; }
+    // On by default: the model fills each damaged span by id. Off asks it to
+    // rewrite whole chunks, the earlier protocol, kept for comparison and as the
+    // fallback for a reply without fills.
+    void setUnitsEnabled(bool enabled) { m_units = enabled; }
     void cancel();
     void reset();  // cancel and forget any result
     bool hasResult() const { return !m_text.isEmpty(); }
@@ -59,6 +70,8 @@ private:
         bool needed = false;
         enum State { Pending, Running, Done, Failed } state = Pending;
         std::optional<mojibake::LossyRecovery> result;
+        QList<mojibake::RepairUnit> units;
+        int answered = 0, wrongLength = 0;  // spans the model filled; fills of the wrong length
     };
     void dispatch();
     void finishChunk(int service, const ai::Reply& reply);
@@ -80,5 +93,5 @@ private:
     quint64 m_generation = 0, m_revision = 0;
     int m_done = 0, m_failed = 0, m_needed = 0, m_verifying = 0;
     int m_characters = 0;
-    bool m_thinking = false, m_busy = false, m_refining = false, m_cancelled = false, m_context = true;
+    bool m_thinking = false, m_busy = false, m_refining = false, m_cancelled = false, m_context = true, m_units = true;
 };

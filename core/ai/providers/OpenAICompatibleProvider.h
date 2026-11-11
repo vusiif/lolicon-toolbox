@@ -21,7 +21,8 @@ public:
     static QUrl endpoint(const QString& baseUrl);
     static QUrl modelsEndpoint(const QString& baseUrl);
     static std::optional<QStringList> parseModels(const QByteArray&);
-    static std::optional<Reply> parse(const QByteArray&, int candidateCount);
+    // units: the lossy_gbk_units reply, which carries fills instead of recovered_text.
+    static std::optional<Reply> parse(const QByteArray&, int candidateCount, bool units = false);
     static QByteArray requestBody(const Configuration&, const QJsonArray& messages);
 private:
     void read();
@@ -35,7 +36,7 @@ private:
     bool m_cancelled = false;
     int m_candidateCount = 0;
     int m_timeoutMs;
-    bool m_listingModels = false;
+    bool m_listingModels = false, m_units = false;
     QByteArray m_eventBuffer;
     QString m_streamText, m_finishReason;
     int m_reasoningCharacters = 0;

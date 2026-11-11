@@ -1,5 +1,6 @@
 #pragma once
 #include "MojibakeCandidate.h"
+#include <QHash>
 #include <functional>
 namespace mojibake {
 // How much of a recovered character is backed by surviving bytes.
@@ -26,6 +27,10 @@ struct LossyRecovery {
     Utf8Replacement replacement = Utf8Replacement::MaximalSubpart;  // the convention that explains the damage
     void count();
 };
+// One damaged span an AI is asked to fill: text[textBegin, textEnd), a run of
+// characters without all their bytes, to be answered with minLength..maxLength
+// characters (a range when the damage hid how many characters were lost).
+struct RepairUnit { qsizetype textBegin = 0, textEnd = 0; int minLength = 0, maxLength = 0; };
 // GBK text that was decoded as UTF-8 with replacement characters and saved
 // again, as many editors and phones do. Every byte that formed valid UTF-8
 // survives unchanged; each U+FFFD replaced one to three bytes that did not.
@@ -67,5 +72,16 @@ public:
     // most telling first, at most maxCharacters in all: clues for filling lost
     // characters elsewhere, never constraints.
     static QStringList glossary(const LossyRecovery& recovery, int maxCharacters);
+    // The damaged spans of text[textBegin, textEnd): maximal runs of partial and
+    // unknown characters, cut after maxCharacters so one answer stays local.
+    static QList<RepairUnit> repairUnits(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd, int maxCharacters);
+    // markup() with every unit wrapped as ⟦id:...⟧, ids counting from 1.
+    static QString unitMarkup(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd,
+                              const QList<RepairUnit>& units, int options);
+    // A guide for guided(): the certain text with each unit replaced by its fill
+    // (fills[id]). A unit without a usable fill keeps its local markup; fills of
+    // the wrong length are not used and are counted in *rejected.
+    static QString unitGuide(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd,
+                             const QList<RepairUnit>& units, const QHash<int, QString>& fills, int* rejected = nullptr);
 };
 }
