@@ -159,6 +159,9 @@ void TestAi::streaming() {
     QVERIFY(mimo.value("stream").toBool());
     QCOMPARE(mimo.value("thinking").toObject().value("type").toString(), QString("disabled"));
     QVERIFY(!QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({.baseUrl = "https://example.com/v1", .model = "model", .apiKey = ""}, messages)).object().contains("thinking"));
+    // DeepSeek thinks by default and then needs minutes for a repair chunk.
+    const auto deepseek = QJsonDocument::fromJson(OpenAICompatibleProvider::requestBody({.baseUrl = "https://api.deepseek.com", .model = "deepseek-flash", .apiKey = ""}, messages)).object();
+    QCOMPARE(deepseek.value("thinking").toObject().value("type").toString(), QString("disabled"));
     const auto content = QJsonDocument::fromJson(TestHttpServer::success(QString::fromUtf8("你好 😀"))).object().value("choices").toArray().first().toObject().value("message").toObject().value("content").toString();
     auto event = [](const QJsonObject& delta, const QJsonValue& finish = QJsonValue(QJsonValue::Null)) {
         return "data: " + QJsonDocument(QJsonObject{{"choices", QJsonArray{QJsonObject{{"delta", delta}, {"finish_reason", finish}}}}}).toJson(QJsonDocument::Compact) + "\r\n\r\n";

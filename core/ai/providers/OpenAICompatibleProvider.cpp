@@ -113,7 +113,7 @@ void OpenAICompatibleProvider::readEvents(const QByteArray& bytes) {
 }
 QByteArray OpenAICompatibleProvider::requestBody(const Configuration& c, const QJsonArray& messages) {
     QJsonObject body{{"model", c.model.trimmed()}, {"messages", messages}, {"stream", true}};
-    if (const auto host = QUrl(c.baseUrl).host().toLower(); host == "xiaomimimo.com" || host.endsWith(".xiaomimimo.com"))
+    if (const auto host = QUrl(c.baseUrl).host().toLower(); host == "xiaomimimo.com" || host.endsWith(".xiaomimimo.com") || host == "api.deepseek.com")
         body.insert("thinking", QJsonObject{{"type", "disabled"}});
     return QJsonDocument(body).toJson(QJsonDocument::Compact);
 }
