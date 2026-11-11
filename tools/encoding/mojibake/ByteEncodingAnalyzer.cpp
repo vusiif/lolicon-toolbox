@@ -19,10 +19,16 @@ bool wideEvidence(const QByteArray& bytes, const Encoding e) {
     }
     return total && static_cast<double>(zeros) / total >= 0.65;
 }
-bool textLike(const QString& text) {
+// A single-byte decode turns bytes 0x80-0x9f into C1 controls, a sign of the
+// wrong codec. Valid UTF-8 encodes them only on purpose, and almost always
+// because UTF-8 text was once read as Latin-1 (ç»§æ¿...): that is mojibake to
+// repair, not binary data.
+bool textLike(const QString& text, const Encoding e) {
     if (text.contains(QChar(0))) return false;
+    const bool c1IsText = e == Encoding::Utf8;
     int controls = 0;
-    for (auto c : text) if ((c.unicode() < 32 && c != '\r' && c != '\n' && c != '\t') || (c.unicode() >= 0x7f && c.unicode() < 0xa0)) ++controls;
+    for (auto c : text)
+        if ((c.unicode() < 32 && c != '\r' && c != '\n' && c != '\t') || c.unicode() == 0x7f || (!c1IsText && c.unicode() >= 0x80 && c.unicode() < 0xa0)) ++controls;
     return controls <= std::max<qsizetype>(0, text.size() / 100);
 }
 bool binarySignature(const QByteArray& bytes) {
@@ -96,7 +102,7 @@ FileResult ByteEncodingAnalyzer::analyze(const QByteArray& bytes, const std::opt
         if (cancelled(cancel)) { result.cancelled = true; result.candidates.clear(); return result; }
         const auto decoded = EncodingConverter::decode(payload, e);
         if (!decoded) continue;
-        if (!textLike(*decoded)) { nonTextDecode = true; continue; }
+        if (!textLike(*decoded, e)) { nonTextDecode = true; continue; }
         if (e == Encoding::Utf8 || (!result.preferredEncoding && wideEvidence(payload, e))) result.preferredEncoding = e;
         // The plain decode has no path, so pass the codec for the script check.
         double score = CandidateScorer::score(Candidate{.text = *decoded, .path = {}}, e);

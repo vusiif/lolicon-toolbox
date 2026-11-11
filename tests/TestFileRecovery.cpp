@@ -59,6 +59,15 @@ void TestFileRecovery::byteAnalysis() {
     QCOMPARE(savedMojibake.candidates.first().text, QString("你好"));
     QCOMPARE(savedMojibake.candidates.first().encoding, Encoding::Utf8);
     QVERIFY(!savedMojibake.candidates.first().repairPath.isEmpty());
+    // UTF-8 read as Latin-1 and saved again: bytes 0x80-0x9f became C1 controls,
+    // which a UTF-8 reading must accept as text to repair rather than skip.
+    const QString chinese = "继承和发扬中华优秀传统文化，坚定文化自信。";
+    const auto latin1 = *EncodingConverter::decode(chinese.toUtf8(), Encoding::Latin1);
+    QVERIFY(std::ranges::any_of(latin1, [](const QChar c) { return c.unicode() >= 0x80 && c.unicode() < 0xa0; }));
+    const auto savedLatin1 = ByteEncodingAnalyzer::analyze(latin1.toUtf8());
+    QVERIFY(!savedLatin1.candidates.isEmpty());
+    QCOMPARE(savedLatin1.candidates.first().text, chinese);
+    QCOMPARE(savedLatin1.candidates.first().encoding, Encoding::Utf8);
     const auto noBom = ByteEncodingAnalyzer::analyze(*EncodingConverter::encode("Hello\n世界", Encoding::Utf16LE));
     QVERIFY(!noBom.candidates.isEmpty());
     QCOMPARE(noBom.candidates.first().text, QString("Hello\n世界"));
