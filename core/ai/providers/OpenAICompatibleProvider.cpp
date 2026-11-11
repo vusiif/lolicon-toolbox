@@ -52,27 +52,39 @@ void OpenAICompatibleProvider::listModels(const Configuration& config) {
 }
 void OpenAICompatibleProvider::read() {
     if (!m_reply || !m_reply->isOpen() || !m_abortReason.isEmpty() || m_streamDone) return;
-    const auto bytes = m_reply->read(MaxResponseBytes + 1 - m_body.size());
-    m_body += bytes;
-    if (m_body.size() > MaxResponseBytes) {
-        m_abortReason = tr("AI response exceeded the 1 MiB limit."); m_reply->abort(); return;
-    }
+    // A stream wraps every token in its own JSON event, and reasoning models stream
+    // their reasoning too: the raw bytes say little about the reply's size. Once
+    // streaming, readEvents() limits the content and the reasoning instead.
+    if (m_streaming) { readEvents(m_reply->readAll()); return; }
+    m_body += m_reply->read(MaxResponseBytes + 1 - m_body.size());
     if (const auto status = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         !m_listingModels && status >= 200 && status < 300 &&
         (m_reply->header(QNetworkRequest::ContentTypeHeader).toString().startsWith("text/event-stream") || m_body.startsWith("data:"))) {
-        const bool alreadyStreaming = m_streaming;
-        m_streaming = true; readEvents(alreadyStreaming ? bytes : m_body);
+        m_streaming = true;
+        const auto start = m_body; m_body.clear();
+        readEvents(start);
+        if (m_reply && m_abortReason.isEmpty() && !m_streamDone) readEvents(m_reply->readAll());
+        return;
+    }
+    if (m_body.size() > MaxResponseBytes) {
+        m_abortReason = tr("AI response exceeded the 1 MiB limit."); m_reply->abort(); return;
     }
 }
 void OpenAICompatibleProvider::readEvents(const QByteArray& bytes) {
     m_eventBuffer += bytes;
+    const auto abortLarge = [this] { m_abortReason = tr("AI response exceeded the 1 MiB limit."); m_reply->abort(); };
     while (true) {
         if (!m_reply || m_cancelled || !m_abortReason.isEmpty()) return;
+        // Content as for a plain reply; reasoning is not shown, so allow it more.
+        if (m_streamText.size() * 2 > MaxResponseBytes || m_reasoningCharacters > 2 * MaxResponseBytes) { abortLarge(); return; }
         auto end = m_eventBuffer.indexOf("\n\n");
         const auto crlf = m_eventBuffer.indexOf("\r\n\r\n");
         int separator = 2;
         if (crlf >= 0 && (end < 0 || crlf < end)) { end = crlf; separator = 4; }
-        if (end < 0) return;
+        if (end < 0) {
+            if (m_eventBuffer.size() > MaxResponseBytes) abortLarge();  // one event that never ends
+            return;
+        }
         const auto event = m_eventBuffer.left(end); m_eventBuffer.remove(0, end + separator);
         QByteArray data;
         for (auto line : event.split('\n')) {

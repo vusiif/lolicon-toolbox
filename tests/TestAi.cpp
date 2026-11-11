@@ -177,11 +177,27 @@ void TestAi::streaming() {
     QCOMPARE(failed.count(), 0); QVERIFY(progress.count() > 1); QVERIFY(!provider.isBusy());
     QCOMPARE(qvariant_cast<Reply>(complete.first().first()).text, QString::fromUtf8("你好 😀"));
     QVERIFY(progress.first().first().toBool()); QVERIFY(!progress.last().first().toBool());
+    // A reasoning model streams far more than 1 MiB of events for a short answer:
+    // the limit applies to what the events carry, not to their JSON wrapping.
     server.keepOpen = false; server.omitContentLength = false; server.chunks.clear();
+    server.response.clear();
+    for (int i = 0; i < 20000; ++i) server.response += event({{"reasoning_content", "think "}});
+    server.response += event({{"content", content}}, "stop") + "data: [DONE]\r\n\r\n";
+    QVERIFY(server.response.size() > 1024 * 1024);
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
+    QTRY_VERIFY_WITH_TIMEOUT(complete.count() == 2 || failed.count(), 5000);
+    if (!failed.isEmpty()) qInfo() << "long stream failure" << failed.first().first().toString();
+    QCOMPARE(complete.count(), 2); QCOMPARE(failed.count(), 0);
+    QCOMPARE(qvariant_cast<Reply>(complete.last().first()).text, QString::fromUtf8("你好 😀"));
+    // Content itself is still limited.
+    server.response = event({{"content", QString(600 * 1024, u'a')}}, "stop") + "data: [DONE]\r\n\r\n";
+    provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 5000);
+    QVERIFY(failed.last().first().toString().contains("1 MiB"));
     server.response = event({{"content", "incomplete"}});
     provider.request({.baseUrl = server.url(), .model = "model", .apiKey = ""}, context(), "English");
-    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 1, 3000);
-    QCOMPARE(complete.count(), 1);
+    QTRY_COMPARE_WITH_TIMEOUT(failed.count(), 2, 3000);
+    QCOMPARE(complete.count(), 2);
 }
 void TestAi::cancellationAndTimeout() {
     TestHttpServer server; server.hold = true;
