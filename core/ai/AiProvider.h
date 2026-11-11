@@ -3,7 +3,9 @@
 #include <QJsonObject>
 #include <QStringList>
 namespace ai {
-struct Configuration { QString baseUrl; QString model; QString apiKey; };
+// thinking: let a reasoning model think (MiMo and DeepSeek requests turn it off
+// otherwise) and allow it ten minutes. Not stored; only the measurement tools set it.
+struct Configuration { QString baseUrl; QString model; QString apiKey; bool thinking = false; };
 struct Reply {
     QString text, reason, confidence, status;
     QStringList guesses;

@@ -113,7 +113,8 @@ void OpenAICompatibleProvider::readEvents(const QByteArray& bytes) {
 }
 QByteArray OpenAICompatibleProvider::requestBody(const Configuration& c, const QJsonArray& messages) {
     QJsonObject body{{"model", c.model.trimmed()}, {"messages", messages}, {"stream", true}};
-    if (const auto host = QUrl(c.baseUrl).host().toLower(); host == "xiaomimimo.com" || host.endsWith(".xiaomimimo.com") || host == "api.deepseek.com")
+    if (const auto host = QUrl(c.baseUrl).host().toLower();
+        !c.thinking && (host == "xiaomimimo.com" || host.endsWith(".xiaomimimo.com") || host == "api.deepseek.com"))
         body.insert("thinking", QJsonObject{{"type", "disabled"}});
     return QJsonDocument(body).toJson(QJsonDocument::Compact);
 }
@@ -211,7 +212,8 @@ void OpenAICompatibleProvider::send(const Configuration& c, const QByteArray& bo
     if (!models) request.setRawHeader("Accept", "text/event-stream, application/json");
     if (!c.apiKey.isEmpty()) request.setRawHeader("Authorization", "Bearer " + c.apiKey.toUtf8());
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
-    request.setTransferTimeout(m_timeoutMs);
+    const int timeoutMs = c.thinking && !models ? std::max(m_timeoutMs, 10 * 60 * 1000) : m_timeoutMs;
+    request.setTransferTimeout(timeoutMs);
     m_body.clear(); m_abortReason.clear(); m_cancelled = false;
     m_eventBuffer.clear(); m_streamText.clear(); m_finishReason.clear();
     m_streaming = false; m_streamDone = false; m_reasoningCharacters = 0;
@@ -250,7 +252,7 @@ void OpenAICompatibleProvider::send(const Configuration& c, const QByteArray& bo
         if (!parsed) { emit failed(tr("The AI response was empty or did not match the required JSON format. Try another model.")); return; }
         emit completed(*parsed);
     });
-    m_timeout.start(m_timeoutMs);
+    m_timeout.start(timeoutMs);
 }
 void OpenAICompatibleProvider::cancel() {
     if (m_reply) { m_cancelled = true; m_reply->abort(); }

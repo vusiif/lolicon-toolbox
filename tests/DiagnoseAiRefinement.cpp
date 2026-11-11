@@ -7,8 +7,10 @@
 // the character count survives, every position lines up, and the tool counts
 // exactly where the AI's per-span fills are right, wrong, or off the byte.
 //
-// DiagnoseAiRefinement <corpus dir> <report file> [--model <id>]
+// DiagnoseAiRefinement <corpus dir> <report file> [--model <id>] [--thinking]
+// --thinking lets a reasoning model think (allowed ten minutes per chunk).
 #include <QApplication>
+#include <QElapsedTimer>
 #include <QDir>
 #include <QEventLoop>
 #include <QStringEncoder>
@@ -51,7 +53,10 @@ int main(int argc, char* argv[]) {
     QFile report(args[2]);
     if (!report.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return 2;
     const auto note = [&report](const QString& text) { report.write(text.toUtf8() + '\n'); report.flush(); };
-    note("Model: " + active->aiConfiguration().model + ", per-span fills, per-byte damage");
+    auto configuration = active->aiConfiguration();
+    configuration.thinking = args.contains("--thinking");
+    note("Model: " + configuration.model + (configuration.thinking ? " thinking" : "") + ", per-span fills, per-byte damage");
+    QElapsedTimer clock; clock.start();
     const QDir corpus(args[1]);
     Counts total;
     const auto print = [&](const QString& title, const Counts& n) {
@@ -136,7 +141,7 @@ int main(int argc, char* argv[]) {
             QObject::connect(service, &ai::AiService::failed, &loop, [&, service](const QString& error) {
                 --running; ++counts.failed; note("    chunk failed: " + error); next(service);
             });
-            service->analyze(active->aiConfiguration(),
+            service->analyze(configuration,
                              MojibakeAi::unitsRequest(local, c.textBegin, c.textEnd, units, k + 1, static_cast<int>(chunks.size()), glossary),
                              active->locale());
         };
@@ -154,5 +159,6 @@ int main(int argc, char* argv[]) {
         total.add(counts);
     }
     print("TOTAL", total);
+    note(QStringLiteral("%1 s in all").arg(clock.elapsed() / 1000));
     return 0;
 }
