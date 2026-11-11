@@ -132,7 +132,8 @@ void MojibakeAi::dispatch() {
         if (next < 0) break;
         auto& chunk = m_chunks[next];
         chunk.state = Chunk::Running; m_running[i] = next;
-        const auto context = refineRequest(*m_local, chunk.textBegin, chunk.textEnd, next + 1, static_cast<int>(m_chunks.size()), m_glossary);
+        auto context = refineRequest(*m_local, chunk.textBegin, chunk.textEnd, next + 1, static_cast<int>(m_chunks.size()), m_glossary);
+        if (!m_context) { context.remove("before"); context.remove("after"); context.remove("glossary"); }
         m_services[i]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
         if (!m_busy) return;  // A synchronous failure stopped the run.
     }

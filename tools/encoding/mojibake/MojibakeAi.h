@@ -37,6 +37,9 @@ public:
     static int chunkCount(const mojibake::LossyRecovery& local);
     void suggest(const QString& original, const QList<mojibake::Candidate>& candidates, bool possibleLoss);
     void refine(const std::shared_ptr<const mojibake::LossyRecovery>& local);
+    // On by default. Off sends each chunk without neighbouring text or glossary,
+    // to measure what the context is worth (tests/RunAiRefinement.cpp).
+    void setContextEnabled(bool enabled) { m_context = enabled; }
     void cancel();
     void reset();  // cancel and forget any result
     bool hasResult() const { return !m_text.isEmpty(); }
@@ -77,5 +80,5 @@ private:
     quint64 m_generation = 0, m_revision = 0;
     int m_done = 0, m_failed = 0, m_needed = 0, m_verifying = 0;
     int m_characters = 0;
-    bool m_thinking = false, m_busy = false, m_refining = false, m_cancelled = false;
+    bool m_thinking = false, m_busy = false, m_refining = false, m_cancelled = false, m_context = true;
 };
