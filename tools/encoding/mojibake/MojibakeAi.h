@@ -18,6 +18,9 @@ class MojibakeAi : public QObject {
 public:
     static constexpr int ChunkCharacters = 900;
     static constexpr int Parallel = 3;
+    // Alternatives listed for each partial character: the top five hold the
+    // original about four times in five, against one in two for the top one.
+    static constexpr int Options = 5;
     explicit MojibakeAi(AppSettings* settings, QObject* parent = nullptr);
     ~MojibakeAi() override;
     bool configured() const;

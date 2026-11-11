@@ -40,6 +40,7 @@ private slots:
     void modelLoads();
     void detectsPattern();
     void recoversProse();
+    void recoversEssay();
     void guideIsVerified();
     void detectsReplacementConvention();
     void analyzerOffersCandidate();
@@ -95,6 +96,61 @@ void TestLossyGbk::recoversProse() {
     QCOMPARE(r.spans.last().damagedEnd, damaged.size());
     QCOMPARE(r.spans.last().textEnd, r.text.size());
 }
+// A formal essay damaged the way a .NET or Qt reader damages it (one U+FFFD per byte).
+void TestLossyGbk::recoversEssay() {
+    // Benchmark output for both fixtures and conventions; the assertions below use the essay.
+    for (const auto convention : {Utf8Replacement::PerByte, Utf8Replacement::MaximalSubpart})
+        for (const auto* name : {"lossy_gbk_essay.txt", "lossy_gbk_prose.txt"}) {
+            const auto truth = readFixture(name);
+            const auto r = LossyGbkRecovery::recover(LossyGbkRecovery::lossyUtf8(gbk(truth), convention));
+            int partial = 0;
+            if (r.text.size() == truth.size())
+                for (qsizetype i = 0; i < truth.size(); ++i) partial += CharEvidence(r.evidence[i]) == CharEvidence::Partial && r.text[i] == truth[i];
+            qInfo("%s %s: similarity %.3f, partial correct %d/%d", name, convention == Utf8Replacement::PerByte ? "per-byte" : "subpart",
+                  positional(r.text, truth), partial, r.partial);
+        }
+    const auto truth = readFixture("lossy_gbk_essay.txt");
+    QVERIFY(!truth.isEmpty());
+    const auto damaged = LossyGbkRecovery::lossyUtf8(gbk(truth), Utf8Replacement::PerByte);
+    const auto r = LossyGbkRecovery::recover(damaged);
+    QVERIFY(r.success);
+    QCOMPARE(r.replacement, Utf8Replacement::PerByte);
+    QCOMPARE(r.text.size(), truth.size());
+    QCOMPARE(LossyGbkRecovery::lossyUtf8(r.bytes, Utf8Replacement::PerByte), damaged);  // the bytes behind the text explain the damage
+    int exactRight = 0, partialRight = 0, inTopFive = 0;
+    QString ideal;  // what an AI that picks well from the listed alternatives would answer
+    for (qsizetype i = 0; i < truth.size(); ++i) {
+        const auto e = CharEvidence(r.evidence[i]);
+        if (e == CharEvidence::Exact) exactRight += r.text[i] == truth[i];
+        if (e != CharEvidence::Partial) { ideal += truth[i]; continue; }
+        partialRight += r.text[i] == truth[i];
+        const auto options = LossyGbkRecovery::alternatives(r, i, 5);
+        QVERIFY(options.contains(r.text[i]));
+        inTopFive += options.contains(truth[i]);
+        ideal += options.contains(truth[i]) ? truth[i] : options[0];
+    }
+    qInfo("essay: exact %d/%d, partial %d/%d, original among five alternatives %d/%d, unknown %d", exactRight, r.exact,
+          partialRight, r.partial, inTopFive, r.partial, r.unknown);
+    QCOMPARE(exactRight, r.exact);
+    QVERIFY(partialRight * 2 >= r.partial);
+    QVERIFY(inTopFive * 4 >= r.partial * 3);
+    // The verified guide keeps every surviving byte and takes what the guide got right.
+    const auto refined = LossyGbkRecovery::guided(damaged, ideal, Utf8Replacement::PerByte);
+    QVERIFY(refined.success);
+    QCOMPARE(LossyGbkRecovery::lossyUtf8(refined.bytes, Utf8Replacement::PerByte), damaged);
+    qInfo("refined with an ideal guide: similarity %.3f, rejected %d", positional(refined.text, truth), refined.guideRejected);
+    QVERIFY(positional(refined.text, truth) > 0.9);
+    // Maximal-subpart damage (how 笔记_3.md was made): one U+FFFD hides one to three bytes, so the
+    // number of lost characters is itself a guess, and a guide must be able to correct it.
+    const auto subpartDamage = damage(truth);
+    const auto subpart = LossyGbkRecovery::recover(subpartDamage);
+    QCOMPARE(subpart.replacement, Utf8Replacement::MaximalSubpart);
+    const auto subpartRefined = LossyGbkRecovery::guided(subpartDamage, truth, Utf8Replacement::MaximalSubpart);
+    qInfo("subpart: local similarity %.3f, %lld vs %lld characters; with the original as guide %.3f, rejected %d",
+          positional(subpart.text, truth), qint64(subpart.text.size()), qint64(truth.size()), positional(subpartRefined.text, truth), subpartRefined.guideRejected);
+    QCOMPARE(LossyGbkRecovery::lossyUtf8(subpartRefined.bytes), subpartDamage);
+    QVERIFY(positional(subpartRefined.text, truth) > 0.9);
+}
 void TestLossyGbk::guideIsVerified() {
     const QString truth = "警察到达现场的时候，房间里的灯还开着。死者倒在书桌旁边，手里握着一支钢笔。";
     const auto damaged = damage(truth);
@@ -114,6 +170,16 @@ void TestLossyGbk::guideIsVerified() {
     for (qsizetype i = 0; i < checked.text.size(); ++i)
         if (CharEvidence(checked.evidence[i]) == CharEvidence::Exact) QCOMPARE(checked.text[i], truth[i]);
     QVERIFY(!checked.text.contains("铅笔"));
+    // Markup copied back by the model: a group counts as its first option, □ holds its place.
+    QString echoed = truth;
+    echoed.replace("钢笔", "〔钢|铅〕笔").replace("房间", "□间");
+    const auto copied = LossyGbkRecovery::guided(damaged, echoed, Utf8Replacement::MaximalSubpart);
+    QVERIFY(copied.success);
+    QCOMPARE(copied.text.size(), truth.size());
+    QVERIFY(copied.text.contains("钢笔"));
+    QCOMPARE(copied.guideRejected, 0);
+    const auto room = truth.indexOf("房");
+    QVERIFY(CharEvidence(copied.evidence[room]) != CharEvidence::Guided);
     QVERIFY(positional(checked.text, truth) > positional(LossyGbkRecovery::recover(damaged).text, truth));
 }
 void TestLossyGbk::detectsReplacementConvention() {
@@ -169,6 +235,11 @@ void TestLossyGbk::largeInput() {
         qInfo("sample: %lld chars in %lld ms, exact %d partial %d unknown %d, applicable %d", qint64(text.size()), qint64(timer.elapsed()),
               sample.exact, sample.partial, sample.unknown, int(LossyGbkRecovery::applicable(text)));
         QVERIFY(sample.success);
+        if (const auto markup = qEnvironmentVariable("LOSSY_GBK_MARKUP"); !markup.isEmpty()) {
+            QFile out(markup);  // the draft the AI receives for the first chunk
+            QVERIFY(out.open(QIODevice::WriteOnly));
+            out.write(LossyGbkRecovery::markup(sample, 0, std::min<qsizetype>(sample.text.size(), 900), 5).toUtf8());
+        }
         timer.restart();
         const auto analyzed = ByteEncodingAnalyzer::load(path);
         qInfo("file analysis: %lld ms, %lld candidates, top lossy %d", qint64(timer.elapsed()), qint64(analyzed.candidates.size()),

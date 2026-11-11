@@ -71,7 +71,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/styles/licenses/marspeak-LICENSE.txt') -Destination (Join-Path $package 'marspeak-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'third_party/ElaWidgetTools-main/LICENSE') -Destination (Join-Path $package 'ElaWidgetTools-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/charlm/jieba-LICENSE.txt') -Destination (Join-Path $package 'jieba-LICENSE.txt')
-    Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/charlm/NOTICE.txt') -Destination (Join-Path $package 'Character-Model-NOTICE.txt')
+    Copy-Item -LiteralPath (Join-Path $projectRoot 'resources/charlm/NOTICE.txt') -Destination (Join-Path $package 'Word-Model-NOTICE.txt')
     Compress-Archive -LiteralPath $package -DestinationPath "$package.zip"
     Get-FileHash -LiteralPath "$package.zip" -Algorithm SHA256 |
         ForEach-Object { "$($_.Hash)  $([IO.Path]::GetFileName($_.Path))" } |

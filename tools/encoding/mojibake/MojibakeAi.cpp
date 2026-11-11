@@ -121,8 +121,9 @@ void MojibakeAi::dispatch() {
         if (next < 0) break;
         auto& chunk = m_chunks[next];
         chunk.state = Chunk::Running; m_running[i] = next;
-        const QJsonObject context{{"task", "lossy_gbk_refine"}, {"draft", LossyGbkRecovery::markup(*m_local, chunk.textBegin, chunk.textEnd)},
-                                  {"chunk", next + 1}, {"chunks", int(m_chunks.size())}};
+        const QJsonObject context{{"task", "lossy_gbk_refine"}, {"draft", LossyGbkRecovery::markup(*m_local, chunk.textBegin, chunk.textEnd, Options)},
+                                  {"chunk", next + 1}, {"chunks", int(m_chunks.size())},
+                                  {"lost_count_exact", m_local->replacement == Utf8Replacement::PerByte}};
         m_services[i]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
         if (!m_busy) return;  // A synchronous failure stopped the run.
     }
@@ -138,9 +139,9 @@ void MojibakeAi::finishChunk(int service, const ai::Reply& reply) {
                                         : tr("AI suggestion received. Verify the text and any inferred characters.");
         emit changed(); return;
     }
-    auto guide = reply.text;
-    guide.remove(QChar(0x3014)).remove(QChar(0x3015)).remove(QChar(LossyGbkRecovery::UnknownMark));
-    if (guide.trimmed().isEmpty()) {
+    // guided() reads markup the model copied back; only a reply without any character is useless.
+    const auto guide = reply.text;
+    if (QString(guide).remove(QChar(0x3014)).remove(QChar(0x3015)).remove(QChar(LossyGbkRecovery::UnknownMark)).trimmed().isEmpty()) {
         m_chunks[index].state = Chunk::Failed; ++m_failed;
         m_lastError = tr("The AI returned no text for a chunk.");
         QMetaObject::invokeMethod(this, &MojibakeAi::dispatch, Qt::QueuedConnection);

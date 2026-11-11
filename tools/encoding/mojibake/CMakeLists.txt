@@ -6,9 +6,9 @@ add_library(MojibakeLogic STATIC EncodingConverter.h EncodingConverter.cpp
 target_include_directories(MojibakeLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 find_package(Qt6 REQUIRED COMPONENTS Concurrent)
 target_link_libraries(MojibakeLogic PUBLIC Qt6::Core Qt6::Concurrent)
-# Character model for lossy GBK recovery, derived from the jieba dictionary (MIT).
+# Word model for lossy GBK recovery, derived from the jieba dictionary (MIT).
 qt_add_resources(MojibakeLogic charlm PREFIX "/charlm" BASE "${PROJECT_SOURCE_DIR}/resources/charlm"
-    FILES "${PROJECT_SOURCE_DIR}/resources/charlm/zh_charlm.bin")
+    FILES "${PROJECT_SOURCE_DIR}/resources/charlm/zh_wordlm.bin")
 add_library(ClipboardSourceLogic STATIC ClipboardSource.h ClipboardSource.cpp)
 target_include_directories(ClipboardSourceLogic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ClipboardSourceLogic PUBLIC Qt6::Gui)

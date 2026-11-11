@@ -10,6 +10,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstring>
+#include <numeric>
 namespace mojibake {
 namespace {
 // ---------------------------------------------------------------- UTF-8 rules
@@ -96,49 +97,83 @@ struct Tables {
     std::vector<quint16> bytesOf = std::vector<quint16>(65536, 0);  // char -> lead << 8 | trail
     std::array<std::vector<Choice>, 256> byLead, byTrail;
     std::vector<Choice> unknownContext;  // frequent characters plus one placeholder per byte-class pair
-    // Character model.
-    std::vector<qint32> index = std::vector<qint32>(65536, -1);
-    std::vector<float> logUnigram, logStart, startProbability, endCount, occurrences, unigramProbability;
-    std::vector<quint32> pairOffset; std::vector<quint16> pairSecond; std::vector<float> pairCount;
+    // Word model: a prefix tree of jieba words. A search state is a tree node,
+    // the part of a word read so far; the root is a word boundary.
+    std::vector<char16_t> nodeChar;
+    std::vector<quint32> firstChild;   // children of n: [firstChild[n], firstChild[n] + childCount[n]), sorted by character
+    std::vector<quint16> childCount;
+    std::vector<quint32> byMass;       // the same ranges, holding child nodes from the most to the least frequent
+    std::vector<float> logMass;        // log of the frequency of all words below a node
+    std::vector<float> logEnd;         // log probability that the word ends at a node
+    std::vector<quint8> depth;
+    std::vector<quint32> rootChild = std::vector<quint32>(65536, 0);
+    double oovStart = 0;               // a character that starts no dictionary word
     bool model = false;
     char16_t gbkChar(quint8 lead, quint8 trail) const {
         return lead >= 0x81 && lead <= 0xfe && trail >= 0x40 && trail != 0x7f && trail <= 0xfe ? gbk[lead - 0x80][trail - 0x40] : 0;
     }
+    quint32 child(quint32 node, char16_t c) const {
+        if (!node) return rootChild[c];
+        const auto first = nodeChar.begin() + firstChild[node], last = first + childCount[node];
+        const auto it = std::lower_bound(first, last, c);
+        return it != last && *it == c ? quint32(it - nodeChar.begin()) : 0;
+    }
 };
+// Share of a character's use as a word of its own beyond what the dictionary
+// lists, so that a character which only appears inside longer words can still
+// stand alone. A word may also end where the dictionary has no word, at a
+// cost: names and new terms are missing from any dictionary.
+constexpr double SingleCharacter = 0.05, UnlistedEnd = 1e-5;
 bool loadModel(Tables& t) {
-    QFile file(":/charlm/zh_charlm.bin");
+    QFile file(":/charlm/zh_wordlm.bin");
     if (!file.open(QIODevice::ReadOnly)) return false;
     const QByteArray data = file.readAll();
     const auto* p = reinterpret_cast<const uchar*>(data.constData());
-    qsizetype at = 0;
-    const auto u32 = [&](quint32& v) { if (at + 4 > data.size()) return false; v = qFromLittleEndian<quint32>(p + at); at += 4; return true; };
-    const auto u16 = [&](quint16& v) { if (at + 2 > data.size()) return false; v = qFromLittleEndian<quint16>(p + at); at += 2; return true; };
-    quint32 version = 0, total = 0, totalStarts = 0, n = 0, m = 0;
-    if (!data.startsWith("LTCL")) return false;
-    at = 4;
-    if (!u32(version) || version != 1 || !u32(total) || !u32(totalStarts) || !u32(n) || !total || !totalStarts) return false;
-    std::vector<char16_t> codes(n);
-    t.logUnigram.resize(n); t.logStart.resize(n); t.startProbability.resize(n); t.endCount.resize(n);
-    t.occurrences.resize(n); t.unigramProbability.resize(n);
+    if (data.size() < 12 || !data.startsWith("LTWT") || qFromLittleEndian<quint32>(p + 4) != 1) return false;
+    const quint32 n = qFromLittleEndian<quint32>(p + 8);
+    if (n < 2 || n >= (1u << 20) || data.size() != 12 + qsizetype(n) * 8) return false;
+    t.nodeChar.resize(n); t.firstChild.resize(n); t.childCount.resize(n); t.depth.assign(n, 0);
+    std::vector<double> frequency(n), mass(n);
+    quint64 next = 1;
     for (quint32 k = 0; k < n; ++k) {
-        quint16 code; quint32 occurrences, ends, starts;
-        if (!u16(code) || !u32(occurrences) || !u32(ends) || !u32(starts) || !occurrences) return false;
-        codes[k] = code; t.index[code] = qint32(k);
-        t.occurrences[k] = float(occurrences); t.endCount[k] = float(ends);
-        t.unigramProbability[k] = float(double(occurrences) / total);
-        t.logUnigram[k] = float(std::log(double(occurrences) / total));
-        t.startProbability[k] = float((starts + 0.5) / totalStarts);
-        t.logStart[k] = std::log(t.startProbability[k]);
+        const auto* r = p + 12 + qsizetype(k) * 8;
+        t.nodeChar[k] = qFromLittleEndian<quint16>(r);
+        frequency[k] = qFromLittleEndian<quint32>(r + 2);
+        t.childCount[k] = qFromLittleEndian<quint16>(r + 6);
+        t.firstChild[k] = quint32(next);
+        next += t.childCount[k];
+        if (next > n) return false;
+        for (quint32 c = 0; c < t.childCount[k]; ++c) {
+            const quint32 child = t.firstChild[k] + c;
+            t.depth[child] = quint8(std::min(255, t.depth[k] + 1));
+        }
     }
-    if (!u32(m)) return false;
-    t.pairOffset.assign(n + 1, 0); t.pairSecond.resize(m); t.pairCount.resize(m);
-    quint16 previous = 0;
-    for (quint32 k = 0; k < m; ++k) {
-        quint16 a, b; quint32 count;
-        if (!u16(a) || !u16(b) || !u32(count) || a >= n || b >= n || a < previous) return false;
-        previous = a; ++t.pairOffset[a + 1]; t.pairSecond[k] = b; t.pairCount[k] = float(count);
+    if (next != n) return false;
+    for (quint32 k = n; k-- > 0;) {
+        mass[k] += frequency[k];
+        for (quint32 c = 0; c < t.childCount[k]; ++c) mass[k] += mass[t.firstChild[k] + c];
     }
-    for (quint32 k = 0; k < n; ++k) t.pairOffset[k + 1] += t.pairOffset[k];
+    // Children of one node are written sorted by character; anything else is a corrupt file.
+    for (quint32 k = 0; k < n; ++k)
+        for (quint32 c = 1; c < t.childCount[k]; ++c)
+            if (t.nodeChar[t.firstChild[k] + c - 1] >= t.nodeChar[t.firstChild[k] + c]) return false;
+    t.logMass.resize(n); t.logEnd.resize(n);
+    double rootMass = 0;
+    for (quint32 k = 1; k < n; ++k) {
+        if (t.depth[k] == 1) { frequency[k] += SingleCharacter * mass[k]; mass[k] *= 1 + SingleCharacter; rootMass += mass[k]; }
+        if (mass[k] <= 0) return false;
+        t.logMass[k] = float(std::log(mass[k]));
+        t.logEnd[k] = float(std::log(std::max(frequency[k] / mass[k], UnlistedEnd)));
+    }
+    t.logMass[0] = float(std::log(rootMass));
+    t.oovStart = std::log(0.5) - t.logMass[0];
+    t.byMass.resize(n);
+    for (quint32 k = 0; k < n; ++k) {
+        const auto first = t.byMass.begin() + t.firstChild[k], last = first + t.childCount[k];
+        std::iota(first, last, t.firstChild[k]);
+        std::sort(first, last, [&](quint32 a, quint32 b) { return mass[a] > mass[b]; });
+    }
+    for (quint32 c = 0; c < t.childCount[0]; ++c) t.rootChild[t.nodeChar[t.firstChild[0] + c]] = t.firstChild[0] + c;
     return true;
 }
 Tables build() {
@@ -160,16 +195,16 @@ Tables build() {
             t.byLead[lead].push_back(c); t.byTrail[trail].push_back(c);
         }
     t.model = loadModel(t);
-    // Characters tried where no byte of the character survived. Their identity
-    // only shapes the context of neighbours (they are displayed as unknown), so
-    // a short list of the most frequent characters is enough.
-    std::vector<std::pair<float, char16_t>> frequent;
-    for (int code = 0x4e00; code <= 0x9fff; ++code)
-        if (t.index[code] >= 0 && t.bytesOf[code]) frequent.push_back({t.occurrences[t.index[code]], char16_t(code)});
-    std::sort(frequent.begin(), frequent.end(), std::greater<>());
-    frequent.resize(std::min<size_t>(frequent.size(), 64));
-    for (char16_t ch : u"，。、！？：；“”") frequent.push_back({0, ch});
-    for (const auto& [_, ch] : frequent) {
+    // Characters tried at a word boundary where no byte of the character
+    // survived. Alone they are displayed as unknown and only shape the context
+    // of their neighbours, so the most frequent word starts are enough; inside
+    // a word the search also tries the likeliest continuations (expand).
+    std::vector<char16_t> frequent;
+    if (t.model)
+        for (quint32 c = 0; c < t.childCount[0] && frequent.size() < 64; ++c)
+            if (const char16_t ch = t.nodeChar[t.byMass[t.firstChild[0] + c]]; t.bytesOf[ch]) frequent.push_back(ch);
+    for (char16_t ch : u"，。、！？：；“”") frequent.push_back(ch);
+    for (const auto ch : frequent) {
         const auto bytes = t.bytesOf[ch];
         if (bytes) t.unknownContext.push_back({{quint8(bytes >> 8), quint8(bytes)}, 2, ch, false});
     }
@@ -193,8 +228,8 @@ const Tables& tables() {
     static const Tables t = build();  // Thread-safe one-time initialization.
     return t;
 }
-// -------------------------------------------------------- character model
-constexpr char16_t Boundary = 0, Wild = 1;
+// ------------------------------------------------------------- word model
+constexpr quint32 Root = 0;  // word boundary
 double punctuation(char16_t c) {
     switch (c) {
     case u'，': return 0.35; case u'。': return 0.2; case u'、': return 0.04; case u'“': case u'”': return 0.03;
@@ -205,47 +240,37 @@ double punctuation(char16_t c) {
     }
 }
 bool isHan(char16_t c) { return (c >= 0x4e00 && c <= 0x9fff) || (c >= 0x3400 && c <= 0x4dbf); }
-// Log probability of c after the state prev; writes the next state.
-double model(const Tables& t, char16_t prev, char16_t c, char16_t& next) {
-    if (const double p = punctuation(c); p > 0) {
-        next = Boundary;
-        double lp = std::log(p);
-        if (prev > Wild && t.model && t.index[prev] >= 0) {
-            const auto a = t.index[prev];
-            lp += std::log(t.endCount[a] / t.occurrences[a] + 1e-3);
-        }
-        return lp;
-    }
-    if (!isHan(c)) { next = Boundary; return std::log(1e-7); }
-    next = c;
-    if (!t.model) return std::log(1e-4);
-    const auto b = t.index[c];
-    if (b < 0) return std::log(1e-9);
-    if (prev == Wild) return t.logUnigram[b];
-    const auto a = prev > Wild ? t.index[prev] : -1;
-    if (a < 0) return t.logStart[b];
-    const auto* first = t.pairSecond.data() + t.pairOffset[a];
-    const auto* last = t.pairSecond.data() + t.pairOffset[a + 1];
-    const auto* it = std::lower_bound(first, last, quint16(b));
-    const double within = it != last && *it == b ? t.pairCount[it - t.pairSecond.data()] : 0.0;
-    const double p = (within + t.endCount[a] * t.startProbability[b]) / t.occurrences[a];
-    return std::log(0.95 * p + 0.05 * t.unigramProbability[b]);
+double endWord(const Tables& t, quint32 state) { return state == Root ? 0.0 : t.logEnd[state]; }
+// Word unigram model over the prefix tree: calls next(log probability, next
+// state) for each way c can follow state, continuing the current word or
+// ending it and starting a new one.
+template <typename Next> void transitions(const Tables& t, quint32 state, char16_t c, Next&& next) {
+    const double end = endWord(t, state);
+    if (const double p = punctuation(c); p > 0) { next(end + std::log(p), Root); return; }
+    if (!isHan(c)) { next(end + std::log(1e-7), Root); return; }
+    if (!t.model) { next(std::log(1e-4), Root); return; }
+    if (state != Root)
+        if (const auto m = t.child(state, c)) next(double(t.logMass[m]) - t.logMass[state], m);
+    if (const auto r = t.rootChild[c]) next(end + t.logMass[r] - t.logMass[Root], r);
+    else next(end + t.oovStart, Root);
 }
 // ---------------------------------------------------------------- search
 // A wider beam or margin did not change accuracy on the prose fixture; the
-// character model, not the search, limits quality. These values keep a 400 KB file to a few seconds.
+// model, not the search, limits quality. These values keep a 400 KB file to a few seconds.
 constexpr int Beam = 8;
 constexpr double PruneMargin = 12.0;
 constexpr double GuideMatch = 9.0, GuideSkip = 3.0, GuideInsert = 1.5;
+// Likeliest continuations of the current word tried where no byte survived.
+constexpr int Continuations = 16;
 struct Hyp {
-    double score; quint64 key; int parent; Cursor cursor; int guide; char16_t lm;
+    double score; quint64 key; int parent; Cursor cursor; int guide; quint32 lm;
     Choice step; bool matched;
 };
 struct Node { int parent; Choice step; bool matched; };
 Choice single(quint8 b) { Choice c; c.bytes[0] = b; c.length = 1; c.ch = b; return c; }
 Choice pair(quint16 bytes, char16_t ch) { Choice c; c.bytes = {quint8(bytes >> 8), quint8(bytes)}; c.length = 2; c.ch = ch; return c; }
 struct SpanResult {
-    QString text; QByteArray evidence; int guideRejected = 0; bool success = false; double score = -1e300;
+    QString text; QByteArray evidence, bytes; int guideRejected = 0; bool success = false; double score = -1e300;
     std::vector<std::pair<int, qsizetype>> pieces;  // (end token, end of text) of each independent span
 };
 class Search {
@@ -257,7 +282,7 @@ public:
         std::array<std::vector<Hyp>, Ring> buckets;
         std::array<double, Ring> best; best.fill(-1e300);
         const auto progress = [this](const Cursor& c) { return 4 * (c.token - begin) + c.pending.length; };
-        buckets[0].push_back({0.0, 0, -1, {begin, {}}, 0, Boundary, {}, false});
+        buckets[0].push_back({0.0, 0, -1, {begin, {}}, 0, Root, {}, false});
         best[0] = 0;
         const int last = 4 * (end - begin) + 3;
         double finalScore = -1e300; int finalNode = -1;
@@ -272,8 +297,9 @@ public:
                 const int node = int(nodes.size());
                 nodes.push_back({h.parent, h.step, h.matched});
                 const auto& c = h.cursor;
+                const double complete = h.score + endWord(t, h.lm);  // the last word ends with the span
                 if (c.token == end && !c.pending.length) {
-                    if (h.score > finalScore) { finalScore = h.score; finalNode = node; }
+                    if (complete > finalScore) { finalScore = complete; finalNode = node; }
                     continue;
                 }
                 // At the end of the text a decoder reports pending bytes as replacement characters.
@@ -281,7 +307,7 @@ public:
                     const int replaced = perByte ? c.pending.length : 1;
                     bool flushed = c.token + replaced == end;
                     for (int k = c.token; flushed && k < end; ++k) flushed = tokens[k].length == 0;
-                    if (flushed && h.score > finalScore) { finalScore = h.score; finalNode = node; }
+                    if (flushed && complete > finalScore) { finalScore = complete; finalNode = node; }
                 }
                 expand(h, node, [&](Hyp&& next) {
                     const int to = progress(next.cursor);
@@ -328,21 +354,23 @@ private:
         Cursor cursor = h.cursor;
         for (int k = 0; k < c.length; ++k) if (!feed(cursor, c.bytes[k], tokens, end, perByte)) return;
         if (!viable(cursor, tokens, end, perByte)) return;
-        char16_t lm = Boundary;
-        double score = h.score;
-        if (c.wild) { lm = Wild; score += std::log(2e-5); }
-        else score += model(t, h.lm, c.ch, lm);
-        const auto push = [&](double s, int g, bool matched) {
-            const quint64 key = quint64(cursor.pending.key()) | quint64(lm) << 24 | quint64(quint32(g)) << 40;
-            sink(Hyp{s, key, node, cursor, g, lm, c, matched});
+        const auto withGuide = [&](double score, quint32 lm) {
+            const auto push = [&](double s, int g, bool matched) {
+                // pending: 24 bits, model state: 20 bits (loadModel), guide position: 20 bits
+                const quint64 key = quint64(cursor.pending.key()) | quint64(lm) << 24 | quint64(quint32(g) & 0xfffff) << 44;
+                sink(Hyp{s, key, node, cursor, g, lm, c, matched});
+            };
+            if (guide.isEmpty()) { push(score, 0, false); return; }
+            const int g = h.guide, size = int(guide.size());
+            if (!c.wild && g < size && guide[g].unicode() == c.ch) { push(score + GuideMatch, g + 1, true); return; }
+            if (!c.wild && g + 1 < size && guide[g + 1].unicode() == c.ch) { push(score + GuideMatch - GuideSkip, g + 2, true); return; }
+            if (!c.wild && g + 2 < size && guide[g + 2].unicode() == c.ch) { push(score + GuideMatch - 2 * GuideSkip, g + 3, true); return; }
+            push(score, std::min(g + 1, size), false);       // substitution
+            push(score - GuideInsert, g, false);              // insertion
         };
-        if (guide.isEmpty()) { push(score, 0, false); return; }
-        const int g = h.guide, size = int(guide.size());
-        if (!c.wild && g < size && guide[g].unicode() == c.ch) { push(score + GuideMatch, g + 1, true); return; }
-        if (!c.wild && g + 1 < size && guide[g + 1].unicode() == c.ch) { push(score + GuideMatch - GuideSkip, g + 2, true); return; }
-        if (!c.wild && g + 2 < size && guide[g + 2].unicode() == c.ch) { push(score + GuideMatch - 2 * GuideSkip, g + 3, true); return; }
-        push(score, std::min(g + 1, size), false);       // substitution
-        push(score - GuideInsert, g, false);              // insertion
+        // A placeholder stands for some rare character: it ends the current word and is a word of its own.
+        if (c.wild) withGuide(h.score + endWord(t, h.lm) + std::log(2e-5), Root);
+        else transitions(t, h.lm, c.ch, [&](double lp, quint32 next) { withGuide(h.score + lp, next); });
     }
     template <typename Sink> void expand(const Hyp& h, int node, Sink&& sink) {
         const auto& c = h.cursor;
@@ -359,6 +387,13 @@ private:
             tryCandidate(h, node, single(b), sink);
         }
         for (const auto& candidate : t.unknownContext) tryCandidate(h, node, candidate, sink);
+        if (h.lm != Root) {
+            const auto first = t.byMass.begin() + t.firstChild[h.lm];
+            for (auto it = first, last = first + std::min<int>(Continuations, t.childCount[h.lm]); it != last; ++it) {
+                const char16_t ch = t.nodeChar[*it];
+                if (const auto bytes = t.bytesOf[ch]) tryCandidate(h, node, pair(bytes, ch), sink);
+            }
+        }
         if (c.token + 1 < end && tokens[c.token + 1].length) {
             const quint8 f = tokens[c.token + 1].bytes[0];
             for (const auto& candidate : t.byTrail[f]) tryCandidate(h, node, candidate, sink);
@@ -388,8 +423,10 @@ private:
             else i += std::max<size_t>(1, k);
         }
         SpanResult r; r.success = true;
+        r.bytes = QByteArray(reinterpret_cast<const char*>(bytes.data()), qsizetype(bytes.size()));
         size_t at = 0;
-        for (const auto* n : path) {
+        for (size_t i = 0; i < path.size(); ++i) {
+            const auto* n = path[i];
             const auto& s = n->step;
             int survived = 0;
             for (int k = 0; k < s.length; ++k) survived += known[at + k];
@@ -410,7 +447,7 @@ private:
         if (!guide.isEmpty()) {
             int matched = 0;
             for (const auto* n : path) matched += n->matched;
-            r.guideRejected = std::max(0, int(guide.size()) - matched);
+            r.guideRejected = std::max(0, int(guide.size() - guide.count(QChar(LossyGbkRecovery::GuideGap))) - matched);
         }
         return r;
     }
@@ -452,7 +489,7 @@ LossyRecovery combine(const std::vector<qsizetype>& offsets, const std::vector<J
             r.spans.append({offsets[tokenBegin], offsets[tokenEnd], r.text.size() + textBegin, r.text.size() + textEnd});
             tokenBegin = tokenEnd; textBegin = textEnd;
         }
-        r.text += s.text; r.evidence += s.evidence; r.guideRejected += s.guideRejected;
+        r.text += s.text; r.evidence += s.evidence; r.bytes += s.bytes; r.guideRejected += s.guideRejected;
     }
     r.count();
     return r;
@@ -498,7 +535,7 @@ LossyRecovery LossyGbkRecovery::recover(const QString& damaged, const Cancellati
             Search search(t, tokens, s, i + 1, job.atTextEnd && i == job.end - 1, none, perByte);
             auto r = search.run(cancel);
             if (!r.success) { combined.success = false; return combined; }
-            combined.text += r.text; combined.evidence += r.evidence; combined.score += r.score;
+            combined.text += r.text; combined.evidence += r.evidence; combined.bytes += r.bytes; combined.score += r.score;
             combined.pieces.push_back({i + 1, combined.text.size()});
             s = i + 1;
         }
@@ -510,7 +547,9 @@ LossyRecovery LossyGbkRecovery::recover(const QString& damaged, const Cancellati
     const auto subpart = solve(jobs.front(), false), perByte = solve(jobs.front(), true);
     if (cancel && cancel->load()) { LossyRecovery r; r.cancelled = true; return r; }
     if (!subpart.success && !perByte.success) return {};
-    const bool usePerByte = perByte.success && (!subpart.success || perByte.score > subpart.score);
+    // Per-byte damage can often be read just as well under the other convention, which then ties;
+    // damage by maximal subparts usually cannot be read per byte at all. A tie therefore means per byte.
+    const bool usePerByte = perByte.success && (!subpart.success || perByte.score >= subpart.score);
     QThreadPool pool;
     pool.setMaxThreadCount(std::max(1, QThread::idealThreadCount()));
     const std::vector<Job> rest(jobs.begin() + 1, jobs.end());
@@ -530,9 +569,18 @@ LossyRecovery LossyGbkRecovery::recover(const QString& damaged, const Cancellati
 LossyRecovery LossyGbkRecovery::guided(const QString& damaged, const QString& guide, Utf8Replacement replacement, const Cancellation& cancel) {
     std::vector<Token> tokens; std::vector<qsizetype> offsets;
     if (!tokenize(damaged, tokens, offsets) || tokens.empty()) return {};
-    // Compare like with like: the guide is matched character by character.
+    // Compare like with like: the guide is matched character by character. A
+    // marker group the AI copied back counts as its first option, and an
+    // unknown mark keeps its position without matching any character.
     QString flatGuide; flatGuide.reserve(guide.size());
-    for (auto c : guide) if (!c.isSurrogate()) flatGuide += c;
+    bool inGroup = false, optionTaken = false;
+    for (auto c : guide) {
+        if (c.isSurrogate()) continue;
+        if (c == QChar(0x3014)) { inGroup = true; optionTaken = false; continue; }
+        if (c == QChar(0x3015)) { inGroup = false; continue; }
+        if (inGroup) { if (c == u'|') optionTaken = true; else if (!optionTaken) flatGuide += c; continue; }
+        flatGuide += c == QChar(UnknownMark) ? QChar(GuideGap) : c;
+    }
     Search search(tables(), tokens, 0, int(tokens.size()), true, flatGuide, replacement == Utf8Replacement::PerByte);
     auto r = search.run(cancel);
     if (cancel && cancel->load()) { LossyRecovery result; result.cancelled = true; return result; }
@@ -563,12 +611,76 @@ QString LossyGbkRecovery::lossyUtf8(QByteArrayView bytes, Utf8Replacement replac
     const QByteArray bytes = encoder(candidate);
     return !encoder.hasError() && lossyUtf8(bytes, replacement) == damaged;
 }
-QString LossyGbkRecovery::markup(const LossyRecovery& r, qsizetype textBegin, qsizetype textEnd) {
+namespace {
+// Word model score of a short text; an unknown mark ends the word before it.
+double windowScore(const Tables& t, QStringView s) {
+    std::vector<std::pair<quint32, double>> live{{Root, 0.0}}, next;
+    for (const QChar q : s) {
+        next.clear();
+        const auto keep = [&](double score, quint32 state) {
+            for (auto& [st, sc] : next) if (st == state) { sc = std::max(sc, score); return; }
+            next.push_back({state, score});
+        };
+        for (const auto& [state, score] : live) {
+            if (q.unicode() == LossyGbkRecovery::UnknownMark) keep(score + endWord(t, state), Root);
+            else transitions(t, state, q.unicode(), [&](double lp, quint32 n) { keep(score + lp, n); });
+        }
+        live.swap(next);
+    }
+    double best = -1e300;
+    for (const auto& [state, score] : live) best = std::max(best, score + endWord(t, state));
+    return best;
+}
+qsizetype byteOffset(const QString& text, qsizetype index) {
+    qsizetype at = 0;
+    for (qsizetype i = 0; i < index; ++i) at += text[i].unicode() < 0x80 ? 1 : 2;
+    return at;
+}
+QString alternativesAt(const LossyRecovery& r, qsizetype index, qsizetype at, int limit) {
+    if (limit <= 0 || index >= r.text.size() || CharEvidence(r.evidence.at(index)) != CharEvidence::Partial || at + 2 > r.bytes.size()) return {};
+    const auto& t = tables();
+    // Bytes around the character: UTF-8 resynchronises within three bytes.
+    constexpr qsizetype Margin = 6;
+    const qsizetype from = std::max<qsizetype>(0, at - Margin), to = std::min(r.bytes.size(), at + 2 + Margin);
+    QByteArray window = r.bytes.mid(from, to - from);
+    const QString damaged = LossyGbkRecovery::lossyUtf8(window, r.replacement);
+    const qsizetype contextFrom = std::max<qsizetype>(0, index - 4), contextTo = std::min(r.text.size(), index + 5);
+    QString context = r.text.mid(contextFrom, contextTo - contextFrom);
+    const auto lead = quint8(r.bytes[at]), trail = quint8(r.bytes[at + 1]);
+    std::vector<std::pair<double, char16_t>> ranked;
+    // The surviving byte is the lead or the trail; try every character sharing either and let the damage decide.
+    for (const auto* list : {&t.byLead[lead], &t.byTrail[trail]})
+        for (const auto& c : *list) {
+            window[at - from] = char(c.bytes[0]); window[at - from + 1] = char(c.bytes[1]);
+            if (LossyGbkRecovery::lossyUtf8(window, r.replacement) != damaged) continue;
+            // The unknown mark is a GBK character too, but as an option it would read as a lost character.
+            if (c.ch == LossyGbkRecovery::UnknownMark || std::any_of(ranked.begin(), ranked.end(), [&](const auto& p) { return p.second == c.ch; })) continue;
+            context[index - contextFrom] = QChar(c.ch);
+            ranked.push_back({windowScore(t, context), c.ch});
+        }
+    std::sort(ranked.begin(), ranked.end(), std::greater<>());
+    // The search chose its character with the whole span as context; it leads.
+    QString out = r.text[index];
+    for (const auto& [_, ch] : ranked) { if (out.size() >= limit) break; if (ch != r.text[index].unicode()) out += QChar(ch); }
+    return out;
+}
+}
+QString LossyGbkRecovery::alternatives(const LossyRecovery& r, qsizetype index, int limit) {
+    return index < 0 || index >= r.text.size() ? QString() : alternativesAt(r, index, byteOffset(r.text, index), limit);
+}
+QString LossyGbkRecovery::markup(const LossyRecovery& r, qsizetype textBegin, qsizetype textEnd, int options) {
     QString out;
+    qsizetype at = options > 0 ? byteOffset(r.text, textBegin) : 0;
     for (qsizetype i = textBegin; i < textEnd && i < r.text.size(); ++i) {
         const auto e = CharEvidence(r.evidence.at(i));
-        if (e == CharEvidence::Partial) { out += QChar(0x3014); out += r.text[i]; out += QChar(0x3015); }
-        else out += r.text[i];
+        if (e == CharEvidence::Partial) {
+            QString choices = options > 0 ? alternativesAt(r, i, at, options) : QString();
+            if (choices.isEmpty()) choices = r.text[i];
+            out += QChar(0x3014);
+            for (qsizetype k = 0; k < choices.size(); ++k) { if (k) out += u'|'; out += choices[k]; }
+            out += QChar(0x3015);
+        } else out += r.text[i];
+        at += r.text[i].unicode() < 0x80 ? 1 : 2;
     }
     return out;
 }
