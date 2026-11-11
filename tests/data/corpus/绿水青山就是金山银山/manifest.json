@@ -1,0 +1,742 @@
+{
+  "schema_version": "1.0",
+  "generator": "mojibake_factory.py",
+  "generator_version": "1.0.0",
+  "generated_at_utc": "2026-11-11T09:54:59.411184+00:00",
+  "warning": "ground_truth.txt 是原文；不能将原文或本清单当成待测模型的输入。",
+  "source": {
+    "name": "绿水青山就是金山银山",
+    "encoding_used_to_read": "utf-8",
+    "characters": 2957,
+    "utf8_bytes": 8773,
+    "sha256_utf8": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+  },
+  "settings": {
+    "seed": 2026,
+    "byte_error_rate": 0.03,
+    "gbk_encode_errors": "replace",
+    "selected_presets": [
+      "utf8_as_latin1",
+      "utf8_as_cp1252",
+      "utf8_as_gbk_replace",
+      "utf8_as_gbk_ignore",
+      "gbk_as_utf8_replace",
+      "gbk_as_utf8_ignore",
+      "gbk_as_big5_replace",
+      "double_utf8_latin1",
+      "double_utf8_gbk",
+      "utf16le_as_utf16be",
+      "utf16le_as_utf8",
+      "utf8_as_utf16le",
+      "gbk_encode_question",
+      "utf8_byte_delete",
+      "utf8_byte_flip",
+      "utf8_byte_question",
+      "gbk_byte_question",
+      "utf8_tail_truncated",
+      "mixed_utf8_gbk_as_utf8",
+      "mixed_utf8_gbk_as_gbk",
+      "html_numeric_entities",
+      "double_html_entities",
+      "json_unicode_escapes"
+    ],
+    "save_raw_bytes": true
+  },
+  "cases": [
+    {
+      "id": "utf8_as_latin1",
+      "name": "UTF-8 → Latin-1（经典 æ... 乱码）",
+      "group": "可逆错解码",
+      "description": "UTF-8 字节误按 ISO-8859-1 解码，通常能无损逆转。",
+      "status": "ok",
+      "text_file": "cases/utf8_as_latin1.txt",
+      "raw_file": "raw/utf8_as_latin1.bin",
+      "input_characters": 2957,
+      "output_characters": 8773,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": true,
+      "sha256_output_utf8": "a16d66a5f0d0c654c06dafa7a4d5435c2074a01619958ca6a6681a9ebc28c03e",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "latin-1",
+          "decode_errors": "strict",
+          "source_bytes": 8773,
+          "stage_byte_preserved": true
+        }
+      ],
+      "sha256_raw": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+    },
+    {
+      "id": "utf8_as_cp1252",
+      "name": "UTF-8 → Windows-1252",
+      "group": "错解码",
+      "description": "包含 0x81 等未定义字节时可能产生替换字符。",
+      "status": "ok",
+      "text_file": "cases/utf8_as_cp1252.txt",
+      "raw_file": "raw/utf8_as_cp1252.bin",
+      "input_characters": 2957,
+      "output_characters": 8773,
+      "replacement_characters": 531,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "fd54d750724edbdef76375106c397f0210feaf06d25eb4991e2b6c4dab9231e4",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "cp1252",
+          "decode_errors": "replace",
+          "source_bytes": 8773,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+    },
+    {
+      "id": "utf8_as_gbk_replace",
+      "name": "UTF-8 → GBK（replace）",
+      "group": "错解码",
+      "description": "UTF-8 字节误按 GBK 解码，非法序列用 � 替代。",
+      "status": "ok",
+      "text_file": "cases/utf8_as_gbk_replace.txt",
+      "raw_file": "raw/utf8_as_gbk_replace.bin",
+      "input_characters": 2957,
+      "output_characters": 4609,
+      "replacement_characters": 396,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "bda60867eb480edfa124dfb8aafcfc6396d6a2b7687ef77616af343992dce7bd",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "gbk",
+          "decode_errors": "replace",
+          "source_bytes": 8773,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+    },
+    {
+      "id": "utf8_as_gbk_ignore",
+      "name": "UTF-8 → GBK（ignore）",
+      "group": "丢失字节",
+      "description": "非法序列被跳过，不保留出错位置。",
+      "status": "ok",
+      "text_file": "cases/utf8_as_gbk_ignore.txt",
+      "raw_file": "raw/utf8_as_gbk_ignore.bin",
+      "input_characters": 2957,
+      "output_characters": 4213,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "8dc8ea13a4b61286909df6488ef2710c77c3947ce054457eca666a3e473a8bfb",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "gbk",
+          "decode_errors": "ignore",
+          "source_bytes": 8773,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+    },
+    {
+      "id": "gbk_as_utf8_replace",
+      "name": "GBK → UTF-8（replace）",
+      "group": "错解码",
+      "description": "与你论文样本相同的损坏路径。",
+      "status": "ok",
+      "text_file": "cases/gbk_as_utf8_replace.txt",
+      "raw_file": "raw/gbk_as_utf8_replace.bin",
+      "input_characters": 2957,
+      "output_characters": 4663,
+      "replacement_characters": 3606,
+      "question_marks_in_output": 1,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "eb06e7830cb9aaaadff7c4a1dd8699a2193543048f29a2b49f5037e0b05de079",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "gbk",
+          "encode_errors": "replace",
+          "decode": "utf-8",
+          "decode_errors": "replace",
+          "source_bytes": 5864,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "30662abff4d4947cf053c1dc9547a1213247c77a0e88a624e5dea4c7b2653c74"
+    },
+    {
+      "id": "gbk_as_utf8_ignore",
+      "name": "GBK → UTF-8（ignore）",
+      "group": "丢失字节",
+      "description": "GBK 字节按 UTF-8 解码，遇错直接丢弃。",
+      "status": "ok",
+      "text_file": "cases/gbk_as_utf8_ignore.txt",
+      "raw_file": "raw/gbk_as_utf8_ignore.bin",
+      "input_characters": 2957,
+      "output_characters": 1057,
+      "replacement_characters": 0,
+      "question_marks_in_output": 1,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "54ab68c9e0d0ddff907362a74868d62ed1e9b8d8714b9176bd68a12174cf576a",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "gbk",
+          "encode_errors": "replace",
+          "decode": "utf-8",
+          "decode_errors": "ignore",
+          "source_bytes": 5864,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "30662abff4d4947cf053c1dc9547a1213247c77a0e88a624e5dea4c7b2653c74"
+    },
+    {
+      "id": "gbk_as_big5_replace",
+      "name": "GBK → Big5（replace）",
+      "group": "错解码",
+      "description": "简繁中文区域编码混淆。",
+      "status": "ok",
+      "text_file": "cases/gbk_as_big5_replace.txt",
+      "raw_file": "raw/gbk_as_big5_replace.bin",
+      "input_characters": 2957,
+      "output_characters": 3036,
+      "replacement_characters": 158,
+      "question_marks_in_output": 1,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "0a17f605fddda537f1775138a6a572cd7d64645a43651b3b4b73337e4d164971",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "gbk",
+          "encode_errors": "replace",
+          "decode": "big5",
+          "decode_errors": "replace",
+          "source_bytes": 5864,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "30662abff4d4947cf053c1dc9547a1213247c77a0e88a624e5dea4c7b2653c74"
+    },
+    {
+      "id": "double_utf8_latin1",
+      "name": "UTF-8 → Latin-1 → 再错解码一次",
+      "group": "多次转码",
+      "description": "对第一次乱码再进行 UTF-8 编码、Latin-1 解码。",
+      "status": "ok",
+      "text_file": "cases/double_utf8_latin1.txt",
+      "raw_file": "raw/double_utf8_latin1.bin",
+      "input_characters": 2957,
+      "output_characters": 17497,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": true,
+      "sha256_output_utf8": "b573cfc562caba8fd5a99504d50e7d0ff70e5406503a70b187bb9ae373c51ef8",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "latin-1",
+          "decode_errors": "strict",
+          "source_bytes": 8773,
+          "stage_byte_preserved": true
+        },
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "latin-1",
+          "decode_errors": "strict",
+          "source_bytes": 17497,
+          "stage_byte_preserved": true
+        }
+      ],
+      "sha256_raw": "a16d66a5f0d0c654c06dafa7a4d5435c2074a01619958ca6a6681a9ebc28c03e"
+    },
+    {
+      "id": "double_utf8_gbk",
+      "name": "UTF-8 → GBK → Latin-1",
+      "group": "多次转码",
+      "description": "第一次错解码后再误按 Latin-1 解码。",
+      "status": "ok",
+      "text_file": "cases/double_utf8_gbk.txt",
+      "raw_file": "raw/double_utf8_gbk.bin",
+      "input_characters": 2957,
+      "output_characters": 13701,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "2b57062774eb4e0a1537dc5b114f492414391aaa0f0c5432de05f1f466333186",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "gbk",
+          "decode_errors": "replace",
+          "source_bytes": 8773,
+          "stage_byte_preserved": false
+        },
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "latin-1",
+          "decode_errors": "strict",
+          "source_bytes": 13701,
+          "stage_byte_preserved": true
+        }
+      ],
+      "sha256_raw": "bda60867eb480edfa124dfb8aafcfc6396d6a2b7687ef77616af343992dce7bd"
+    },
+    {
+      "id": "utf16le_as_utf16be",
+      "name": "UTF-16 LE → UTF-16 BE",
+      "group": "错解码",
+      "description": "UTF-16 大小端误判；不带 BOM。",
+      "status": "ok",
+      "text_file": "cases/utf16le_as_utf16be.txt",
+      "raw_file": "raw/utf16le_as_utf16be.bin",
+      "input_characters": 2957,
+      "output_characters": 2957,
+      "replacement_characters": 73,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "c0331f75809d28ac3ecf03ff14f9959948e10dc24d51781512b34667554e417f",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-16-le",
+          "encode_errors": "strict",
+          "decode": "utf-16-be",
+          "decode_errors": "replace",
+          "source_bytes": 5914,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "188fa91df7b80860c3a24100443cf66b5b16e3d621810a60294155244f75ee8d"
+    },
+    {
+      "id": "utf16le_as_utf8",
+      "name": "UTF-16 LE → UTF-8（replace）",
+      "group": "错解码",
+      "description": "可能产生 NUL 控制字符与 �。",
+      "status": "ok",
+      "text_file": "cases/utf16le_as_utf8.txt",
+      "raw_file": "raw/utf16le_as_utf8.bin",
+      "input_characters": 2957,
+      "output_characters": 5773,
+      "replacement_characters": 1617,
+      "question_marks_in_output": 3,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "63a61c02eeb634862f7c43abd4faeb0314dcb9cbd7b2ed440edf1c27c6f16a58",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-16-le",
+          "encode_errors": "strict",
+          "decode": "utf-8",
+          "decode_errors": "replace",
+          "source_bytes": 5914,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "188fa91df7b80860c3a24100443cf66b5b16e3d621810a60294155244f75ee8d"
+    },
+    {
+      "id": "utf8_as_utf16le",
+      "name": "UTF-8 → UTF-16 LE（replace）",
+      "group": "错解码",
+      "description": "UTF-8 字节被误按两字节编码解释。",
+      "status": "ok",
+      "text_file": "cases/utf8_as_utf16le.txt",
+      "raw_file": "raw/utf8_as_utf16le.bin",
+      "input_characters": 2957,
+      "output_characters": 4387,
+      "replacement_characters": 1,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "6bfa7ebbd534cf8960631113dd80be0b4457cb3d42d8c00018fe513baca87119",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "utf-8",
+          "encode_errors": "strict",
+          "decode": "utf-16-le",
+          "decode_errors": "replace",
+          "source_bytes": 8773,
+          "stage_byte_preserved": false
+        }
+      ],
+      "sha256_raw": "fd63599738c72bdef590ab19c11cf615b8614af176cd23c776fb462232b90237"
+    },
+    {
+      "id": "gbk_encode_question",
+      "name": "编码为 GBK 时不可表示字转 ?",
+      "group": "编码替换",
+      "description": "表情、部分生僻字在 GBK 编码时被替换。",
+      "status": "ok",
+      "text_file": "cases/gbk_encode_question.txt",
+      "raw_file": "raw/gbk_encode_question.bin",
+      "input_characters": 2957,
+      "output_characters": 2957,
+      "replacement_characters": 0,
+      "question_marks_in_output": 1,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "12ce49a3ea830c6cc4f96d0685654eb02aedb239cf7bf4ee6ac37477df240ff2",
+      "steps": [
+        {
+          "operation": "encode_then_decode",
+          "encode": "gbk",
+          "encode_errors": "replace",
+          "decode": "gbk",
+          "decode_errors": "strict",
+          "replaced_input_characters": 1
+        }
+      ],
+      "sha256_raw": "30662abff4d4947cf053c1dc9547a1213247c77a0e88a624e5dea4c7b2653c74"
+    },
+    {
+      "id": "utf8_byte_delete",
+      "name": "UTF-8 随机字节删除",
+      "group": "物理字节损坏",
+      "description": "按固定随机种子删掉部分原始字节。",
+      "status": "ok",
+      "text_file": "cases/utf8_byte_delete.txt",
+      "raw_file": "raw/utf8_byte_delete.bin",
+      "input_characters": 2957,
+      "output_characters": 3026,
+      "replacement_characters": 330,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "d1d45ef293bca53c6dc93a902f661ebb26376970b931cbd4db9343146af486fe",
+      "steps": [
+        {
+          "operation": "byte_mutation",
+          "codec": "utf-8",
+          "method": "delete",
+          "seed": 3573447146,
+          "requested_rate": 0.03,
+          "mutated_byte_count": 274,
+          "original_byte_count": 8773,
+          "result_byte_count": 8499,
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "3f5c94216900ab2fb9abea64bd7cb8a54433f90e4de7b63b75bd8b0b6d880887"
+    },
+    {
+      "id": "utf8_byte_flip",
+      "name": "UTF-8 随机字节翻转",
+      "group": "物理字节损坏",
+      "description": "随机对一些字节执行 XOR 0x80。",
+      "status": "ok",
+      "text_file": "cases/utf8_byte_flip.txt",
+      "raw_file": "raw/utf8_byte_flip.bin",
+      "input_characters": 2957,
+      "output_characters": 3406,
+      "replacement_characters": 434,
+      "question_marks_in_output": 3,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "aed9e7b59c06cb4b7a108c04f800ddac3c8cebe551aa2a0f8d4b6d1719329fb9",
+      "steps": [
+        {
+          "operation": "byte_mutation",
+          "codec": "utf-8",
+          "method": "flip",
+          "seed": 2547277712,
+          "requested_rate": 0.03,
+          "mutated_byte_count": 279,
+          "original_byte_count": 8773,
+          "result_byte_count": 8773,
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "8c27eb29d9864a356daf10f855fa7b6954c68ce2386a5a6330e76e76a548dd98"
+    },
+    {
+      "id": "utf8_byte_question",
+      "name": "UTF-8 随机字节改成 ?",
+      "group": "物理字节损坏",
+      "description": "在多字节序列内替换单个高位字节。",
+      "status": "ok",
+      "text_file": "cases/utf8_byte_question.txt",
+      "raw_file": "raw/utf8_byte_question.bin",
+      "input_characters": 2957,
+      "output_characters": 3354,
+      "replacement_characters": 389,
+      "question_marks_in_output": 248,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "66880b30bf119200b383da027044dfe265323238f4f178a4135d88e3330ca53f",
+      "steps": [
+        {
+          "operation": "byte_mutation",
+          "codec": "utf-8",
+          "method": "question",
+          "seed": 4075159346,
+          "requested_rate": 0.03,
+          "mutated_byte_count": 248,
+          "original_byte_count": 8773,
+          "result_byte_count": 8773,
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "160101d0fd4a068aaafd370c0c110f585cad0c82426bdb2eeaf2ee26f86adaaa"
+    },
+    {
+      "id": "gbk_byte_question",
+      "name": "GBK 随机字节改成 ?",
+      "group": "物理字节损坏",
+      "description": "在 GBK 高位字节位置插入问号。",
+      "status": "ok",
+      "text_file": "cases/gbk_byte_question.txt",
+      "raw_file": "raw/gbk_byte_question.bin",
+      "input_characters": 2957,
+      "output_characters": 3133,
+      "replacement_characters": 166,
+      "question_marks_in_output": 187,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "1987c809da8fa5a58fd13e75d03f61de04297960fd420cbe182a3d4452944856",
+      "steps": [
+        {
+          "operation": "byte_mutation",
+          "codec": "gbk",
+          "method": "question",
+          "seed": 1819625552,
+          "requested_rate": 0.03,
+          "mutated_byte_count": 186,
+          "original_byte_count": 5864,
+          "result_byte_count": 5864,
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "222ccfd92af7b191ec5d1edb5be63bebcd1be59662418735dab52cc6f9bf51d6"
+    },
+    {
+      "id": "utf8_tail_truncated",
+      "name": "UTF-8 在多字节字符中截断",
+      "group": "物理字节损坏",
+      "description": "结尾截断至某个汉字的前 1 字节。",
+      "status": "ok",
+      "text_file": "cases/utf8_tail_truncated.txt",
+      "raw_file": "raw/utf8_tail_truncated.bin",
+      "input_characters": 2957,
+      "output_characters": 2955,
+      "replacement_characters": 1,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "650278fc9edb6d02dea5ce5a469275ae800a298a9964cc39e7d001bbfe6fe103",
+      "steps": [
+        {
+          "operation": "tail_truncate",
+          "codec": "utf-8",
+          "original_bytes": 8773,
+          "remaining_bytes": 8769,
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "de0d038b0bda83d8954e75d349ceca244e50a287f40b2df2e6b632c86bbc2362"
+    },
+    {
+      "id": "mixed_utf8_gbk_as_utf8",
+      "name": "UTF-8/GBK 混合字节 → UTF-8",
+      "group": "混合编码",
+      "description": "分段交替编码后合并，再以 UTF-8 整体解码。",
+      "status": "ok",
+      "text_file": "cases/mixed_utf8_gbk_as_utf8.txt",
+      "raw_file": "raw/mixed_utf8_gbk_as_utf8.bin",
+      "input_characters": 2957,
+      "output_characters": 3838,
+      "replacement_characters": 1862,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "c638a589585283d7a2b66dff1d67a648789dd917129931cd708f3e8e20929afe",
+      "steps": [
+        {
+          "operation": "mixed_encode_then_decode",
+          "segments": [
+            {
+              "segment_index": 0,
+              "codec": "utf-8",
+              "character_length": 739,
+              "byte_length": 2193
+            },
+            {
+              "segment_index": 1,
+              "codec": "gbk",
+              "character_length": 739,
+              "byte_length": 1472
+            },
+            {
+              "segment_index": 2,
+              "codec": "utf-8",
+              "character_length": 739,
+              "byte_length": 2175
+            },
+            {
+              "segment_index": 3,
+              "codec": "gbk",
+              "character_length": 740,
+              "byte_length": 1470
+            }
+          ],
+          "decode": "utf-8",
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "d607f661a4047d18b4151fb0cd83fefab99a98cba7bda4d78114475ca3a28470"
+    },
+    {
+      "id": "mixed_utf8_gbk_as_gbk",
+      "name": "UTF-8/GBK 混合字节 → GBK",
+      "group": "混合编码",
+      "description": "分段交替编码后合并，再以 GBK 整体解码。",
+      "status": "ok",
+      "text_file": "cases/mixed_utf8_gbk_as_gbk.txt",
+      "raw_file": "raw/mixed_utf8_gbk_as_gbk.bin",
+      "input_characters": 2957,
+      "output_characters": 3772,
+      "replacement_characters": 185,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": false,
+      "sha256_output_utf8": "10cc474f4c59587bfa55ad113562e29fe8a06175ba715fa1683a0977d949fba1",
+      "steps": [
+        {
+          "operation": "mixed_encode_then_decode",
+          "segments": [
+            {
+              "segment_index": 0,
+              "codec": "utf-8",
+              "character_length": 739,
+              "byte_length": 2193
+            },
+            {
+              "segment_index": 1,
+              "codec": "gbk",
+              "character_length": 739,
+              "byte_length": 1472
+            },
+            {
+              "segment_index": 2,
+              "codec": "utf-8",
+              "character_length": 739,
+              "byte_length": 2175
+            },
+            {
+              "segment_index": 3,
+              "codec": "gbk",
+              "character_length": 740,
+              "byte_length": 1470
+            }
+          ],
+          "decode": "gbk",
+          "decode_errors": "replace"
+        }
+      ],
+      "sha256_raw": "d607f661a4047d18b4151fb0cd83fefab99a98cba7bda4d78114475ca3a28470"
+    },
+    {
+      "id": "html_numeric_entities",
+      "name": "中文转 HTML 数字实体",
+      "group": "转义（非真实乱码）",
+      "description": "通常可精确恢复，作为自动识别的反例。",
+      "status": "ok",
+      "text_file": "cases/html_numeric_entities.txt",
+      "raw_file": null,
+      "input_characters": 2957,
+      "output_characters": 23313,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": true,
+      "sha256_output_utf8": "29f16f496c14584732d2182fbf3045e3bcb0177469a43d3ab0cfca6109ac57e5",
+      "steps": [
+        {
+          "operation": "numeric_html_entities",
+          "reversible": true
+        }
+      ]
+    },
+    {
+      "id": "double_html_entities",
+      "name": "HTML 实体重复转义",
+      "group": "转义（非真实乱码）",
+      "description": "数字实体中的 & 再转义成 &amp;。",
+      "status": "ok",
+      "text_file": "cases/double_html_entities.txt",
+      "raw_file": null,
+      "input_characters": 2957,
+      "output_characters": 34945,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": true,
+      "sha256_output_utf8": "4123d721ed391873e794adc10130d1b746016a2f14f23d7738a8199faf466cee",
+      "steps": [
+        {
+          "operation": "numeric_html_entities"
+        },
+        {
+          "operation": "html_escape"
+        }
+      ]
+    },
+    {
+      "id": "json_unicode_escapes",
+      "name": "JSON Unicode 转义",
+      "group": "转义（非真实乱码）",
+      "description": "中文转为 \\uXXXX，包含代理对。",
+      "status": "ok",
+      "text_file": "cases/json_unicode_escapes.txt",
+      "raw_file": null,
+      "input_characters": 2957,
+      "output_characters": 17535,
+      "replacement_characters": 0,
+      "question_marks_in_output": 0,
+      "changed": true,
+      "information_preserved_through_declared_operations": true,
+      "sha256_output_utf8": "1937772b85fd843a127d23d654f228add1656944df4bc3f57a1e7fe28cac98bb",
+      "steps": [
+        {
+          "operation": "json_unicode_escape",
+          "reversible": true
+        }
+      ]
+    }
+  ]
+}

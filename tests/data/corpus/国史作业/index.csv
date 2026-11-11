@@ -1,0 +1,11 @@
+﻿id,name,group,status,changed,information_preserved_through_declared_operations,input_characters,output_characters,replacement_characters,text_file,error
+utf8_as_latin1,UTF-8 → Latin-1（经典 æ... 乱码）,可逆错解码,ok,True,True,2242,6650,0,cases/utf8_as_latin1.txt,
+utf8_as_gbk_replace,UTF-8 → GBK（replace）,错解码,ok,True,False,2242,3489,290,cases/utf8_as_gbk_replace.txt,
+gbk_as_utf8_replace,GBK → UTF-8（replace）,错解码,ok,True,False,2242,3470,2667,cases/gbk_as_utf8_replace.txt,
+gbk_as_utf8_ignore,GBK → UTF-8（ignore）,丢失字节,ok,True,False,2242,803,0,cases/gbk_as_utf8_ignore.txt,
+gbk_as_big5_replace,GBK → Big5（replace）,错解码,ok,True,False,2242,2286,88,cases/gbk_as_big5_replace.txt,
+double_utf8_latin1,UTF-8 → Latin-1 → 再错解码一次,多次转码,ok,True,True,2242,13262,0,cases/double_utf8_latin1.txt,
+utf8_byte_delete,UTF-8 随机字节删除,物理字节损坏,ok,True,False,2242,2296,251,cases/utf8_byte_delete.txt,
+utf8_byte_question,UTF-8 随机字节改成 ?,物理字节损坏,ok,True,False,2242,2535,287,cases/utf8_byte_question.txt,
+mixed_utf8_gbk_as_utf8,UTF-8/GBK 混合字节 → UTF-8,混合编码,ok,True,False,2242,2866,1356,cases/mixed_utf8_gbk_as_utf8.txt,
+html_numeric_entities,中文转 HTML 数字实体,转义（非真实乱码）,ok,True,True,2242,17670,0,cases/html_numeric_entities.txt,

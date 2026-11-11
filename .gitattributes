@@ -2,3 +2,5 @@
 resources/styles/**/*.json text eol=lf
 resources/styles/*.json text eol=lf
 tests/data/style-*.json text eol=lf
+# Damaged texts must keep their exact bytes, CR and NUL included; the originals keep their CRLF.
+tests/data/corpus/** -text

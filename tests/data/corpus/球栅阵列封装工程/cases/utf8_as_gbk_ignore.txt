@@ -1,0 +1,150 @@
+鐞冩爡闃靛垪灏佽呭伐鑹轰笌鏁呴殰鍒嗘瀽
+鐝绾э細 2023217902
+瀛﹀彿锛 2023210715
+濮撳悕锛 鏈卞徃鏅
+鎽樿
+闅忕潃闆嗘垚鐢佃矾锛圛C锛夊悜楂樻ц兘銆佸氬姛鑳藉強灏忓瀷鍖栨柟鍚戞紨杩涳紝灏佽呮妧鏈宸叉垚涓哄埗绾︽懇灏斿畾寰嬪欢缁鐨勫叧閿鐜鑺傘傜悆鏍呴樀鍒楋紙Ball Grid Array, BGA锛夊皝瑁呭嚟鍊熷叾楂業/O瀵嗗害銆佷紭寮傜殑鐢垫皵鎬ц兘鍙婅壇濂界殑鏁ｇ儹鐗规э紝宸插叏闈㈠彇浠ｄ紶缁熺殑寮曡剼寮忓皝瑁咃紝鎴愪负鐜颁唬鐢靛瓙鍒堕犵殑涓绘祦閫夋嫨銆傜劧鑰岋紝BGA鈥滃簳閮ㄩ樀鍒椻濈殑闅愬舰浜掕繛鐗瑰緛缁欏埗閫犲伐鑹烘帶鍒朵笌璐ㄩ噺妫娴嬪甫鏉ヤ簡宸ㄥぇ鎸戞垬銆傛湰鏂囬伩寮浜嗗嶆潅鐨勫姏瀛︾悊璁烘帹瀵硷紝绔嬭冻浜庡伐绋嬪疄璺佃嗚掞紝绯荤粺闃愯堪浜咮GA鐨勫皝瑁呯粨鏋勫垎绫讳笌鍏抽敭鏉愭枡鐗规с傞噸鐐瑰墫鏋愪簡浠庢櫠鍦嗗埗澶囧埌琛ㄩ潰璐磋咃紙SMT锛夌殑鍏ㄦ祦绋嬪伐鑹烘帶鍒惰佺偣锛岀壒鍒鏄閽堝瑰洖娴佺剨娓╁害鏇茬嚎锛圧eflow Profile锛変紭鍖栦笌鐒婅啅鍗板埛宸ヨ壓鐨勫井瑙傜℃帶銆傛枃绔犳繁鍏ユ帰璁ㄤ簡鏋曞ご鏁堝簲锛圚iP锛夈佺晫闈㈢┖娲炪佺剨鐩樺潙瑁傚強鐢靛寲瀛﹁縼绉荤瓑鏍稿績澶辨晥妯″紡鐨勫舰鎴愭満鐞嗭紝骞跺缓绔嬩簡涓濂楁兜鐩栭潪鐮村潖鎬э紙X-ray, C-SAM, TDR锛変笌鐮村潖鎬э紙鏌撹壊璇曢獙, 鍒囩墖, SEM/EDS锛夋妧鏈鐨勭郴缁熷寲鏁呴殰鍒嗘瀽锛團A锛夋祦绋嬨傛渶鍚庯紝缁撳悎2024-2025骞翠汉宸ユ櫤鑳斤紙AI锛夎姱鐗囩垎鍙戠殑鑳屾櫙锛屽睍鏈涗簡鐜荤拑鍩烘澘锛圙lass Core锛夈佸ぇ灏哄稿紓鏋勯泦鎴愮瓑鍏堣繘灏佽呮妧鏈甯︽潵鐨勬柊鎸戞垬涓庡簲瀵圭瓥鐣ャ
+绗涓绔 寮曡█
+1.1 鑳屾櫙涓庢剰涔
+鍦ㄥ崐瀵间綋浜т笟鐨勫彂灞曞巻绋嬩腑锛屽皝瑁呮浘闀挎湡琚瑙嗕负鍗曠函鐨勨滆姱鐗囦繚鎶ゅ３鈥濄傜劧鑰岋紝闅忕潃鍏堣繘鍒剁▼閫艰繎鐗╃悊鏋侀檺锛屽皝瑁呮妧鏈锛圓dvanced Packaging锛夊凡璺冨崌涓烘彁鍗囩郴缁熸ц兘鐨勬牳蹇冮┍鍔ㄥ姏銆傜壒鍒鏄闅忕潃浜哄伐鏅鸿兘锛圓I锛夈5G閫氫俊鍙婇珮鎬ц兘璁＄畻锛圚PC锛夌殑鐖嗗彂锛岃姱鐗囩殑杈撳叆/杈撳嚭锛圛/O锛夌瀛愭暟閲忔ュ墽澧炲姞锛屼紶缁熺殑鍛ㄨ竟寮曠嚎灏佽咃紙濡俀FP锛夊洜寮曡剼闂磋窛鏋侀檺鍜屽瘎鐢熷弬鏁拌繃澶ц岄毦浠ヤ负缁с
+鐞冩爡闃靛垪锛圔GA锛夋妧鏈鐨勫嚭鐜帮紝閫氳繃灏嗕簰杩炵瀛愪互闈㈤樀鍒楀舰寮忓垎甯冧簬灏佽呭簳閮锛屾垚鍔熺獊鐮翠簡I/O瀵嗗害鐨勭摱棰堛傜劧鑰岋紝BGA鐨勭嫭鐗圭粨鏋勪篃鏄涓鎶婂弻鍒冨墤锛氳櫧鐒舵瀬澶у湴缂╁皬浜嗕綋绉骞舵彁鍗囦簡鐢垫皵鎬ц兘锛屼絾鍏剁剨鐐归殣钘忎簬灏佽呬綋涓嬫柟锛屼娇寰椾紶缁熺殑鐩瑙嗘鏌ュけ鏁堛備竴鏃﹀彂鐢熺剨鎺ョ己闄锋垨鏈嶅焦澶辨晥锛屼笉浠呬慨澶嶅洶闅撅紝鏇村彲鑳藉艰嚧鏄傝吹鐨勯珮绔鐢靛瓙璁惧囩槴鐥銆傚洜姝わ紝娣卞叆鐮旂┒BGA鐨勫伐鑹虹壒鎬т笌澶辨晥鍒嗘瀽鏂规硶锛屽逛簬鎻愬崌鐢靛瓙浜у搧鐨勮壇鐜囦笌鍙闈犳у叿鏈夋瀬楂樼殑宸ョ▼浠峰 [1]銆
+1.2 BGA灏佽呯殑鎶鏈浼樺娍
+鐩歌緝浜庝紶缁熺殑閫氬瓟鎻掕咃紙THT锛夊拰鍛ㄨ竟寮曡剼璐磋咃紙SMT锛夛紝BGA灞曠幇鍑烘樉钁椾紭鍔匡細
+1.	楂樺瘑搴︿簰杩烇細鍒╃敤鏁翠釜搴曢潰鎺掑竷鐒婄悆锛屽湪鐩稿悓闈㈢Н涓嬪彲瀹圭撼鏁扮櫨鐢氳嚦鏁板崈涓狪/O锛屼笖寮曡剼闂磋窛锛圥itch锛夌浉瀵瑰芥澗锛堥氬父0.4mm-1.27mm锛夛紝闄嶄綆浜嗚创瑁呯簿搴﹁佹眰 [2]銆
+2.	鍗撹秺鐨勭數姘旂壒鎬э細鐒婄悆鍙栦唬浜嗙粏闀跨殑寮曡剼锛屾瀬澶у湴缂╃煭浜嗕俊鍙蜂紶杈撹矾寰勶紝鏄捐憲闄嶄綆浜嗗瘎鐢熺數鎰熷拰鐢靛癸紝杩欏逛簬GHz绾ч珮棰戜俊鍙蜂紶杈撹嚦鍏抽噸瑕併
+3.	鐑绠＄悊鑳藉姏锛欱GA搴曢儴鐨勭剨鐞冮樀鍒楁彁渚涗簡澶氭潯浠庤姱鐗囧埌PCB鐨勬暎鐑閫氶亾锛岄厤鍚堥《閮ㄥ彲鍔犺呮暎鐑鍣锛圚eat Sink锛夌殑璁捐★紝鏈夋晥瑙ｅ喅浜嗛珮鍔熻楄姱鐗囩殑鏁ｇ儹闅鹃 [4]銆
+4.	鑷瀵瑰噯鏁堝簲锛氬湪鍥炴祦鐒婅繃绋嬩腑锛岀啍铻嶇剨鏂欑殑琛ㄩ潰寮犲姏鑳借嚜鍔ㄥ皢鍋忎綅鐨勮姱鐗囨媺鍥炵剨鐩樹腑蹇冿紝澶у箙鎻愰珮浜嗗ぇ瑙勬ā鐢熶骇鐨勭洿閫氱巼銆
+绗浜岀珷 BGA灏佽呯被鍨嬩笌鏉愭枡浣撶郴
+BGA鎶鏈骞堕潪鍗曚竴褰㈡侊紝鑰屾槸鏍规嵁搴旂敤闇姹傝嶇敓鍑轰簡澶氱嶇粨鏋勫彉浣撱傜悊瑙ｈ繖浜涘彉浣撶殑鏉愭枡鏋勬垚锛屾槸鍒嗘瀽鍏跺け鏁堣屼负鐨勫墠鎻愩
+2.1 濉戝皝鐞冩爡闃靛垪锛圥BGA锛
+飦	PBGA锛圥lastic BGA锛夋槸鐩鍓嶆秷璐圭數瀛愪腑鏈甯歌佺殑褰㈠紡銆
+飦	缁撴瀯锛氶噰鐢ㄦ湁鏈烘潗鏂欙紙濡侭T鏍戣剛锛変綔涓哄熀鏉匡紝鑺鐗囬氳繃閲戠嚎閿鍚堬紙Wire Bonding锛夎繛鎺ュ埌鍩烘澘锛屽啀鐢ㄧ幆姘фā濉戞枡锛圗MC锛夋敞濉戝皝瑁呫
+飦	鐗圭偣锛氭垚鏈浣庯紝宸ヨ壓鎴愮啛銆侭T鏍戣剛鍩烘澘鐨勭儹鑶ㄨ儉绯绘暟锛圕TE, 15 ppm/掳C锛変笌PCB涓绘澘锛團R-4锛夋帴杩戯紝鍥犳ゅ湪鐑寰鐜涓鏉跨骇鐒婄偣鐨勫簲鍔涜緝灏忥紝鐒婄偣鍙闈犳ц緝濂姐備絾鍏跺惛婀挎ц緝寮猴紝鏄撳湪鍥炴祦鐒婁腑浜х敓鈥滅垎绫宠姳鈥濇晥搴 [3][5]銆
+2.2 闄剁摲鐞冩爡闃靛垪锛圕BGA/CCGA锛
+CBGA锛圕eramic BGA锛夊氱敤浜庡啗宸ャ佽埅澶╁強瓒呴珮鎬ц兘鏈嶅姟鍣ㄣ
+飦	缁撴瀯锛氬熀鏉块噰鐢ㄥ氬眰鍏辩儳闄剁摲锛堟哀鍖栭摑鎴栨爱鍖栭摑锛夈
+飦	鐗圭偣锛氶櫠鐡峰叿鏈夋瀬楂樼殑姘斿瘑鎬с佷紭寮傜殑瀵肩儹鎬у拰鐢电粷缂樻с備絾鍏禖TE锛7 ppm/掳C锛変笌PCB锛17 ppm/掳C锛夊樊寮傚法澶с備负浜嗙紦瑙ｇ儹搴斿姏锛孋BGA甯搁噰鐢ㄩ珮鐔旂偣锛90Pb/10Sn锛夌殑鐒婃枡鏌憋紙Column锛夋浛浠ｇ剨鐞冿紝鍗矯CGA銆傜剨鏌卞湪鍥炴祦鏃朵笉鐔斿寲锛屽埄鐢ㄥ叾楂樺害鎻愪緵鏌旀ф敮鎾戯紝鍚告敹鍓鍒囧簲鍔 [6][7]銆
+2.3 鍊掕呯悆鏍呴樀鍒楋紙FC-BGA锛
+FC-BGA锛團lip Chip BGA锛夋槸褰撳墠AI鑺鐗囷紙濡侴PU銆丄SIC锛夌殑涓绘祦閫夋嫨銆
+飦	宸ヨ壓锛氳姱鐗囬潰鏈濅笅锛岄氳繃鎴愬崈涓婁竾涓寰灏忕殑鍑哥偣锛圔umps锛夌洿鎺モ滃掓墸鈥濆湪鍩烘澘涓婏紝鏃犻渶寮曠嚎閿鍚堛
+飦	搴曢儴濉鍏咃紙Underfill锛夛細杩欐槸FC-BGA鐨勫叧閿宸ヨ壓銆傜敱浜庤姱鐗囦笌鍩烘澘鐨凜TE澶遍厤锛屽繀椤诲湪缂濋殭涓濉鍏呯幆姘ф爲鑴傝兌锛屽浐鍖栧悗灏嗕簩鑰呴攣姝伙紝鍏卞悓鍒嗘媴鐑搴斿姏锛岄槻姝㈠嚫鐐规柇瑁 [8][9]銆
+飦	浼樺娍锛氱數姘旇矾寰勬渶鐭锛岄傚悎瓒呴珮棰戝簲鐢锛涗笖鑺鐗囪儗闈㈣８闇诧紝鏄撲簬瀹夎呴珮鏁堟暎鐑鐩栵紙Lid锛夈
+绗涓夌珷 BGA鍒堕犱笌琛ㄩ潰璐磋咃紙SMT锛夊伐鑹烘帶鍒
+BGA鐨勫彲闈犳ф槸鈥滃埗閫犫濆嚭鏉ョ殑锛岃岄潪鈥滄娴嬧濆嚭鏉ョ殑銆傛湰绔犲皢娣卞叆鎺㈣ㄤ粠灏佽呬綋鍒堕犲埌鏉跨骇缁勮呯殑鍏抽敭宸ヨ壓绐楀彛銆
+3.1 灏佽呬綋鍒堕犲叧閿娴佺▼
+1.	BGA灏佽呭埗閫狅紙Level 1 Packaging锛夋秹鍙婄簿瀵嗙殑寰瑙傛搷浣滐細
+2.	鏅跺渾鍑忚杽涓庡垏鍓诧細涓烘弧瓒宠交钖勫寲闇姹傦紝鏅跺渾闇鍑忚杽鑷虫暟鐧惧井绫炽傞殢鍚庣殑婵鍏夐殣褰㈠垏鍓诧紙Stealth Dicing锛夋妧鏈鑳芥渶澶х▼搴﹀噺灏戝穿杈瑰拰寰瑁傜汗锛屼繚鎶よ剢寮辩殑浣巏浠嬭川灞 [10]銆
+3.	鑺鐗囦簰杩烇細
+飦	寮曠嚎閿鍚堬細铏界劧浼犵粺锛屼絾浠嶅崰涓诲笺傜洰鍓嶉摐绾匡紙Cu Wire锛夊洜鎴愭湰浼樺娍姝ｅ彇浠ｉ噾绾匡紝浣嗛摐绾跨‖搴﹀ぇ锛岄敭鍚堝弬鏁版帶鍒朵笉褰撴槗瀵艰嚧鑺鐗囩剨鐩樺潙瑁傦紙Cratering锛夈
+飦	鍊掕呯剨锛團lip Chip锛夛細娑夊強鍔╃剨鍓傛蹈铇革紙Flux Dipping锛夊拰鍥炴祦銆傛帶鍒跺姪鐒婂墏鍘氬害鑷冲叧閲嶈侊紝杩囧皯瀵艰嚧鍐风剨锛岃繃澶氬垯瀵艰嚧娈嬬暀鐗╂薄鏌 [11]銆
+4.	妞嶇悆锛圔all Attach锛夛細閫氳繃妞嶇悆鏈哄皢棰勬垚鍨嬬殑鐒婄悆鏀剧疆鍦ㄦ秱鏈夊姪鐒婂墏鐨勫熀鏉跨剨鐩樹笂锛岀粡杩囧洖娴佺剨褰㈡垚鍐堕噾杩炴帴銆傛ゆラ渶涓ユ牸鎺у埗鐒婄悆鐨勫叡闈㈡э紙Coplanarity锛夛紝JEDEC鏍囧噯閫氬父瑕佹眰鍏遍潰鎬у亸宸灏忎簬0.1mm-0.2mm [12]銆
+3.2 琛ㄩ潰璐磋咃紙SMT锛夌粍瑁呭伐鑹洪毦鐐
+灏咮GA缁勮呭埌PCB锛圠evel 2 Assembly锛夋槸缂洪櫡楂樺彂鍖猴紝娑夊強涓夊ぇ鏍稿績宸ュ簭锛
+3.2.1 鐒婅啅鍗板埛锛圫older Paste Printing锛
+鍗板埛璐ㄩ噺鍐冲畾浜70%浠ヤ笂鐨勭剨鎺ョ己闄枫
+飦	閽㈢綉锛圫tencil锛夎捐★細瀵逛簬缁嗛棿璺濓紙闂磋窛灏忎簬0.5mm锛塀GA锛岄挗缃戠殑寮瀛旇捐″繀椤昏冭檻闈㈢Н姣旓紙Area Ratio > 0.66锛夛紝浠ョ‘淇濊劚妯￠『鐣呫傚父閲囩敤鏂瑰瓟鍦嗚掕捐℃垨鐢垫姏鍏夊瓟澹佹潵鍑忓皯閿＄彔鍜屾媺灏栥
+飦	鐒婅啅閫夋嫨锛氭棤閾呭埗绋嬶紙SAC305锛夎佹眰鐒婅啅鍏锋湁浼樼鐨勬姉鍧嶅岃兘鍔涘拰楂樻俯娲绘э紝浠ラ傚簲鏇撮珮鐨勫洖娴佹俯搴︺
+3.2.2 鍥炴祦鐒婃帴鏇茬嚎锛圧eflow Profile锛変紭鍖
+鍥炴祦鏇茬嚎鏄鐒婃帴鐨勭伒榄傦紝閫氬父鍒嗕负鍥涗釜娓╁尯锛屾瘡涓闃舵甸兘闇绮剧‘绠℃帶 [13][14]锛
+1.	棰勭儹鍖猴紙Preheat, 瀹ゆ俯鍒150掳C锛夛細鍗囨俯鏂滅巼鎺у埗鍦1-3掳C/s銆傝繃蹇浼氬艰嚧婧跺墏鐖嗘哺寮曡捣閿＄彔锛圫older Balling锛夛紝杩囨參鍒欏奖鍝嶇敓浜ф晥鐜囥
+2.	鎭掓俯娴告鼎鍖猴紙Soak, 150鍒200掳C锛夛細鎸佺画60-120绉掋傛ら樁娈靛姪鐒婂墏娲绘ф尌鍙戯紝鍘婚櫎姘у寲鐗┿
+飦	椋庨櫓锛氳嫢鏃堕棿杩囬暱锛屽姪鐒婂墏娲绘ц楀敖锛岀剨鐞冨啀娆℃哀鍖栵紝鍦ㄨ繘鍏ュ洖娴佸尯鏃舵棤娉曡瀺鍚堬紝褰㈡垚鏋曞ご鏁堝簲锛圚ead-in-Pillow锛夛紱鑻ユ椂闂磋繃鐭锛屽ぇ灏哄窹CB娓╁害涓嶅潎锛屽艰嚧鍐风剨[15]銆
+3.	鍥炴祦鍖猴紙Reflow, 娓╁害 > 217掳C锛夛細宄板兼俯搴﹂氬父鍦235-250掳C锛屾恫鐩哥嚎浠ヤ笂鏃堕棿锛圱AL锛変负45-90绉掋
+飦	鍏抽敭锛歍AL蹇呴』瓒冲熼暱浠ョ敓鎴愯壇鎬х殑閲戝睘闂村寲鍚堢墿锛圛MC, 濡侰u6Sn5锛夛紝浣嗗張涓嶈兘澶闀夸互鍏岻MC杩囧帤鍙樿剢鎴栧熀鏉跨偔鍖栥
+4.	鍐峰嵈鍖猴紙Cooling锛夛細蹇閫熷喎鍗达紙娓╁害鍙樺寲>2掳C/s锛夎兘缁嗗寲鏅剁矑缁撴瀯锛屾彁楂樼剨鐐瑰己搴︺備絾杩囧揩鍙鑳藉艰嚧缁勪欢鐑鍐插嚮寮瑁傘
+3.2.3 搴曢儴濉鍏呬笌鍔犲浐
+瀵逛簬鎵嬫寔璁惧囷紙濡傛墜鏈猴級锛屼粎闈犵剨鐐归毦浠ユ壙鍙楄穼钀藉啿鍑汇傚洜姝わ紝SMT鍚庡父杩涜屾澘绾у簳閮ㄥ～鍏咃紙Board Level Underfill锛夋垨鍥涜掔偣鑳讹紙Corner Bonding锛夛紝灏嗗簲鍔涜浆绉昏嚦鑱氬悎鐗╄兌浣擄紝鏄捐憲鎻愬崌鎶楄穼钀借兘鍔 [16]銆
+绗鍥涚珷 甯歌丅GA澶辨晥妯″紡涓庢満鐞嗗垎鏋
+鍦ㄥ伐绋嬪簲鐢ㄤ腑锛孊GA澶辨晥褰㈠紡澶氭牱锛岀悊瑙ｅ叾鑳屽悗鐨勭墿鐞嗗寲瀛︽満鍒舵槸杩涜屾湁鏁堝垎鏋愮殑鍩虹銆
+4.1 鏋曞ご鏁堝簲锛圚ead-in-Pillow, HiP锛
+HiP鏄鏃犻搮鍒剁▼涓鏈闅愯斀銆佹渶澶寸棝鐨勭己闄枫
+飦	鐜拌薄锛氬湪鏄惧井鍒囩墖涓嬶紝BGA鐒婄悆涓嶱CB鐒婅啅褰㈡垚浜嗗垎绂荤殑鐣岄潰锛屽舰鐘跺傚悓鈥滃ご鏋曞湪鏋曞ご涓娾濓紝浜岃呮湁鏈烘版帴瑙︿絾鏃犲喍閲戠粨鍚堛傜數姘旀祴璇曟椂鍙鑳介氳繃锛屼絾鍦ㄥ彈鐑鎴栨尟鍔ㄥ悗浼氭柇寮 [17][18]銆
+飦	鎴愬洜锛氫富瑕佹槸鐢变簬鍥炴祦杩囩▼涓瑽GA灏佽呬綋鎴朠CB鍙戠敓鐑缈樻洸锛圵arpage锛夛紝瀵艰嚧鐒婄悆涓庣剨鑶忕煭鏆傚垎绂汇傚湪鍒嗙绘湡闂达紝鐒婄悆琛ㄩ潰杩呴熸哀鍖栵紝涓旂剨鑶忎腑鐨勫姪鐒婂墏娲绘ф尌鍙戞畣灏姐傚綋娓╁害鍐峰嵈銆佺繕鏇叉仮澶嶆椂锛屼袱鑰呴噸鏂版帴瑙︼紝浣嗗凡鏃犳硶铻嶅悎銆
+4.2 鐒婄偣绌烘礊锛圴oids锛
+绌烘礊鍦˙GA涓鍑犱箮涓嶅彲閬垮厤锛孖PC-7095鏍囧噯瑙勫畾绌烘礊闈㈢Н涓嶅緱瓒呰繃鐒婄悆鎶曞奖闈㈢Н鐨25% [19][20]銆
+飦	澶х┖娲烇紙Macro Voids锛夛細澶氱敱鐒婅啅涓鐨勬尌鍙戠墿锛堟憾鍓傘佹爲鑴傦級鏈鍙婃椂閫稿嚭琚鍖呰９褰㈡垚锛岄氬父閫氳繃浼樺寲鍥炴祦鏇茬嚎锛堝炲姞鎭掓俯鏃堕棿锛夎В鍐炽
+飦	鐣岄潰绌烘礊涓嶬irkendall绌烘礊锛氱晫闈㈠ぇ绌烘礊浼氫弗閲嶅墛寮辩剨鐐瑰己搴︺傝孠irkendall绌烘礊鏄寰瑙傚眰闈㈢殑鍘熷瓙鎵╂暎澶辫　锛圕u鎵╂暎蹇浜嶴n锛夊艰嚧鐨勫井瀛旀礊鑱氶泦锛岄氬父鍙戠敓鍦ㄨ佸寲鍚庢湡锛屾瀬鏄撳紩鍙戣剢鎬ф柇瑁 [21][22]銆
+4.3 鐒婄洏鍧戣傦紙Pad Cratering锛
+杩欐槸涓绉峆CB灞傞潰鐨勫熀鏉愬け鏁堛
+飦	鐜拌薄锛氭柇瑁傞潰涓嶅湪鐒婃枡鍐呴儴锛岃屾槸灏哖CB琛ㄩ潰鐨勯摐绠旇繛鍚屼笅鏂圭殑鏍戣剛/鐜荤氦涓骞舵挄瑁傦紝褰㈡垚鈥滃脊鍧戔濈姸銆
+飦	鏈虹悊锛氭棤閾呯剨鏂欙紙SAC绯诲垪锛夌‖搴﹂珮銆佸脊鎬у樊锛屾棤娉曞儚閿￠搮鐒婃枡閭ｆ牱閫氳繃锠曞彉鍚告敹搴斿姏銆傚湪鏈烘板啿鍑伙紙濡侷CT娴嬭瘯鎺㈤拡涓嬪帇銆佽穼钀斤級涓嬶紝宸ㄥぇ鐨勫簲鍔涚洿鎺ヤ紶閫掔粰PCB鍩烘潗瀵艰嚧寮瑁 [23]銆
+4.4 鐢靛寲瀛﹁縼绉讳笌鏋濇櫠鐢熼暱锛圗CM & Dendrites锛
+鍦ㄦ疆婀夸笖鏈夌數鍘嬪樊鐨勭幆澧冧笅锛孭CB琛ㄩ潰鐨勬畫鐣欏姪鐒婂墏锛堢壒鍒鏄鍗ょ礌娲绘у墏锛変細鍚告疆褰㈡垚鐢佃В娑层
+飦	杩囩▼锛氶槼鏋侀噾灞烇紙Cu, Sn锛夌诲瓙鍖栨憾鍑猴紝鍦ㄧ數鍦轰綔鐢ㄤ笅鍚戦槾鏋佽縼绉伙紝骞跺湪闃存瀬杩樺師娌夌Н锛屽舰鎴愭爲鏋濈姸閲戝睘缁撴櫠锛圖endrites锛夈
+飦	鍚庢灉锛氭灊鏅剁敓闀挎渶缁堣繛鎺ユｈ礋鏋侊紝瀵艰嚧缁濈紭鐢甸樆涓嬮檷锛圫IR澶辨晥锛夌敋鑷崇煭璺鐑ф瘉銆傞殢鐫BGA闂磋窛缂╁皬锛岀數鍦哄己搴﹀炲ぇ锛孍CM椋庨櫓鍛堟寚鏁扮骇涓婂崌锛岃繖瀵规竻娲楀伐鑹烘彁鍑轰簡涓ヨ嫑瑕佹眰 [24][25]銆
+绗浜旂珷 绯荤粺鍖朆GA鏁呴殰鍒嗘瀽锛團A锛夋妧鏈
+闈㈠笲GA鐨勨滈粦鐩掑瓙鈥濈壒鎬э紝蹇呴』閬靛惊浠庨潪鐮村潖鎬у埌鐮村潖鎬х殑閫昏緫娴佺▼锛屾娊涓濆墺鑼ч攣瀹氱湡鍥犮
+5.1 闈炵牬鍧忔у垎鏋愶紙Non-Destructive Analysis锛
+鍦ㄧ牬鍧忔牱鍝佸墠锛屽敖鍙鑳藉氬湴鑾峰彇鍐呴儴淇℃伅銆
+1.	X灏勭嚎妫娴嬶紙2D/3D X-ray & CT锛夛細
+飦	2D X-ray锛氬揩閫熺瓫鏌ヨ繛閿＄煭璺銆佸ぇ绌烘礊銆佺剨鐞冪己澶卞強涓ラ噸鍋忕Щ銆
+飦	3D CT锛堣＄畻鏈烘柇灞傛壂鎻忥級锛氶氳繃鏃嬭浆鎵鎻忛噸寤轰笁缁村奖鍍忥紝鑳芥竻鏅板憟鐜癏iP鐨勭晫闈㈠垎绂诲眰銆丅GA鐨勭繕鏇插舰鎬佷互鍙婂井灏忕殑閫氬瓟缂洪櫡銆傚畠鏄鍒ゅ畾HiP鍜屽唴閮ㄦ柇瑁傜殑缁堟瀬鍒╁櫒 [26][27]銆
+2.	瓒呭０娉㈡壂鎻忔樉寰闀滐紙C-SAM锛夛細鍒╃敤瓒呭０娉㈠湪涓嶅悓浠嬭川鐣岄潰鐨勫弽灏勭壒鎬э紝涓撻棬鐢ㄤ簬妫娴嬪皝瑁呭唴閮ㄧ殑鍒嗗眰锛圖elamination锛夛紝濡傝姱鐗囪〃闈㈠垎灞傛垨鍩烘澘鍒嗗眰锛岃繖鏄鍒ゅ畾鈥滅垎绫宠姳鏁堝簲鈥濈殑鍏抽敭鎵嬫 [16]銆
+3.	鏃跺煙鍙嶅皠璁★紙TDR锛夛細鍚戠嚎璺鍙戦佽剦鍐蹭俊鍙凤紝鏍规嵁鍙嶅皠娉㈠舰鐨勬椂闂村樊鍜屽箙搴︼紝绮剧‘璁＄畻闃绘姉绐佸彉鐐圭殑浣嶇疆銆傝兘灏嗘晠闅滅偣瀹氫綅鍒板井绫崇骇锛堝傚尯鍒嗘槸鑺鐗囧唴閮ㄦ柇绾裤侀敭鍚堢嚎鏂瑁傝繕鏄疊GA鐒婄悆寮璺锛塠28]銆
+5.2 鐮村潖鎬х墿鐞嗗垎鏋愶紙Destructive Physical Analysis, DPA锛
+褰撴棤鎹熸娴嬮攣瀹氫簡澶ц嚧鍖哄煙鍚庯紝闇杩涜屽井瑙傞獙璇併
+1.	绾㈠ⅷ姘/鏌撹壊璇曢獙锛圖ye and Pry锛夛細
+飦	鍘熺悊锛氬埄鐢ㄧ孩鑹茶崸鍏夋煋鏂欑殑楂樻笚閫忔с傚皢鏌撴枡娉ㄥ叆BGA搴曢儴锛岀湡绌哄姞鍘嬩娇鍏舵笚鍏ユ墍鏈夊井瑁傜汗锛岀儤骞插悗鏈烘版挰寮鍣ㄤ欢銆
+飦	鍒ゆ嵁锛氳傚療鏂闈锛岃嫢鍙戠幇绾㈣壊鏌撴枡姹℃煋浜嗘柇瑁傞潰锛岃存槑璇ヨ傜汗鍦ㄦ挰寮鍓嶅凡缁忓瓨鍦锛堝師鍙戞уけ鏁堬級锛涜嫢鏂闈㈠厜浜鏃犺壊锛屽垯涓烘挰寮鏃剁殑浜轰负鏂瑁傦紙鑹鍝侊級銆傛ゆ硶鑳界洿瑙傚睍绀烘暣涓闃靛垪鐨勫紑瑁傚垎甯冭勫緥锛堝傛槸鍚﹂泦涓鍦ㄨ掗儴搴斿姏闆嗕腑鍖猴級[29][30]銆
+2.	閲戠浉鍒囩墖鍒嗘瀽锛圕ross-Sectioning锛夛細
+飦	姝ラわ細鍒囧壊銆佸喎闀跺祵锛堥伩鍏嶇儹搴斿姏锛夈佺爺纾ㄣ佹姏鍏夈佸井铓銆
+飦	浣滅敤锛氬湪閲戠浉鏄惧井闀滄垨SEM涓嬭傚療IMC鐨勫帤搴︿笌褰㈡侊紙鑹鎬ф墖璐濈姸 vs 鎭舵у眰鐘讹級銆佸井瑁傜汗鐨勭┛鏅/娌挎櫠璺寰勩佷互鍙婃槸鍚︽湁榛戠洏锛圔lack Pad锛夌壒寰 [23]銆
+3.	SEM涓嶦DS鍒嗘瀽锛氬埄鐢ㄦ壂鎻忕數闀滅殑楂樺嶇巼鍜岃兘璋变华鐨勫厓绱犲垎鏋愯兘鍔涳紝閴村畾鏂鍙ｇ殑鍏冪礌鎴愬垎銆備緥濡傦紝妫娴嬪埌楂樻祿搴︾殑纾凤紙P锛夊厓绱犳槸纭璁ENIG琛ㄩ潰澶勭悊鈥滈粦鐩樷濆け鏁堢殑閾佽瘉 [31]銆
+绗鍏绔 鍏堣繘灏佽呮妧鏈瓒嬪娍涓庢寫鎴
+闅忕潃AI绠楀姏闇姹傜殑婵澧烇紝BGA鎶鏈姝ｇ粡鍘嗙潃鍓嶆墍鏈鏈夌殑鍙橀潻銆
+6.1 澶у昂瀵稿紓鏋勯泦鎴愪笌CoWoS
+鍙扮Н鐢电殑CoWoS锛圕hip on Wafer on Substrate锛夋妧鏈灏嗛珮甯﹀藉瓨鍌ㄥ櫒锛圚BM锛変笌GPU閫昏緫鑺鐗囬泦鎴愬湪鍚屼竴纭呬腑浠嬪眰涓婏紝鍐嶅皝瑁呭埌澶у昂瀵窧GA鍩烘澘涓娿
+飦	鎸戞垬锛氬熀鏉垮昂瀵哥獊鐮100mm脳100mm锛岀儹鑶ㄨ儉绯绘暟鐨勫井灏忓樊寮傚湪濡傛ゅぇ灏哄镐笅浼氳鏀惧ぇ锛屽艰嚧鍓х儓鐨勫姩鎬佺繕鏇诧紝寮曞彂涓ラ噸鐨勭剨鎺ヨ壇鐜囬棶棰橈紙濡侼WO锛歂on-Wet Open锛塠32][33]銆
+6.2 鐜荤拑鍩烘澘锛圙lass Core Substrate锛夌殑宕涜捣
+Intel绛夊法澶存ｆ帹鍔ㄧ幓鐠冨熀鏉垮彇浠ｆ湁鏈哄熀鏉匡紝棰勮2026骞撮噺浜с
+飦	浼樺娍锛氱幓鐠冨叿鏈夎秴楂樼殑骞虫暣搴︼紙TTV<5碌m锛夛紝鏀鎸佹洿缁嗗井鐨勫厜鍒荤嚎璺锛涗笖浠嬬數鎹熻楁瀬浣庯紝閫傚悎楂橀戜俊鍙枫
+飦	鎸戞垬锛氱幓鐠冩槸鑴嗘ф潗鏂欙紝鎶楄穼钀芥満姊板啿鍑昏兘鍔涘樊锛涗笖鐜荤拑涓嶱CB鐨凜TE澶遍厤闂棰樻瘮鏈夋満鍩烘澘鏇翠负澶嶆潅锛岄渶瑕佸叏鏂扮殑搴斿姏缂撳啿璁捐 [34][35]銆
+6.3 AI鑺鐗囩殑鏋佺鐑绠＄悊
+鍗曢桝I鑺鐗囧姛鑰楃獊鐮1000W锛屼紶缁熺殑鏁ｇ儹鏂瑰紡宸叉崏瑗熻佽倶銆
+飦	瓒嬪娍锛氭恫鎬侀噾灞炵儹鐣岄潰鏉愭枡锛圱IM锛夈佸潎鐑鏉匡紙Vapor Chamber锛変箖鑷宠姱鐗囩骇娑插喎锛圖irect-to-Chip Liquid Cooling锛夋ｆ垚涓烘爣閰嶃傝繖瀵笲GA灏佽呯殑姘斿瘑鎬у拰鏉愭枡鑰愯厫铓鎬ф彁鍑轰簡鏇撮珮瑕佹眰 [36][37]銆
+缁撹
+鐞冩爡闃靛垪锛圔GA锛夊皝瑁呮妧鏈浠ュ叾鏃犲彲鏇夸唬鐨勯珮瀵嗗害浜掕繛鑳藉姏锛屾敮鎾戜簡鐜颁唬鐢靛瓙宸ヤ笟鐨勭箒鑽ｃ備粠寰瑙傜殑閲戝睘闂村寲鍚堢墿鐢熼暱鍒板畯瑙傜殑鏉跨骇鐑鏈烘扮繕鏇诧紝BGA鐨勮川閲忓彈鏉愭枡銆佽捐°佸伐鑹哄強鐜澧冨氶噸鍥犵礌鍒剁害銆
+宸ョ▼瀹炶返琛ㄦ槑锛屾彁鍗嘊GA鍙闈犳т笉鑳戒粎闈犱簨鍚庡垎鏋愶紝鏇撮渶鍧氭寔鈥滆捐-鍒堕-妫娴嬧濋棴鐜锛
+1.	璁捐＄锛氫紭鍖栫剨鐩樺竷灞锛屽悎鐞嗛夋嫨鍩烘澘鏉愭枡浠ュ尮閰岰TE銆
+2.	鍒堕犵锛氱簿缁嗚皟鎺у洖娴佹洸绾匡紝鏉滅粷HiP鍜岀晫闈㈡薄鏌撱
+3.	鍒嗘瀽绔锛氱患鍚堣繍鐢╔-ray銆乀DR銆佹煋鑹插強鍒囩墖鎶鏈锛屽揩閫熺簿鍑嗗畾浣嶅け鏁堟牴婧愩
+灞曟湜鏈鏉ワ紝闅忕潃鐜荤拑鍩烘澘銆佸ぇ灏哄窩hiplet闆嗘垚鍙夾I鏋佺宸ュ喌鐨勫埌鏉ワ紝BGA灏佽呮ｆュ叆鏂扮殑鎶鏈娣辨按鍖恒傝繖瑕佹眰宸ョ▼甯堜笉浠呰佹帉鎻′紶缁熺殑鐒婃帴鍐堕噾瀛︼紝鏇磋佺揣璺熷厛杩涙潗鏂欎笌绯荤粺绾ч泦鎴愮殑鎶鏈娴娼锛屼互纭淇濋殰鐢靛瓙绯荤粺鍦ㄦ懇灏斿畾寰嬬殑鍚庡崐绋嬩緷鐒剁ǔ鍋ヨ繍琛屻
+鍙傝冩枃鐚
+[1] Ghaffarian, R. (2022). Guidelines for Use of Advanced Plastic BGA and Die-Size BGA Packaging Technologies. NASA Electronic Parts and Packaging (NEPP) Program Office. 
+[2] Wevolver. (2025). Ball Grid Array Technology: The Complete Engineering Guide. Wevolver Engineering Resources. 
+[3] PCBCart. (n.d.). Introduction of BGA Package Types: PBGA, CBGA, TBGA, FC-BGA. PCBCart Technical Library. 
+[4] Intel Corporation. (2000). Packaging Databook Chapter 14: Ball Grid Array (BGA) Packaging. Intel Technical Documentation. 
+[5] PCBWay. (n.d.). Different Types of BGA Packages. PCBWay Engineering Blog. 
+[6] NASA NEPP. (2005). Assembly Reliability of Ceramic and Plastic BGA Packages. NASA Technical Report. 
+[7] PCBX. (n.d.). 7 Types of BGA Ball Grid Array Packages. PCBX Knowledge Base. 
+[8] ANSYS. (n.d.). Enhancing Solder Joint Reliability with Underfill. ANSYS Application Briefs. 
+[9] GPD Global. (2024). Underfill Applications in Electronics Manufacturing. GPD Global Technical Articles. 
+[10] GreatPCB. (n.d.). BGA Packaging Process Flow and Technical Details. GreatPCB Technology. 
+[11] PCB Technologies. (n.d.). Flip Chip vs Wire Bonding Technology Comparison. PCB Technologies Solutions. 
+[12] Micron Technology. (n.d.). BGA User Guide: Coplanarity and Warpage Guidelines. Micron Technical Notes. 
+[13] PCBTrace. (n.d.). Overlooked Reflow Profile Settings That Crack BGAs. PCBTrace Engineering Tips. 
+[14] Lee, N. C. (1999). Optimizing the reflow profile via defect mechanism analysis. Soldering & Surface Mount Technology, 11(1), 13-20. 
+[15] AIM Solder. (n.d.). Troubleshooting SMT Defects: Reflow Profile Optimization. AIM Technical Articles. 
+[16] Plasma Ruggedized Solutions. (n.d.). BGA Underfill Materials and Processes. PRS Technical Guides. 
+[17] AIM Solder. (n.d.). Head-in-Pillow (HiP) Defects: Causes and Mitigation. AIM Tech Tips. 
+[18] SYSPCB. (n.d.). SMT BGA Solder Head-in-Pillow (HiP) Defects: Comprehensive Analysis. SYSPCB Technical Blog. 
+[19] IPC Association. (2018). IPC-7095D: Design and Assembly Process Implementation for BGAs. IPC Standards. 
+[20] SMTnet. (n.d.). Voids in Solder Joints: Root Causes and Mitigation. SMTnet Articles. 
+[21] Indium Corporation. (n.d.). Intermetallics and Kirkendall Voids at Room Temperature. Indium Tech Papers. 
+[22] Laurila, T., Vuorinen, V., & Kivilahti, J. K. (2010). Formation and Behavior of Kirkendall Voids in Solder Joints. Materials Science and Engineering: R: Reports, 49(1-2), 1-60. 
+[23] SemLab. (2017). Failure Analysis of BGAs: Black Pad and Brittle Fracture. SemLab Failure Analysis Reports. 
+[24] ZESTRON. (n.d.). Electrochemical Migration on PCBs: Causes and Mechanisms. ZESTRON Technical Academy. 
+[25] Kester. (n.d.). Effect of Flux Systems on Electrochemical Migration. Kester Technical Papers. 
+[26] Creative Electron. (n.d.). Understanding Common BGA Defects: A Guide to X-Ray Inspection. Creative Electron Application Notes. 
+[27] IConnect007. (n.d.). Can Nondestructive Techniques Identify BGA Defects? PCB007 Magazine. 
+[28] Hsieh, M. C., et al. (2015). Failure Analysis of BGA Package by TDR Approach. Microelectronics Reliability, 55(1), 120-125. 
+[29] Covalent Metrology. (n.d.). Dye & Pry Testing for BGA Solder Joint Reliability. Covalent Metrology Analytical Services. 
+[30] Wikipedia. (2024). Dye-and-Pry: Destructive Failure Analysis Technique. Wikimedia Foundation. 
+[31] Spirit Electronics. (n.d.). Failure Analysis of Electronic Assemblies: Investigating Solder Failures. Spirit Electronics Services. 
+[32] Yole Group. (2025). Status of the Advanced IC Substrate Industry 2025. Yole Intelligence Reports. 
+[33] Tung, F., Chen, C., & Lu, M. (2018). Challenges of Large Body FCBGA on Board Level Assembly. IEEE Electronic Components and Technology Conference (ECTC), 1956-1962. 
+[34] Intel Foundry. (2024). Glass Core Substrates: Technology Brief and Roadmap. Intel Foundry Services. 
+[35] AT&S. (n.d.). Glass Core Substrates: From R&D Breakthrough to Platform Technology. AT&S Technology Blog. 
+[36] Siemens. (2025). Key Thermal Advances Driving Next-Gen AI Chip Design in 2026. Siemens EDA Resources. 
+[37] Alpha HPA. (2025). Why Thermal Management Is Critical for AI Chips. Alpha HPA Industry Insights. 
+

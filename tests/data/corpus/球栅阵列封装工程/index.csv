@@ -1,0 +1,24 @@
+﻿id,name,group,status,changed,information_preserved_through_declared_operations,input_characters,output_characters,replacement_characters,text_file,error
+utf8_as_latin1,UTF-8 → Latin-1（经典 æ... 乱码）,可逆错解码,ok,True,True,10725,19776,0,cases/utf8_as_latin1.txt,
+utf8_as_cp1252,UTF-8 → Windows-1252,错解码,ok,True,False,10725,19776,775,cases/utf8_as_cp1252.txt,
+utf8_as_gbk_replace,UTF-8 → GBK（replace）,错解码,ok,True,False,10725,13247,629,cases/utf8_as_gbk_replace.txt,
+utf8_as_gbk_ignore,UTF-8 → GBK（ignore）,丢失字节,ok,True,False,10725,12618,0,cases/utf8_as_gbk_ignore.txt,
+gbk_as_utf8_replace,GBK → UTF-8（replace）,错解码,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 1401: illegal multibyte sequence
+gbk_as_utf8_ignore,GBK → UTF-8（ignore）,丢失字节,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 1401: illegal multibyte sequence
+gbk_as_big5_replace,GBK → Big5（replace）,错解码,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 1401: illegal multibyte sequence
+double_utf8_latin1,UTF-8 → Latin-1 → 再错解码一次,多次转码,ok,True,True,10725,33358,0,cases/double_utf8_latin1.txt,
+double_utf8_gbk,UTF-8 → GBK → Latin-1,多次转码,ok,True,False,10725,27476,0,cases/double_utf8_gbk.txt,
+utf16le_as_utf16be,UTF-16 LE → UTF-16 BE,错解码,ok,True,False,10725,10725,135,cases/utf16le_as_utf16be.txt,
+utf16le_as_utf8,UTF-16 LE → UTF-8（replace）,错解码,ok,True,False,10725,21130,2590,cases/utf16le_as_utf8.txt,
+utf8_as_utf16le,UTF-8 → UTF-16 LE（replace）,错解码,ok,True,True,10725,9888,0,cases/utf8_as_utf16le.txt,
+gbk_encode_question,编码为 GBK 时不可表示字转 ?,编码替换,ok,True,False,10725,10725,0,cases/gbk_encode_question.txt,
+utf8_byte_delete,UTF-8 随机字节删除,物理字节损坏,ok,True,False,10725,10678,520,cases/utf8_byte_delete.txt,
+utf8_byte_flip,UTF-8 随机字节翻转,物理字节损坏,ok,True,False,10725,11416,865,cases/utf8_byte_flip.txt,
+utf8_byte_question,UTF-8 随机字节改成 ?,物理字节损坏,ok,True,False,10725,11317,580,cases/utf8_byte_question.txt,
+gbk_byte_question,GBK 随机字节改成 ?,物理字节损坏,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 1401: illegal multibyte sequence
+utf8_tail_truncated,UTF-8 在多字节字符中截断,物理字节损坏,ok,True,False,10725,6475,1,cases/utf8_tail_truncated.txt,
+mixed_utf8_gbk_as_utf8,UTF-8/GBK 混合字节 → UTF-8,混合编码,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 73: illegal multibyte sequence
+mixed_utf8_gbk_as_gbk,UTF-8/GBK 混合字节 → GBK,混合编码,skipped,,,,,,,'gbk' codec can't encode character '\uf06c' in position 73: illegal multibyte sequence
+html_numeric_entities,中文转 HTML 数字实体,转义（非真实乱码）,ok,True,True,10725,42420,0,cases/html_numeric_entities.txt,
+double_html_entities,HTML 实体重复转义,转义（非真实乱码）,ok,True,True,10725,60592,0,cases/double_html_entities.txt,
+json_unicode_escapes,JSON Unicode 转义,转义（非真实乱码）,ok,True,True,10725,33733,0,cases/json_unicode_escapes.txt,
