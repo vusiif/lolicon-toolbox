@@ -20,6 +20,8 @@ add_test(NAME TestMojibakeCorpus COMMAND TestMojibakeCorpus -o mojibake-corpus-r
 # Manual: calls the AI service configured in the app (see the file). Not run by ctest.
 add_executable(RunAiRefinement RunAiRefinement.cpp)
 target_link_libraries(RunAiRefinement PRIVATE ToolMojibake ToolboxCore)
+add_executable(DiagnoseAiRefinement DiagnoseAiRefinement.cpp)
+target_link_libraries(DiagnoseAiRefinement PRIVATE ToolMojibake ToolboxCore)
 add_executable(TestLossyGbk TestLossyGbk.cpp)
 target_link_libraries(TestLossyGbk PRIVATE Qt6::Test MojibakeLogic)
 target_compile_definitions(TestLossyGbk PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
