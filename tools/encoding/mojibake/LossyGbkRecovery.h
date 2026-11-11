@@ -63,5 +63,9 @@ public:
     // partial ones as 〔x〕, or as 〔x|y|z〕 listing up to options
     // alternatives (likeliest first) where the surviving byte allows several.
     static QString markup(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd, int options = 0);
+    // Words and numbers that recur in the document and whose bytes all survived,
+    // most telling first, at most maxCharacters in all: clues for filling lost
+    // characters elsewhere, never constraints.
+    static QStringList glossary(const LossyRecovery& recovery, int maxCharacters);
 };
 }

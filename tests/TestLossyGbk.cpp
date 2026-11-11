@@ -41,6 +41,7 @@ private slots:
     void recoversProse();
     void recoversEssay();
     void guideIsVerified();
+    void glossaryIsByteProven();
     void detectsReplacementConvention();
     void analyzerOffersCandidate();
     void fileAnalysis();
@@ -180,6 +181,25 @@ void TestLossyGbk::guideIsVerified() {
     const auto room = truth.indexOf("房");
     QVERIFY(static_cast<CharEvidence>(copied.evidence[room]) != CharEvidence::Guided);
     QVERIFY(positional(checked.text, truth) > positional(LossyGbkRecovery::recover(damaged).text, truth));
+}
+void TestLossyGbk::glossaryIsByteProven() {
+    const auto truth = readFixture("lossy_gbk_essay.txt");
+    const auto r = LossyGbkRecovery::recover(damage(truth));
+    QVERIFY(r.success);
+    const auto terms = LossyGbkRecovery::glossary(r, 400);
+    qInfo().noquote() << "essay glossary:" << terms.join(u'、');
+    QVERIFY(!terms.isEmpty());
+    qsizetype length = 0;
+    for (const auto& term : terms) {
+        QVERIFY2(truth.contains(term), qPrintable(term));  // only surviving bytes go in
+        QVERIFY(term.size() >= 2);
+        length += term.size();
+    }
+    QVERIFY(length <= 400);
+    QCOMPARE(QSet<QString>(terms.begin(), terms.end()).size(), terms.size());
+    QVERIFY(LossyGbkRecovery::glossary(r, 0).isEmpty());
+    // Nothing recurs in a single sentence.
+    QVERIFY(LossyGbkRecovery::glossary(LossyGbkRecovery::recover(damage("今天天气很好，我们去公园散步吧。")), 400).isEmpty());
 }
 void TestLossyGbk::detectsReplacementConvention() {
     const auto truth = readFixture("lossy_gbk_prose.txt").left(300);

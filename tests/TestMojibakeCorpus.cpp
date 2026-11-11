@@ -69,6 +69,7 @@ double errorRate(const QString& text, const QString& truth) {
     }
     return static_cast<double>(row[b.size()]) / static_cast<double>(std::max<qsizetype>(1, truth.size()));
 }
+constexpr int MojibakeGlossaryCharacters = 400;  // as MojibakeAi::GlossaryCharacters
 QString percent(const double rate) { return QStringLiteral("%1%").arg(100.0 * rate, 6, 'f', 2); }
 class TestMojibakeCorpus : public QObject {
     Q_OBJECT
@@ -218,6 +219,12 @@ private slots:
                 line(QStringLiteral("%1  %2  top-5        CER %3  partial right %4/%5, original listed %6/%5")
                          .arg(QString(), -8).arg(QString(), -24).arg(percent(errorRate(normalized(top5.text), truth))).arg(right).arg(r.partial).arg(listed));
             }
+            // What the AI is told recurs in the document: every term must really be in the original.
+            const auto terms = LossyGbkRecovery::glossary(r, MojibakeGlossaryCharacters);
+            const auto wrongTerms = std::ranges::count_if(terms, [&](const QString& t) { return !truth.contains(t); });
+            line(QStringLiteral("%1  %2  glossary     %3 terms, %4 not in the original: %5")
+                     .arg(QString(), -8).arg(QString(), -24).arg(terms.size()).arg(wrongTerms).arg(terms.join(u'、').left(160)));
+            QCOMPARE(wrongTerms, 0);
             const auto ceiling = LossyGbkRecovery::guided(c.damaged, truth, r.replacement);
             line(QStringLiteral("%1  %2  truth guide  CER %3  guided %4 unknown %5 rejected %6")
                      .arg(QString(), -8).arg(QString(), -24).arg(percent(errorRate(normalized(ceiling.text), truth)))

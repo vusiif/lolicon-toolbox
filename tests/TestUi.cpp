@@ -27,6 +27,8 @@
 #include "MojibakePage.h"
 #include "TextFileRecoveryPage.h"
 #include "ByteEncodingAnalyzer.h"
+#include "MojibakeAi.h"
+#include <QJsonArray>
 #include "FilenameRecoveryPage.h"
 #include "ClipboardSourcePage.h"
 #include "DiagnosticReportWidget.h"
@@ -372,7 +374,19 @@ void TestUi::lossyRecoveryWorkflow()
     QVERIFY(aiCard->isEnabled() && aiCard->isChecked());
     QCOMPARE(output->toPlainText(), truth);
     QCOMPARE(server.requests, 1);
+    QVERIFY(server.lastBody.contains("glossary") && server.lastBody.contains("before") && server.lastBody.contains("after"));
     QVERIFY(page.findChild<QLabel*>("mojibakeAiStatus")->text().contains(QString::fromUtf8("校验")));
+    // A chunk is sent with the local text on both sides as read-only context.
+    {
+        const auto local = mojibake::LossyGbkRecovery::recover(damaged);
+        const qsizetype begin = 10, end = 20;
+        const auto request = MojibakeAi::refineRequest(local, begin, end, 2, 3, {QString::fromUtf8("石板路")});
+        QCOMPARE(request.value("draft").toString(), mojibake::LossyGbkRecovery::markup(local, begin, end, MojibakeAi::Options));
+        QCOMPARE(request.value("before").toString(), mojibake::LossyGbkRecovery::markup(local, 0, begin));
+        QCOMPARE(request.value("after").toString(), mojibake::LossyGbkRecovery::markup(local, end, local.text.size()));
+        QCOMPARE(request.value("glossary").toArray().first().toString(), QString::fromUtf8("石板路"));
+        QCOMPARE(request.value("chunk").toInt(), 2);
+    }
     QVERIFY(page.grab().save("mojibake-lossy-ai.png"));
     // The file mode offers the same refinement and saves the AI text as a copy.
     const auto source = dir.filePath("damaged.txt"), copy = dir.filePath("repaired.txt");

@@ -2,6 +2,7 @@
 #include "LossyGbkRecovery.h"
 #include "ai/AiProvider.h"
 #include <QElapsedTimer>
+#include <QJsonObject>
 #include <QObject>
 #include <QTimer>
 #include <memory>
@@ -21,6 +22,13 @@ public:
     // Alternatives listed for each partial character: the top five hold the
     // original about four times in five, against one in two for the top one.
     static constexpr int Options = 5;
+    // Read-only text on each side of a chunk, so a sentence cut by the chunk
+    // boundary is still understood, and the length of the document glossary.
+    static constexpr int ContextCharacters = 150;
+    static constexpr int GlossaryCharacters = 400;
+    // The request for one chunk: its draft, the neighbouring text and the glossary.
+    static QJsonObject refineRequest(const mojibake::LossyRecovery& local, qsizetype textBegin, qsizetype textEnd,
+                                     int chunk, int chunks, const QStringList& glossary);
     explicit MojibakeAi(AppSettings* settings, QObject* parent = nullptr);
     ~MojibakeAi() override;
     bool configured() const;
@@ -60,6 +68,7 @@ private:
     std::vector<int> m_running;  // chunk index per service, or -1
     std::vector<Chunk> m_chunks;
     std::shared_ptr<const mojibake::LossyRecovery> m_local;
+    QStringList m_glossary;
     ai::Reply m_reply;
     QString m_text, m_status, m_lastError;
     QByteArray m_evidence;

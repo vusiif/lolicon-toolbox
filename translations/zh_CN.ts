@@ -701,6 +701,8 @@ Uses the voice API address, key and model saved in Settings.</source><translatio
         <message><source>Receiving AI reply… %1 s elapsed, %2 output characters received. The result will be validated when complete.</source><translation>正在接收 AI 回复…已等待 %1 秒，已收到 %2 个输出字符。完成后将校验结果。</translation></message>
         <message><source>AI refinement: %1 of %2 chunks verified against the surviving bytes; %3 failed.</source><translation>AI 精修：%2 段中有 %1 段已对照残留字节校验；%3 段失败。</translation></message>
         <message><source>AI filled %1 lost characters. %2 AI characters contradicted surviving bytes and were not used.</source><translation>AI 补全了 %1 个丢失的字；有 %2 个 AI 字与残留字节矛盾，未被采用。</translation></message>
+        <message><source>Unknown characters in the verified chunks: %1 before AI, %2 after.</source><translation>未知字（已校验的段）：AI 补全前 %1 个，补全后 %2 个。</translation></message>
+        <message><source>AI chose a different fitting character than the local word model for %1 partly damaged characters.</source><translation>有 %1 个部分受损的字，AI 选了与本地词模型不同、但同样符合残留字节的字。</translation></message>
         <message><source>Characters filled by AI are contextual guesses, not recovered bytes. Chunks without a verified AI reply keep the local result.</source><translation>AI 补全的字是根据上下文的推测，不是恢复出的字节。没有通过校验的段保留本地结果。</translation></message>
         <message><source>Last error: %1</source><translation>最近一次错误：%1</translation></message>
         <message><source>AI preferred local candidate %1.</source><translation>AI 倾向本地候选 %1。</translation></message>

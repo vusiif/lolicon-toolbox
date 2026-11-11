@@ -91,6 +91,7 @@ void MojibakeAi::refine(const std::shared_ptr<const LossyRecovery>& local) {
     } else {
         reset();
         m_refining = true; m_local = local;
+        m_glossary = LossyGbkRecovery::glossary(*local, GlossaryCharacters);
         Chunk chunk; bool open = false;
         for (const auto& [damagedBegin, damagedEnd, textBegin, textEnd] : local->spans) {
             if (!open) { chunk = {.damagedBegin = damagedBegin, .damagedEnd = damagedEnd, .textBegin = textBegin, .textEnd = textEnd}; open = true; }
@@ -111,6 +112,16 @@ void MojibakeAi::refine(const std::shared_ptr<const LossyRecovery>& local) {
     dispatch();
     updateStatus(); emit changed();
 }
+QJsonObject MojibakeAi::refineRequest(const LossyRecovery& local, const qsizetype textBegin, const qsizetype textEnd,
+                                      const int chunk, const int chunks, const QStringList& glossary) {
+    // Neighbouring text comes from the local result, so requests do not depend on
+    // which other chunks the AI has already answered.
+    const auto before = LossyGbkRecovery::markup(local, std::max<qsizetype>(0, textBegin - ContextCharacters), textBegin);
+    const auto after = LossyGbkRecovery::markup(local, textEnd, std::min(local.text.size(), textEnd + ContextCharacters));
+    return {{"task", "lossy_gbk_refine"}, {"draft", LossyGbkRecovery::markup(local, textBegin, textEnd, Options)},
+            {"before", before}, {"after", after}, {"glossary", QJsonArray::fromStringList(glossary)},
+            {"chunk", chunk}, {"chunks", chunks}, {"lost_count_exact", local.replacement == Utf8Replacement::PerByte}};
+}
 void MojibakeAi::dispatch() {
     if (!m_busy || !m_refining) return;
     for (int i = 0; i < Parallel; ++i) {
@@ -121,9 +132,7 @@ void MojibakeAi::dispatch() {
         if (next < 0) break;
         auto& chunk = m_chunks[next];
         chunk.state = Chunk::Running; m_running[i] = next;
-        const QJsonObject context{{"task", "lossy_gbk_refine"}, {"draft", LossyGbkRecovery::markup(*m_local, chunk.textBegin, chunk.textEnd, Options)},
-                                  {"chunk", next + 1}, {"chunks", static_cast<int>(m_chunks.size())},
-                                  {"lost_count_exact", m_local->replacement == Utf8Replacement::PerByte}};
+        const auto context = refineRequest(*m_local, chunk.textBegin, chunk.textEnd, next + 1, static_cast<int>(m_chunks.size()), m_glossary);
         m_services[i]->analyze(m_settings->aiConfiguration(), context, m_settings->locale());
         if (!m_busy) return;  // A synchronous failure stopped the run.
     }
@@ -223,10 +232,24 @@ void MojibakeAi::updateStatus() {
 QStringList MojibakeAi::explanation() const {
     QStringList lines;
     if (m_refining) {
-        int filled = 0, rejected = 0;
-        for (const auto& chunk : m_chunks) if (chunk.state == Chunk::Done && chunk.result) { filled += chunk.result->guided; rejected += chunk.result->guideRejected; }
+        int filled = 0, rejected = 0, unknownBefore = 0, unknownAfter = 0, repicked = 0;
+        for (const auto& chunk : m_chunks) {
+            if (chunk.state != Chunk::Done || !chunk.result || !m_local) continue;
+            const auto& r = *chunk.result;
+            filled += r.guided; rejected += r.guideRejected; unknownAfter += r.unknown;
+            const auto length = chunk.textEnd - chunk.textBegin;
+            unknownBefore += static_cast<int>(m_local->evidence.mid(chunk.textBegin, length).count(static_cast<char>(CharEvidence::Unknown)));
+            // Positions line up only where the AI kept the local character count.
+            if (r.text.size() == length)
+                for (qsizetype k = 0; k < length; ++k)
+                    repicked += static_cast<CharEvidence>(m_local->evidence.at(chunk.textBegin + k)) == CharEvidence::Partial && r.text[k] != m_local->text[chunk.textBegin + k];
+        }
         lines << tr("AI refinement: %1 of %2 chunks verified against the surviving bytes; %3 failed.").arg(m_done).arg(m_needed).arg(m_failed);
         lines << tr("AI filled %1 lost characters. %2 AI characters contradicted surviving bytes and were not used.").arg(filled).arg(rejected);
+        if (m_done) {
+            lines << tr("Unknown characters in the verified chunks: %1 before AI, %2 after.").arg(unknownBefore).arg(unknownAfter);
+            lines << tr("AI chose a different fitting character than the local word model for %1 partly damaged characters.").arg(repicked);
+        }
         lines << tr("Characters filled by AI are contextual guesses, not recovered bytes. Chunks without a verified AI reply keep the local result.");
         if (!m_lastError.isEmpty()) lines << tr("Last error: %1").arg(m_lastError);
         return lines;

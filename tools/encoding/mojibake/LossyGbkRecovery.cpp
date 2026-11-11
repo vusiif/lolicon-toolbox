@@ -1,5 +1,6 @@
 #include "LossyGbkRecovery.h"
 #include <QFile>
+#include <QHash>
 #include <QStringDecoder>
 #include <QThreadPool>
 #include <QtConcurrentMap>
@@ -675,6 +676,59 @@ QString LossyGbkRecovery::markup(const LossyRecovery& r, const qsizetype textBeg
             out += QChar(0x3015);
         } else out += r.text[i];
         at += r.text[i].unicode() < 0x80 ? 1 : 2;
+    }
+    return out;
+}
+QStringList LossyGbkRecovery::glossary(const LossyRecovery& r, const int maxCharacters) {
+    // Units are one Han character or one ASCII word or number. Terms are runs of
+    // up to MaxUnits units in which every byte survived.
+    constexpr int MaxUnits = 6, Shortlist = 200;
+    QHash<QString, int> counts;
+    QStringList units;
+    bool asciiOpen = false;
+    const auto flush = [&] {
+        for (qsizetype i = 0; i < units.size(); ++i) {
+            QString term;
+            for (qsizetype n = 0; n < MaxUnits && i + n < units.size(); ++n) {
+                term += units[i + n];
+                if (term.size() >= 2) ++counts[term];  // a lone Han character or letter says nothing
+            }
+        }
+        units.clear(); asciiOpen = false;
+    };
+    for (qsizetype i = 0; i < r.text.size() && i < r.evidence.size(); ++i) {
+        const QChar c = r.text[i];
+        const bool exact = static_cast<CharEvidence>(r.evidence.at(i)) == CharEvidence::Exact;
+        if (const bool ascii = c.unicode() < 0x80 && c.isLetterOrNumber(); exact && ascii) {
+            if (asciiOpen) units.last() += c; else units.append(QString(c));
+            asciiOpen = true;
+        } else if (exact && c.script() == QChar::Script_Han) { units.append(QString(c)); asciiOpen = false; }
+        else flush();
+    }
+    flush();
+    struct Term { QString text; int count; };
+    std::vector<Term> terms;
+    // Two Han characters recur by chance across word boundaries (的财, 值实): ask for a third sighting.
+    const auto enough = [](const QString& term, const int count) {
+        const bool pair = term.size() == 2 && std::ranges::any_of(term, [](const QChar c) { return c.unicode() >= 0x80; });
+        return count >= (pair ? 3 : 2);
+    };
+    for (auto it = counts.cbegin(); it != counts.cend(); ++it) if (enough(it.key(), it.value())) terms.push_back({it.key(), it.value()});
+    const auto weight = [](const Term& t) { return static_cast<qsizetype>(t.count) * t.text.size(); };
+    const auto byWeight = [&](const Term& a, const Term& b) { return weight(a) != weight(b) ? weight(a) > weight(b) : a.text < b.text; };
+    std::ranges::sort(terms, byWeight);
+    if (terms.size() > Shortlist) terms.resize(Shortlist);
+    // A term that only ever occurs inside a longer one adds nothing.
+    std::ranges::stable_sort(terms, [](const Term& a, const Term& b) { return a.text.size() > b.text.size(); });
+    std::vector<Term> kept;
+    for (const auto& t : terms)
+        if (std::ranges::none_of(kept, [&](const Term& k) { return k.count >= t.count && k.text.contains(t.text); })) kept.push_back(t);
+    std::ranges::sort(kept, byWeight);
+    QStringList out;
+    qsizetype used = 0;
+    for (const auto& t : kept) {
+        if (used + t.text.size() > maxCharacters) continue;
+        out.append(t.text); used += t.text.size() + 1;
     }
     return out;
 }
