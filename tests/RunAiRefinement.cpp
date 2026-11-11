@@ -6,10 +6,12 @@
 //
 // RunAiRefinement <corpus dir> <output dir> [--no-context] [--rewrite] [--only <document>] [--dump-first]
 // --rewrite asks for whole-chunk rewrites (the protocol before per-span fills).
+// [--model <id>] uses another model of the configured service, same key.
 // Progress and the app's AI explanation go to <output dir>/run.log.
 #include <QApplication>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QTemporaryDir>
 #include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -32,7 +34,19 @@ int main(int argc, char* argv[]) {
     if (!log.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) return 2;
     const auto note = [&log](const QString& text) { log.write(text.toUtf8() + '\n'); log.flush(); qInfo().noquote() << text; };
     AppSettings settings{QString()};
-    MojibakeAi ai(&settings);
+    // --model tries another model of the configured service with the same key. It
+    // works on a copy of the settings, so the app's own configuration is untouched.
+    QTemporaryDir scratch;
+    std::unique_ptr<AppSettings> copy;
+    AppSettings* active = &settings;
+    if (const auto modelAt = args.indexOf("--model"); modelAt > 0 && modelAt + 1 < args.size()) {
+        auto configuration = settings.aiConfiguration();
+        configuration.model = args[modelAt + 1];
+        copy = std::make_unique<AppSettings>(scratch.filePath("settings.ini"));
+        if (!copy->setAiConfiguration(configuration)) { qCritical("Cannot use the configured key."); return 2; }
+        active = copy.get();
+    }
+    MojibakeAi ai(active);
     ai.setContextEnabled(context);
     const bool units = !args.contains("--rewrite");
     ai.setUnitsEnabled(units);
@@ -65,7 +79,7 @@ int main(int argc, char* argv[]) {
                          .arg(request.value("units").toArray().size()));
                 QElapsedTimer timer; timer.start();
                 QObject::connect(&service, &ai::AiService::completed, &wait, [&] { note(QStringLiteral("Reply after %1 ms").arg(timer.elapsed())); });
-                service.analyze(settings.aiConfiguration(), request, settings.locale());
+                service.analyze(active->aiConfiguration(), request, active->locale());
                 wait.exec();
                 return 0;
             }
