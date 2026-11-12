@@ -20,6 +20,9 @@ add_test(NAME TestMojibakeCorpus COMMAND TestMojibakeCorpus -o mojibake-corpus-r
 # Manual: calls the AI service configured in the app (see the file). Not run by ctest.
 add_executable(RunAiRefinement RunAiRefinement.cpp)
 target_link_libraries(RunAiRefinement PRIVATE ToolMojibake ToolboxCore)
+# Manual: the local lossy GBK repair as commands, for agent experiments. Not run by ctest.
+add_executable(LossyGbkTool LossyGbkTool.cpp)
+target_link_libraries(LossyGbkTool PRIVATE MojibakeLogic)
 add_executable(DiagnoseAiRefinement DiagnoseAiRefinement.cpp)
 target_link_libraries(DiagnoseAiRefinement PRIVATE ToolMojibake ToolboxCore)
 add_executable(TestLossyGbk TestLossyGbk.cpp)
