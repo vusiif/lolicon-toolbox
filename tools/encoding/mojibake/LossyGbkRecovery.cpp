@@ -1,6 +1,7 @@
 #include "LossyGbkRecovery.h"
 #include <QFile>
 #include <QHash>
+#include <QSet>
 #include <QStringDecoder>
 #include <QThreadPool>
 #include <QtConcurrentMap>
@@ -608,9 +609,10 @@ bool LossyGbkRecovery::consistent(const QString& candidate, const QString& damag
     return !encoder.hasError() && lossyUtf8(bytes, replacement) == damaged;
 }
 namespace {
-// Word model score of a short text; an unknown mark ends the word before it.
-double windowScore(const Tables& t, const QStringView s) {
-    std::vector<std::pair<quint32, double>> live{{Root, 0.0}}, next;
+// Word model states, with their scores, after reading s on from live; an unknown mark ends the word before it.
+using States = std::vector<std::pair<quint32, double>>;
+States readOn(const Tables& t, States live, const QStringView s) {
+    States next;
     for (const QChar q : s) {
         next.clear();
         const auto keep = [&](double score, quint32 state) {
@@ -623,8 +625,12 @@ double windowScore(const Tables& t, const QStringView s) {
         }
         live.swap(next);
     }
+    return live;
+}
+// Word model score of a short text.
+double windowScore(const Tables& t, const QStringView s) {
     double best = -1e300;
-    for (const auto& [state, score] : live) best = std::max(best, score + endWord(t, state));
+    for (const auto& [state, score] : readOn(t, {{Root, 0.0}}, s)) best = std::max(best, score + endWord(t, state));
     return best;
 }
 qsizetype byteOffset(const QString& text, const qsizetype index) {
@@ -783,5 +789,145 @@ QString LossyGbkRecovery::unitGuide(const LossyRecovery& r, const qsizetype text
         at = unit.textEnd;
     }
     return out + markup(r, at, textEnd);
+}
+namespace {
+// The damage around a run of characters without all their bytes: the lossy
+// decoding of the reconstruction's bytes a few bytes either side, the decoder
+// state where the run starts, and the bytes after it. Other bytes in the
+// window are the reconstruction's own, so a fill that reproduces this window
+// reproduces the whole damaged text (UTF-8 resynchronises within three bytes).
+struct RunWindow {
+    std::vector<Token> tokens;
+    Cursor start;
+    QByteArray suffix;
+    qsizetype at = 0;  // byte offset of the run
+    bool perByte = false, ok = false;
+};
+RunWindow runWindow(const LossyRecovery& r, const qsizetype textBegin, const qsizetype textEnd) {
+    RunWindow w;
+    if (textBegin < 0 || textBegin >= textEnd || textEnd > r.text.size() || textEnd > r.evidence.size()) return w;
+    for (qsizetype i = textBegin; i < textEnd; ++i)
+        if (static_cast<CharEvidence>(r.evidence.at(i)) == CharEvidence::Exact) return w;  // only lossy characters, two bytes each
+    w.at = byteOffset(r.text, textBegin);
+    const qsizetype atEnd = w.at + 2 * (textEnd - textBegin);
+    if (atEnd > r.bytes.size()) return w;
+    constexpr qsizetype Margin = 6;
+    const qsizetype from = std::max<qsizetype>(0, w.at - Margin), to = std::min(r.bytes.size(), atEnd + Margin);
+    std::vector<qsizetype> offsets;
+    if (!tokenize(LossyGbkRecovery::lossyUtf8(r.bytes.mid(from, to - from), r.replacement), w.tokens, offsets)) return w;
+    w.perByte = r.replacement == Utf8Replacement::PerByte;
+    const int end = static_cast<int>(w.tokens.size());
+    for (qsizetype k = from; k < w.at; ++k)
+        if (!feed(w.start, static_cast<quint8>(r.bytes[k]), w.tokens.data(), end, w.perByte)) return w;
+    w.suffix = r.bytes.mid(atEnd, to - atEnd);
+    w.ok = true;
+    return w;
+}
+// Whether the bytes fed into c, then the window's suffix, reproduce the window exactly.
+bool finish(const RunWindow& w, Cursor c) {
+    const int end = static_cast<int>(w.tokens.size());
+    for (const char b : w.suffix) if (!feed(c, static_cast<quint8>(b), w.tokens.data(), end, w.perByte)) return false;
+    if (c.pending.length) {  // the window ends as a text does: pending bytes become replacement characters
+        const int replaced = w.perByte ? c.pending.length : 1;
+        for (int k = 0; k < replaced; ++k) if (c.token + k >= end || w.tokens[c.token + k].length != 0) return false;
+        c.token += replaced;
+    }
+    return c.token == end;
+}
+// Characters tried where no byte survived: the likeliest word starts and punctuation.
+const std::vector<Choice>& lostPool() {
+    static const std::vector<Choice> pool = [] {
+        const auto& t = tables();
+        std::vector<Choice> out;
+        constexpr size_t Starts = 800;
+        if (t.model)
+            for (quint32 c = 0; c < t.childCount[0] && out.size() < Starts; ++c)
+                if (const char16_t ch = t.nodeChar[t.byMass[t.firstChild[0] + c]]; t.bytesOf[ch] && ch != LossyGbkRecovery::UnknownMark)
+                    out.push_back(pair(t.bytesOf[ch], ch));
+        for (const char16_t ch : u"，。、！？：；“”‘’（）《》—…")
+            if (ch && t.bytesOf[ch]) out.push_back(pair(t.bytesOf[ch], ch));
+        return out;
+    }();
+    return pool;
+}
+}
+bool LossyGbkRecovery::fits(const LossyRecovery& r, const qsizetype textBegin, const qsizetype textEnd, const QString& fill) {
+    if (fill.size() != textEnd - textBegin) return false;
+    const auto w = runWindow(r, textBegin, textEnd);
+    if (!w.ok) return false;
+    const auto& t = tables();
+    const int end = static_cast<int>(w.tokens.size());
+    Cursor c = w.start;
+    for (const QChar q : fill) {
+        const auto bytes = t.bytesOf[q.unicode()];
+        if (!bytes || !feed(c, static_cast<quint8>(bytes >> 8), w.tokens.data(), end, w.perByte)
+            || !feed(c, static_cast<quint8>(bytes), w.tokens.data(), end, w.perByte)) return false;
+    }
+    return finish(w, c);
+}
+QList<SpanCandidate> LossyGbkRecovery::candidates(const LossyRecovery& r, const qsizetype textBegin, const qsizetype textEnd, const int limit, const int beam) {
+    const auto w = runWindow(r, textBegin, textEnd);
+    if (!w.ok || limit <= 0 || beam <= 0) return {};
+    const auto& t = tables();
+    const int end = static_cast<int>(w.tokens.size());
+    struct Hyp { double score; quint32 lm; Cursor cursor; QString text; };
+    std::vector<Hyp> live, next;
+    // A few characters of context on either side score the run's words; they need not start a word.
+    constexpr qsizetype Context = 6;
+    const qsizetype left = std::max<qsizetype>(0, textBegin - Context);
+    for (const auto& [state, score] : readOn(t, {{Root, 0.0}}, QStringView(r.text).mid(left, textBegin - left)))
+        live.push_back({.score = score, .lm = state, .cursor = w.start, .text = {}});
+    for (qsizetype i = textBegin; i < textEnd; ++i) {
+        next.clear();
+        const bool last = i + 1 == textEnd;
+        const auto at = w.at + 2 * (i - textBegin);
+        for (const auto& h : live) {
+            const auto tryChoice = [&](const Choice& c) {
+                if (c.ch == UnknownMark) return;
+                Cursor cursor = h.cursor;
+                if (!feed(cursor, c.bytes[0], w.tokens.data(), end, w.perByte) || !feed(cursor, c.bytes[1], w.tokens.data(), end, w.perByte)
+                    || !viable(cursor, w.tokens.data(), end, w.perByte) || (last && !finish(w, cursor))) return;
+                transitions(t, h.lm, c.ch, [&](const double lp, const quint32 state) {
+                    next.push_back({.score = h.score + lp, .lm = state, .cursor = cursor, .text = h.text + QChar(c.ch)});
+                });
+            };
+            if (static_cast<CharEvidence>(r.evidence.at(i)) == CharEvidence::Partial) {
+                // One byte survived, as the lead or the trail: the reconstruction holds it either way.
+                for (const auto& c : t.byLead[static_cast<quint8>(r.bytes[at])]) tryChoice(c);
+                for (const auto& c : t.byTrail[static_cast<quint8>(r.bytes[at + 1])]) tryChoice(c);
+                continue;
+            }
+            for (const auto& c : lostPool()) tryChoice(c);
+            if (h.lm != Root) {
+                constexpr int Continue = 64;
+                const auto first = t.byMass.begin() + t.firstChild[h.lm];
+                for (auto it = first, stop = first + std::min<int>(Continue, t.childCount[h.lm]); it != stop; ++it)
+                    if (const char16_t ch = t.nodeChar[*it]; t.bytesOf[ch]) tryChoice(pair(t.bytesOf[ch], ch));
+            }
+        }
+        std::ranges::sort(next, [](const Hyp& a, const Hyp& b) { return a.score > b.score; });
+        live.clear();
+        QSet<std::pair<QString, quint32>> seen;
+        for (auto& h : next) {
+            if (live.size() >= static_cast<size_t>(beam)) break;
+            if (seen.contains({h.text, h.lm})) continue;
+            seen.insert({h.text, h.lm});
+            live.push_back(std::move(h));
+        }
+        if (live.empty()) return {};
+    }
+    const qsizetype right = std::min(r.text.size(), textEnd + Context);
+    QHash<QString, double> best;
+    for (const auto& h : live) {
+        double s = -1e300;
+        for (const auto& [state, score] : readOn(t, {{h.lm, h.score}}, QStringView(r.text).mid(textEnd, right - textEnd)))
+            s = std::max(s, score + endWord(t, state));
+        if (const auto it = best.constFind(h.text); it == best.cend() || *it < s) best.insert(h.text, s);
+    }
+    QList<SpanCandidate> out;
+    for (auto it = best.cbegin(); it != best.cend(); ++it) out.append({.text = it.key(), .score = it.value()});
+    std::ranges::sort(out, [](const SpanCandidate& a, const SpanCandidate& b) { return a.score != b.score ? a.score > b.score : a.text < b.text; });
+    if (out.size() > limit) out.resize(limit);
+    return out;
 }
 }

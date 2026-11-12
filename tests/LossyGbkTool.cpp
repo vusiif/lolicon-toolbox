@@ -7,14 +7,24 @@
 //   LossyGbkTool options <damaged> <id> [limit]     every character that fits each byte of a span
 //   LossyGbkTool apply <damaged> <fills.json> <out> splice {"id": "text"} in, re-solve against the bytes
 //   LossyGbkTool score <original> <damaged> <text>  compare a repair with the original
+//   LossyGbkTool validate <text> <damaged>          does text, encoded as GBK, decode to damaged? (whole text)
+//   LossyGbkTool check <damaged> <fills.json> [span] [--joint]  does each fill reproduce its span's damage? (JSON lines)
+//                                                   --joint: next to the other fills, not the local guesses
+//   LossyGbkTool candidates <damaged> [limit] [beam] [span]  likeliest fitting fills of every span (JSON lines)
 //
 // Unit ids are stable for a given damaged file: recover() is deterministic.
+// span caps the characters of one span (default 8, as draft/options/apply);
+// 0 means whole runs, which check and candidates read with exact neighbours.
 #include <QCoreApplication>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QStringEncoder>
 #include <QTextStream>
+#include <cmath>
+#include <limits>
 #include "LossyGbkRecovery.h"
 using namespace mojibake;
 namespace {
@@ -33,13 +43,22 @@ void writeText(const QString& path, const QString& text) {
     file.write(text.toUtf8());
 }
 struct Local { QString damaged; LossyRecovery r; QList<RepairUnit> units; };
-Local load(const QString& path) {
+Local load(const QString& path, const int span = UnitCharacters) {
     Local l{.damaged = readText(path)};
     l.r = LossyGbkRecovery::recover(l.damaged);
     if (!l.r.success) { out << "local recovery failed" << Qt::endl; std::exit(2); }
-    l.units = LossyGbkRecovery::repairUnits(l.r, 0, l.r.text.size(), UnitCharacters);
+    l.units = LossyGbkRecovery::repairUnits(l.r, 0, l.r.text.size(), span > 0 ? span : std::numeric_limits<int>::max());
     return l;
 }
+QJsonObject describe(const Local& l, const qsizetype k) {
+    const auto& u = l.units[k];
+    const auto ev = l.r.evidence.mid(u.textBegin, u.textEnd - u.textBegin);
+    return {{"id", static_cast<int>(k + 1)}, {"begin", static_cast<int>(u.textBegin)}, {"end", static_cast<int>(u.textEnd)},
+            {"lost", static_cast<int>(ev.count(static_cast<char>(CharEvidence::Unknown)))},
+            {"partial", static_cast<int>(ev.count(static_cast<char>(CharEvidence::Partial)))},
+            {"local", l.r.text.mid(u.textBegin, u.textEnd - u.textBegin)}};
+}
+void line(const QJsonObject& o) { out << QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact)) << '\n'; }
 }
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
@@ -117,6 +136,66 @@ int main(int argc, char* argv[]) {
             << "lost: this text " << pct(lostText, lost) << ", still □ " << pct(lostBox, lost) << '\n'
             << "all characters right: " << pct(truth.size() - static_cast<int>(std::ranges::count_if(std::views::iota(qsizetype{0}, truth.size()), [&](qsizetype i) { return text[i] != truth[i]; })), static_cast<int>(truth.size()))
             << "; certain characters changed: " << exactChanged << Qt::endl;
+        return 0;
+    }
+    if (command == "validate" && a.size() == 4) {
+        const auto text = readText(a[2]), damaged = readText(a[3]);
+        const bool perByte = LossyGbkRecovery::consistent(text, damaged, Utf8Replacement::PerByte);
+        const bool subpart = LossyGbkRecovery::consistent(text, damaged, Utf8Replacement::MaximalSubpart);
+        out << (perByte && subpart ? "consistent (either replacement)" : perByte ? "consistent (per-byte)" : subpart ? "consistent (maximal subpart)" : "inconsistent") << Qt::endl;
+        return perByte || subpart ? 0 : 1;
+    }
+    if (command == "check" && a.size() >= 4 && a.size() <= 6) {
+        // --joint: every fill is spliced in first, so each is checked against the
+        // other fills rather than against the local guesses next to it.
+        const bool joint = a.contains("--joint");
+        const auto rest = a.mid(4).filter(QRegularExpression("^\\d+$"));
+        auto l = load(a[2], rest.isEmpty() ? UnitCharacters : rest[0].toInt());
+        QFile file(a[3]);
+        if (!file.open(QIODevice::ReadOnly)) { out << "cannot read fills" << Qt::endl; return 2; }
+        const auto json = QJsonDocument::fromJson(file.readAll()).object();
+        if (joint) {
+            QStringEncoder gbk("GBK", QStringConverter::Flag::Stateless);
+            for (auto it = json.begin(); it != json.end(); ++it) {
+                const int id = it.key().toInt();
+                if (id < 1 || id > l.units.size()) continue;
+                const auto& u = l.units[id - 1];
+                const auto fill = it.value().toString();
+                const QByteArray bytes = gbk(fill);
+                if (gbk.hasError() || fill.size() != u.textEnd - u.textBegin || bytes.size() != 2 * fill.size()) { gbk.resetState(); continue; }
+                qsizetype at = 0;
+                for (qsizetype i = 0; i < u.textBegin; ++i) at += l.r.text[i].unicode() < 0x80 ? 1 : 2;
+                l.r.bytes.replace(at, bytes.size(), bytes);
+                l.r.text.replace(u.textBegin, fill.size(), fill);
+            }
+        }
+        for (auto it = json.begin(); it != json.end(); ++it) {
+            const int id = it.key().toInt();
+            if (id < 1 || id > l.units.size()) { line({{"id", id}, {"error", "no such span"}}); continue; }
+            const auto& u = l.units[id - 1];
+            const auto fill = it.value().toString();
+            auto o = describe(l, id - 1);
+            o.insert("fill", fill);
+            if (fill.size() != u.textEnd - u.textBegin) o.insert("error", QStringLiteral("length %1, span has %2").arg(fill.size()).arg(u.textEnd - u.textBegin));
+            o.insert("fits", LossyGbkRecovery::fits(l.r, u.textBegin, u.textEnd, fill));
+            line(o);
+        }
+        out.flush();
+        return 0;
+    }
+    if (command == "candidates" && a.size() >= 3 && a.size() <= 6) {
+        const auto l = load(a[2], a.size() > 5 ? a[5].toInt() : UnitCharacters);
+        const int limit = a.size() > 3 ? a[3].toInt() : 20, beam = a.size() > 4 ? a[4].toInt() : 128;
+        for (qsizetype k = 0; k < l.units.size(); ++k) {
+            const auto& u = l.units[k];
+            QJsonArray list;
+            for (const auto& c : LossyGbkRecovery::candidates(l.r, u.textBegin, u.textEnd, limit, beam))
+                list.append(QJsonObject{{"text", c.text}, {"score", std::round(c.score * 100) / 100}});
+            auto o = describe(l, k);
+            o.insert("candidates", list);
+            line(o);
+        }
+        out.flush();
         return 0;
     }
     out << "usage: see the comment at the top of LossyGbkTool.cpp" << Qt::endl;

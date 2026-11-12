@@ -31,6 +31,8 @@ struct LossyRecovery {
 // characters without all their bytes, to be answered with minLength..maxLength
 // characters (a range when the damage hid how many characters were lost).
 struct RepairUnit { qsizetype textBegin = 0, textEnd = 0; int minLength = 0, maxLength = 0; };
+// One way to fill a damaged run that reproduces its damage, with its word model log score.
+struct SpanCandidate { QString text; double score = 0; };
 // GBK text that was decoded as UTF-8 with replacement characters and saved
 // again, as many editors and phones do. Every byte that formed valid UTF-8
 // survives unchanged; each U+FFFD replaced one to three bytes that did not.
@@ -83,5 +85,14 @@ public:
     // the wrong length are not used and are counted in *rejected.
     static QString unitGuide(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd,
                              const QList<RepairUnit>& units, const QHash<int, QString>& fills, int* rejected = nullptr);
+    // Whether fill, standing for text[textBegin, textEnd) (partial and unknown
+    // characters only), reproduces the damage there with the rest of the
+    // reconstruction unchanged. fill must have the same length.
+    static bool fits(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd, const QString& fill);
+    // The likeliest fills of text[textBegin, textEnd) that fit, best first, at
+    // most limit of them: a beam search of width beam over characters the
+    // surviving bytes allow and, where none survived, the word model's likeliest
+    // characters (a rare character there is out of reach). Context around the run scores them.
+    static QList<SpanCandidate> candidates(const LossyRecovery& recovery, qsizetype textBegin, qsizetype textEnd, int limit, int beam = 128);
 };
 }
