@@ -97,6 +97,25 @@ def draft(damaged: pathlib.Path) -> dict:
 
 
 # ---------------------------------------------------------------------- model
+def environment(name: str):
+    """An environment variable, also when it was set (user or system wide) after this process started."""
+    if os.environ.get(name):
+        return os.environ[name]
+    try:
+        import winreg
+        for root, path in ((winreg.HKEY_CURRENT_USER, r"Environment"),
+                           (winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment")):
+            try:
+                with winreg.OpenKey(root, path) as key:
+                    if value := winreg.QueryValueEx(key, name)[0]:
+                        return value
+            except OSError:
+                pass
+    except ImportError:
+        pass
+    return None
+
+
 def app_settings() -> tuple:
     try:
         import winreg
@@ -125,17 +144,20 @@ class Client:
     """
 
     def __init__(self, base_url=None, model=None, cache=None, thinking=True, max_tokens=32768,
-                 stall=120, deadline=1200, report=30):
+                 stall=120, deadline=1200, report=30, key_file=None, key_env=None, effort=None):
         app_base, app_model = app_settings()
         self.base_url = (base_url or os.environ.get("MIMO_BASE_URL") or app_base or "").rstrip("/")
         self.model = model or os.environ.get("MIMO_MODEL") or app_model
-        self.key = os.environ.get("MIMO_API_KEY")
-        if not self.base_url or not self.model or not self.key:
-            sys.exit("Set MIMO_API_KEY (and MIMO_BASE_URL / MIMO_MODEL unless the app has them).")
-        self.cache = pathlib.Path(cache) if cache else None
         host = re.sub(r"^https?://([^/:]+).*$", r"\1", self.base_url).lower()
-        self.switchable = host.endswith("xiaomimimo.com") or host == "api.deepseek.com"
-        self.thinking, self.max_tokens = thinking, max_tokens
+        # The key: a file's first line, else an environment variable named for the service.
+        key_env = key_env or ("DEEPSEEK_API_KEY" if host == "api.deepseek.com" else "MIMO_API_KEY")
+        self.key = pathlib.Path(key_file).read_text(encoding="utf-8-sig").splitlines()[0].strip() if key_file else environment(key_env)
+        if not self.base_url or not self.model or not self.key:
+            sys.exit(f"Set {key_env} or pass --key-file (and MIMO_BASE_URL / MIMO_MODEL unless the app has them).")
+        self.cache = pathlib.Path(cache) if cache else None
+        self.deepseek = host == "api.deepseek.com"
+        self.switchable = host.endswith("xiaomimimo.com") or self.deepseek
+        self.thinking, self.max_tokens, self.effort = thinking, max_tokens, effort
         self.stall, self.deadline, self.report = stall, deadline, report
 
     def body(self, messages, **extra) -> dict:
@@ -143,7 +165,12 @@ class Client:
         if self.switchable:
             body["thinking"] = {"type": "enabled" if self.thinking else "disabled"}
         if self.thinking:
-            body["max_completion_tokens"] = self.max_tokens
+            # MiMo documents max_completion_tokens. DeepSeek has no such field (a 5-request probe wrote 249k
+            # tokens): its max_tokens defaults to 64K when thinking, and reasoning_effort (low, high, max;
+            # default high) sets how hard it thinks.
+            body["max_tokens" if self.deepseek else "max_completion_tokens"] = self.max_tokens
+            if self.effort:
+                body["reasoning_effort"] = self.effort
         return body
 
     def chat(self, messages, label="", sample=0, **extra) -> dict:
@@ -173,6 +200,7 @@ class Client:
             except urllib.error.HTTPError as e:
                 error = f"HTTP {e.code}"
                 if e.code < 500 and e.code != 429:
+                    print(f"[{label}] {error}: not retried", file=sys.stderr, flush=True)
                     break
                 time.sleep(10 * (attempt + 1) if e.code == 429 else 2)
             except Stalled as e:
@@ -268,6 +296,27 @@ def parse_picks(content: str):
         return None
     got = reply.get("picks") if isinstance(reply, dict) else None
     return {str(k): v for k, v in got.items() if isinstance(v, str) and len(v) == 1} if isinstance(got, dict) else None
+
+
+def parse_alternatives(content: str):
+    """The picks object of an e4 reply (slot -> characters, likeliest first), or None."""
+    start, end = content.find("{"), content.rfind("}")
+    if start < 0 or end < start:
+        return None
+    try:
+        reply = json.loads(content[start:end + 1])
+    except ValueError:
+        return None
+    got = reply.get("picks") if isinstance(reply, dict) else None
+    if not isinstance(got, dict):
+        return None
+    out = {}
+    for k, v in got.items():
+        values = v if isinstance(v, list) else [v]
+        chars = [c for c in values if isinstance(c, str) and len(c) == 1 and c != "□"]
+        if chars:
+            out[str(k)] = list(dict.fromkeys(chars))
+    return out
 
 
 def run_all(jobs, work, parallel):

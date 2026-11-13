@@ -10,6 +10,7 @@
 //   LossyGbkTool validate <text> <damaged>          does text, encoded as GBK, decode to damaged? (whole text)
 //   LossyGbkTool check <damaged> <fills.json> [span] [--joint]  does each fill reproduce its span's damage? (JSON lines)
 //                                                   --joint: next to the other fills, not the local guesses
+//                                                   (□ in a fill keeps the local bytes of that character)
 //   LossyGbkTool candidates <damaged> [limit] [beam] [span]  likeliest fitting fills of every span (JSON lines)
 //   LossyGbkTool partials <damaged> [limit]         every partial character's options, local choice first (JSON lines)
 //
@@ -170,12 +171,17 @@ int main(int argc, char* argv[]) {
                 if (id < 1 || id > l.units.size()) continue;
                 const auto& u = l.units[id - 1];
                 const auto fill = it.value().toString();
-                const QByteArray bytes = gbk(fill);
-                if (gbk.hasError() || fill.size() != u.textEnd - u.textBegin || bytes.size() != 2 * fill.size()) { gbk.resetState(); continue; }
+                if (fill.size() != u.textEnd - u.textBegin) continue;
                 qsizetype at = 0;
                 for (qsizetype i = 0; i < u.textBegin; ++i) at += l.r.text[i].unicode() < 0x80 ? 1 : 2;
-                l.r.bytes.replace(at, bytes.size(), bytes);
-                l.r.text.replace(u.textBegin, fill.size(), fill);
+                // Character by character: □ in a fill keeps the reconstruction's own bytes there.
+                for (qsizetype k = 0; k < fill.size(); ++k, at += 2) {
+                    if (fill[k] == QChar(LossyGbkRecovery::UnknownMark)) continue;
+                    const QByteArray bytes = gbk(fill.mid(k, 1));
+                    if (gbk.hasError() || bytes.size() != 2) { gbk.resetState(); continue; }
+                    l.r.bytes.replace(at, 2, bytes);
+                    l.r.text[u.textBegin + k] = fill[k];
+                }
             }
         }
         for (auto it = json.begin(); it != json.end(); ++it) {
