@@ -43,3 +43,4 @@ Thumbs.db
 desktop.ini
 
 test_output.txt
+__pycache__/
