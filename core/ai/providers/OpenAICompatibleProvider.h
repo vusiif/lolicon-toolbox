@@ -24,6 +24,8 @@ public:
     // units: the lossy_gbk_units reply, which carries fills instead of recovered_text.
     static std::optional<Reply> parse(const QByteArray&, int candidateCount, bool units = false);
     static QByteArray requestBody(const Configuration&, const QJsonArray& messages);
+    // The system prompt for context's task and the context itself as the user message.
+    static QJsonArray messages(const QJsonObject& context, const QString& language);
 private:
     void read();
     void readEvents(const QByteArray& bytes);

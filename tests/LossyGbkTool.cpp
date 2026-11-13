@@ -11,6 +11,7 @@
 //   LossyGbkTool check <damaged> <fills.json> [span] [--joint]  does each fill reproduce its span's damage? (JSON lines)
 //                                                   --joint: next to the other fills, not the local guesses
 //   LossyGbkTool candidates <damaged> [limit] [beam] [span]  likeliest fitting fills of every span (JSON lines)
+//   LossyGbkTool partials <damaged> [limit]         every partial character's options, local choice first (JSON lines)
 //
 // Unit ids are stable for a given damaged file: recover() is deterministic.
 // span caps the characters of one span (default 8, as draft/options/apply);
@@ -25,6 +26,10 @@
 #include <QTextStream>
 #include <cmath>
 #include <limits>
+#ifdef Q_OS_WIN
+#include <fcntl.h>
+#include <io.h>
+#endif
 #include "LossyGbkRecovery.h"
 using namespace mojibake;
 namespace {
@@ -56,12 +61,16 @@ QJsonObject describe(const Local& l, const qsizetype k) {
     return {{"id", static_cast<int>(k + 1)}, {"begin", static_cast<int>(u.textBegin)}, {"end", static_cast<int>(u.textEnd)},
             {"lost", static_cast<int>(ev.count(static_cast<char>(CharEvidence::Unknown)))},
             {"partial", static_cast<int>(ev.count(static_cast<char>(CharEvidence::Partial)))},
-            {"local", l.r.text.mid(u.textBegin, u.textEnd - u.textBegin)}};
+            {"local", l.r.text.mid(u.textBegin, u.textEnd - u.textBegin)}, {"evidence", QString::fromLatin1(ev)}};
 }
 void line(const QJsonObject& o) { out << QString::fromUtf8(QJsonDocument(o).toJson(QJsonDocument::Compact)) << '\n'; }
 }
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
+#ifdef Q_OS_WIN
+    // Text mode would turn each \n into \r\n, and the draft's own \r\n into \r\r\n.
+    _setmode(_fileno(stdout), _O_BINARY);
+#endif
     out.setEncoding(QStringConverter::Utf8);
     const auto a = app.arguments();
     const QString command = a.value(1);
@@ -180,6 +189,16 @@ int main(int argc, char* argv[]) {
             o.insert("fits", LossyGbkRecovery::fits(l.r, u.textBegin, u.textEnd, fill));
             line(o);
         }
+        out.flush();
+        return 0;
+    }
+    if (command == "partials" && (a.size() == 3 || a.size() == 4)) {
+        // Every partial character with the characters that keep its surviving byte and reproduce the damage there.
+        const auto l = load(a[2]);
+        const int limit = a.size() == 4 ? a[3].toInt() : 400;
+        for (qsizetype i = 0; i < l.r.text.size(); ++i)
+            if (static_cast<CharEvidence>(l.r.evidence[i]) == CharEvidence::Partial)
+                line({{"index", static_cast<int>(i)}, {"options", LossyGbkRecovery::alternatives(l.r, i, limit)}});
         out.flush();
         return 0;
     }
